@@ -1,0 +1,19 @@
+const User=function(user){
+    this.id=user.id;
+    this.name=user.name;
+    this.dob=user.dob;
+    this.gender=user.gender;
+    this.education=user.education;
+    this.business_name=user.business_name;
+    this.business_desc=user.business_desc;
+    this.business_address=user.business_address;
+    this.native_place=user.native_place;
+    this.city=user.city;
+    this.address=user.address;
+    this.phone=user.phone;
+    this.landline=user.landline;
+    this.wedding_date=user.wedding_date;
+    this.email=user.email;
+    this.blood_group=user.blood_group;
+    this.acc_manager=user.acc_manager;
+}
