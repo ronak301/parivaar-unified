@@ -9,6 +9,9 @@ const Address = sequelize.define(
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
     },
+    userId: {
+      type: DataTypes.UUID,
+    },
     address: {
       type: DataTypes.STRING,
     },

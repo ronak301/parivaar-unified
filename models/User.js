@@ -74,31 +74,31 @@ const User = sequelize.define(
 module.exports = User;
 
 const Business = require('./Business.js');
+const Relationship = require('./Relationship.js');
 const Address = require('./Address.js');
 const Community = require('./community.js');
 const CommunityMembers = require('./CommunityMembers.js');
-const Relationship = require('./Relationship.js');
 
 User.hasOne(Business, {
-  foreignKey: 'owner_id',
+  foreignKey: 'ownerId',
   onDelete: 'CASCADE',
 });
 
 User.hasOne(Address, {
-  foreignKey: 'user_id',
+  foreignKey: 'userId',
   onDelete: 'CASCADE',
 });
 
 User.belongsToMany(Community, {
   through: CommunityMembers,
-  foreignKey: 'user_id',
+  foreignKey: 'userId',
   onDelete: 'CASCADE',
 });
 
 User.belongsToMany(User, {
   through: Relationship,
   as: 'relatives',
-  foreignKey: 'user_id',
-  otherKey: 'relative_id',
+  foreignKey: 'userId',
+  otherKey: 'relativeId',
   onDelete: 'CASCADE',
 });

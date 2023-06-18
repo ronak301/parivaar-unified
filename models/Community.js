@@ -1,18 +1,24 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database.js');
 
-const Business = sequelize.define(
-  'Business',
+const Community = sequelize.define(
+  'Community',
   {
     id: {
       primaryKey: true,
       type: DataTypes.BIGINT,
       autoIncrement: true,
     },
-    ownerId: {
-      type: DataTypes.UUID,
-    },
     name: {
+      type: DataTypes.STRING,
+    },
+    logo: {
+      type: DataTypes.STRING,
+    },
+    description: {
+      type: DataTypes.STRING,
+    },
+    createdBy: {
       type: DataTypes.STRING,
     },
     type: {
@@ -21,31 +27,30 @@ const Business = sequelize.define(
     subType: {
       type: DataTypes.STRING,
     },
-    description: {
-      type: DataTypes.STRING,
-    },
-    address: {
-      type: DataTypes.STRING,
-    },
-    website: {
-      type: DataTypes.STRING,
-    },
-    phone: {
+    code: {
       type: DataTypes.STRING,
     },
   },
   {
-    tableName: 'businesses',
+    tableName: 'communities',
+    timestamps: true,
     underscored: true,
-    timestamps: false,
   }
 );
 
-module.exports = Business;
+module.exports = Community;
 
 const User = require('./User.js');
+const Executive = require('./Executive.js');
+const CommunityMembers = require('./CommunityMembers.js');
 
-Business.hasOne(User, {
-  foreignKey: 'business_id',
-  onDelete: 'SET NULL',
+Community.belongsToMany(User, {
+  through: CommunityMembers,
+  as: 'members',
+  foreignKey: 'community_id',
+  onDelete: 'CASCADE',
+});
+
+Community.hasMany(Executive, {
+  foreignKey: 'community_id',
 });
