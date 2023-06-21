@@ -18,9 +18,6 @@ const Community = sequelize.define(
     description: {
       type: DataTypes.STRING,
     },
-    createdBy: {
-      type: DataTypes.STRING,
-    },
     type: {
       type: DataTypes.STRING,
     },
@@ -51,6 +48,13 @@ Community.belongsToMany(User, {
   onDelete: 'CASCADE',
 });
 
-Community.hasMany(Executive, {
-  foreignKey: 'community_id',
+Community.belongsToMany(User, {
+  through: Executive,
+  as: 'executives',
+  foreignKey: 'communityId',
+  onDelete: 'CASCADE',
 });
+
+// Community.hasMany(Executive, {
+//   foreignKey: 'community_id',
+// });

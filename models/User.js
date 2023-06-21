@@ -9,14 +9,13 @@ const User = sequelize.define(
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
     },
-    businessId: {
-      type: DataTypes.BIGINT,
-    },
     firstName: {
       type: DataTypes.STRING,
+      allowNull: false,
     },
     lastName: {
       type: DataTypes.STRING,
+      allowNull: false,
     },
     profilePicture: {
       type: DataTypes.STRING,
@@ -76,8 +75,9 @@ module.exports = User;
 const Business = require('./Business.js');
 const Relationship = require('./Relationship.js');
 const Address = require('./Address.js');
-const Community = require('./community.js');
+const Community = require('./Community.js');
 const CommunityMembers = require('./CommunityMembers.js');
+const Executive = require('./Executive.js');
 
 User.hasOne(Business, {
   foreignKey: 'ownerId',
@@ -88,6 +88,13 @@ User.hasOne(Address, {
   foreignKey: 'userId',
   onDelete: 'CASCADE',
 });
+
+// User.belongsToMany(Community, {
+//   through: Executive,
+//   as: 'executives',
+//   foreignKey: 'userId',
+//   onDelete: 'CASCADE',
+// });
 
 User.belongsToMany(Community, {
   through: CommunityMembers,
@@ -102,3 +109,10 @@ User.belongsToMany(User, {
   otherKey: 'relativeId',
   onDelete: 'CASCADE',
 });
+
+// User.belongsToMany(Community, {
+//   through: Executive,
+//   as: 'executives',
+//   foreignKey: 'userId',
+//   onDelete: 'CASCADE',
+// });

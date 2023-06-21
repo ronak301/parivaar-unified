@@ -1,6 +1,5 @@
-const User = require('../models/User');
-const CommunityMembers = require('../models/CommunityMembers');
-const Community = require('../models/community');
+const { Op } = require('sequelize');
+const { User } = require('../models');
 
 exports.insertUser = async (data, transaction) => {
   try {
@@ -15,18 +14,21 @@ exports.insertUser = async (data, transaction) => {
 };
 
 exports.getUsersWithAll = async () => {
+  const search = {
+    firstName: 'Jine',
+  };
   try {
     const users = await User.findAll({
-      where: {
-        isAccountManager: true,
-      },
+      // where: {
+      //   isAccountManager: true,
+      // },
       include: [
         {
           model: User,
           as: 'relatives',
           attributes: ['id', 'first_name', 'last_name', 'profile_picture'],
           through: {
-            attributes: ['type'],
+            attributes: ['roles'],
           },
         },
       ],

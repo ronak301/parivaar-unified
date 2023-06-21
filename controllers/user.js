@@ -1,5 +1,3 @@
-const { addRelative } = require('../services/relationship');
-const { sequelize } = require('../config/database');
 const { insertUser, getUsersWithAll } = require('../services/user');
 
 const createUser = async (req, res) => {

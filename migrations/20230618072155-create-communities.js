@@ -2,35 +2,29 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('addresses', {
+    await queryInterface.createTable('communities', {
       id: {
         allowNull: false,
+        autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4,
+        type: Sequelize.BIGINT,
       },
-      user_id: {
-        type: Sequelize.UUID,
-        references: {
-          model: 'users',
-          key: 'id',
-        },
-        onDelete: 'CASCADE',
-        onUpdate: 'CASCADE',
-      },
-      address: {
+      name: {
         type: Sequelize.STRING,
       },
-      pincode: {
+      logo: {
         type: Sequelize.STRING,
       },
-      city: {
+      description: {
         type: Sequelize.STRING,
       },
-      locality: {
+      type: {
         type: Sequelize.STRING,
       },
-      state: {
+      sub_type: {
+        type: Sequelize.STRING,
+      },
+      code: {
         type: Sequelize.STRING,
       },
       created_at: {
@@ -48,10 +42,6 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeConstraint(
-      'addresses',
-      'addresses_user_id_fkey'
-    );
-    await queryInterface.dropTable('addresses');
+    await queryInterface.dropTable('communities');
   },
 };

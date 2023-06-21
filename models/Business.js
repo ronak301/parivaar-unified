@@ -37,15 +37,8 @@ const Business = sequelize.define(
   {
     tableName: 'businesses',
     underscored: true,
-    timestamps: false,
+    timestamps: true,
   }
 );
 
 module.exports = Business;
-
-const User = require('./User.js');
-
-Business.hasOne(User, {
-  foreignKey: 'business_id',
-  onDelete: 'SET NULL',
-});

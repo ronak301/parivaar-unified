@@ -2,7 +2,7 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database.js');
 
 const Executive = sequelize.define(
-  'Executive',
+  'executive',
   {
     id: {
       primaryKey: true,
@@ -12,14 +12,11 @@ const Executive = sequelize.define(
     communityId: {
       type: DataTypes.BIGINT,
     },
-    designation: {
-      type: DataTypes.STRING,
+    userId: {
+      type: DataTypes.UUID,
     },
-    isAdmin: {
-      type: DataTypes.BOOLEAN,
-    },
-    appointedOn: {
-      type: DataTypes.DATEONLY,
+    roles: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
     },
   },
   {

@@ -14,7 +14,7 @@ const CommunityMembers = sequelize.define(
   {
     tableName: 'community_members',
     underscored: true,
-    timestamps: false,
+    timestamps: true,
   }
 );
 
