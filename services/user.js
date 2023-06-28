@@ -1,4 +1,3 @@
-const { Op } = require('sequelize');
 const { User } = require('../models');
 
 exports.insertUser = async (data, transaction) => {
@@ -28,7 +27,7 @@ exports.getUsersWithAll = async () => {
           as: 'relatives',
           attributes: ['id', 'first_name', 'last_name', 'profile_picture'],
           through: {
-            attributes: ['roles'],
+            attributes: ['type'],
           },
         },
       ],

@@ -1,7 +1,11 @@
-const { createRelative } = require('../controllers/relationship');
+const {
+  createRelative,
+  createRelation,
+} = require('../controllers/relationship');
 
 const router = require('express').Router();
 
-router.post('/create', createRelative);
+router.post('/relative/new', createRelative);
+router.post('/relation/new', createRelation);
 
 module.exports = router;

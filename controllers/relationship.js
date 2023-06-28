@@ -1,5 +1,5 @@
 const { sequelize } = require('../config/database');
-const { addRelative } = require('../services/relationship');
+const { addRelative, addRelation } = require('../services/relationship');
 const { insertUser } = require('../services/user');
 
 const createRelative = async (req, res) => {
@@ -34,6 +34,26 @@ const createRelative = async (req, res) => {
   }
 };
 
+const createRelation = async (req, res) => {
+  const body = req.body;
+
+  try {
+    await addRelation(body);
+
+    res.status(200).json({
+      success: true,
+      message: 'Relationship created successfully',
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: 'Something went wrong',
+      error: error,
+    });
+  }
+};
+
 module.exports = {
   createRelative,
+  createRelation,
 };

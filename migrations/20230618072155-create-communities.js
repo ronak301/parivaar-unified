@@ -11,17 +11,23 @@ module.exports = {
       },
       name: {
         type: Sequelize.STRING,
+        allowNull: false,
       },
       logo: {
         type: Sequelize.STRING,
       },
       description: {
         type: Sequelize.STRING,
+        allowNull: false,
       },
       type: {
         type: Sequelize.STRING,
+        allowNull: false,
       },
       sub_type: {
+        type: Sequelize.STRING,
+      },
+      status: {
         type: Sequelize.STRING,
       },
       code: {

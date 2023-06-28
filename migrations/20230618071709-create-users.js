@@ -11,9 +11,11 @@ module.exports = {
       },
       first_name: {
         type: Sequelize.STRING,
+        allowNull: false,
       },
       last_name: {
         type: Sequelize.STRING,
+        allowNull: false,
       },
       profile_picture: {
         type: Sequelize.STRING,
@@ -23,20 +25,16 @@ module.exports = {
       },
       dob: {
         type: Sequelize.DATEONLY,
+        allowNull: false,
       },
       gender: {
         type: Sequelize.STRING,
+        allowNull: false,
       },
       education: {
         type: Sequelize.STRING,
       },
       native_place: {
-        type: Sequelize.STRING,
-      },
-      city: {
-        type: Sequelize.STRING,
-      },
-      address: {
         type: Sequelize.STRING,
       },
       phone: {
@@ -61,6 +59,9 @@ module.exports = {
       is_account_manager: {
         type: Sequelize.BOOLEAN,
         defaultValue: false,
+      },
+      last_seen: {
+        type: Sequelize.DATEONLY,
       },
       created_at: {
         allowNull: false,

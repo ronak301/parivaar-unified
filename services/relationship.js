@@ -7,14 +7,28 @@ exports.addRelative = async (data, transaction) => {
   try {
     await Relationship.create(
       {
-        user_id: userId,
-        relative_id: relativeId,
+        userId,
+        relativeId,
         type,
       },
       {
         transaction,
       }
     );
+  } catch (err) {
+    console.log(err);
+    throw { message: 'Error while creating relationship' };
+  }
+};
+
+exports.addRelation = async ({ userId, relativeId, type }) => {
+  try {
+    await Relationship.create({
+      userId,
+      relativeId,
+      type,
+    });
+    return true;
   } catch (err) {
     console.log(err);
     throw { message: 'Error while creating relationship' };

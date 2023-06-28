@@ -35,12 +35,6 @@ const User = sequelize.define(
     nativePlace: {
       type: DataTypes.STRING,
     },
-    city: {
-      type: DataTypes.STRING,
-    },
-    address: {
-      type: DataTypes.STRING,
-    },
     phone: {
       type: DataTypes.STRING,
     },
@@ -62,6 +56,9 @@ const User = sequelize.define(
     isAccountManager: {
       type: DataTypes.BOOLEAN,
     },
+    lastSeen: {
+      type: DataTypes.DATEONLY,
+    },
   },
   {
     tableName: 'users',
@@ -76,15 +73,17 @@ const Business = require('./Business.js');
 const Relationship = require('./Relationship.js');
 const Address = require('./Address.js');
 const Community = require('./Community.js');
-const CommunityMembers = require('./CommunityMembers.js');
-const Executive = require('./Executive.js');
+const CommunityMember = require('./CommunityMember.js');
+// const Executive = require('./Executive.js');
 
 User.hasOne(Business, {
+  as: 'business',
   foreignKey: 'ownerId',
   onDelete: 'CASCADE',
 });
 
 User.hasOne(Address, {
+  as: 'address',
   foreignKey: 'userId',
   onDelete: 'CASCADE',
 });
@@ -97,7 +96,8 @@ User.hasOne(Address, {
 // });
 
 User.belongsToMany(Community, {
-  through: CommunityMembers,
+  through: CommunityMember,
+  as: 'communities',
   foreignKey: 'userId',
   onDelete: 'CASCADE',
 });

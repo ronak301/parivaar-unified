@@ -12,7 +12,7 @@ const Address = sequelize.define(
     userId: {
       type: DataTypes.UUID,
     },
-    address: {
+    fullAddress: {
       type: DataTypes.STRING,
     },
     pincode: {

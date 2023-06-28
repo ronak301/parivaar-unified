@@ -2,7 +2,7 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database.js');
 
 const Executive = sequelize.define(
-  'executive',
+  'Executive',
   {
     id: {
       primaryKey: true,

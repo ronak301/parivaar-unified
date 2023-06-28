@@ -2,12 +2,15 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('addresses', {
-      id: {
-        allowNull: false,
-        primaryKey: true,
-        type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4,
+    await queryInterface.createTable('community_members', {
+      community_id: {
+        type: Sequelize.BIGINT,
+        references: {
+          model: 'communities',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
       },
       user_id: {
         type: Sequelize.UUID,
@@ -17,24 +20,6 @@ module.exports = {
         },
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
-      },
-      full_address: {
-        type: Sequelize.STRING,
-        allowNull: false,
-      },
-      pincode: {
-        type: Sequelize.STRING,
-      },
-      city: {
-        type: Sequelize.STRING,
-        allowNull: false,
-      },
-      locality: {
-        type: Sequelize.STRING,
-      },
-      state: {
-        type: Sequelize.STRING,
-        allowNull: false,
       },
       created_at: {
         allowNull: false,
@@ -52,9 +37,13 @@ module.exports = {
 
   down: async (queryInterface, Sequelize) => {
     await queryInterface.removeConstraint(
-      'addresses',
-      'addresses_user_id_fkey'
+      'community_members',
+      'community_members_community_id_fkey'
     );
-    await queryInterface.dropTable('addresses');
+    await queryInterface.removeConstraint(
+      'community_members',
+      'community_members_user_id_fkey'
+    );
+    await queryInterface.dropTable('community_members');
   },
 };

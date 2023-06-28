@@ -1,8 +1,8 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database.js');
 
-const CommunityMembers = sequelize.define(
-  'CommunityMembers',
+const CommunityMember = sequelize.define(
+  'CommunityMember',
   {
     communityId: {
       type: DataTypes.BIGINT,
@@ -18,4 +18,4 @@ const CommunityMembers = sequelize.define(
   }
 );
 
-module.exports = CommunityMembers;
+module.exports = CommunityMember;

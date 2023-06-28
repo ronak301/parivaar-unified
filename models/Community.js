@@ -24,6 +24,9 @@ const Community = sequelize.define(
     subType: {
       type: DataTypes.STRING,
     },
+    status: {
+      type: DataTypes.STRING,
+    },
     code: {
       type: DataTypes.STRING,
     },
@@ -39,10 +42,10 @@ module.exports = Community;
 
 const User = require('./User.js');
 const Executive = require('./Executive.js');
-const CommunityMembers = require('./CommunityMembers.js');
+const CommunityMember = require('./CommunityMember.js');
 
 Community.belongsToMany(User, {
-  through: CommunityMembers,
+  through: CommunityMember,
   as: 'members',
   foreignKey: 'community_id',
   onDelete: 'CASCADE',
