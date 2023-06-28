@@ -12,6 +12,11 @@ const relationshipRoutes = require('./routes/relationship.js');
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// make a get route for / that returns a message
+app.get('/', (req, res) => {
+  res.send('Welcome to backend of Community App v1.0');
+});
+
 app.use('/user', userRoutes);
 app.use('/business', businessRoutes);
 app.use('/community', communityRoutes);
