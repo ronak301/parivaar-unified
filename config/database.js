@@ -31,6 +31,12 @@ const sequelize = new Sequelize('postgres', 'postgres', 'UKw3ki8NUGJyzMo2', {
   logging: false,
 });
 
+// const sequelize = new Sequelize('postgres', 'postgres', '12345678', {
+//   host: 'localhost',
+//   dialect: 'postgres',
+//   logging: false,
+// });
+
 // Test the database connection
 (async () => {
   try {

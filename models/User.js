@@ -25,9 +25,11 @@ const User = sequelize.define(
     },
     dob: {
       type: DataTypes.DATEONLY,
+      allowNull: false,
     },
     gender: {
       type: DataTypes.STRING,
+      allowNull: false,
     },
     education: {
       type: DataTypes.STRING,
@@ -46,9 +48,13 @@ const User = sequelize.define(
     },
     email: {
       type: DataTypes.STRING,
+      allowNull: false,
       validate: {
         isEmail: true,
       },
+    },
+    authId: {
+      type: DataTypes.UUID,
     },
     bloodGroup: {
       type: DataTypes.STRING,

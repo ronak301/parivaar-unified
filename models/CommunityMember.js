@@ -6,9 +6,11 @@ const CommunityMember = sequelize.define(
   {
     communityId: {
       type: DataTypes.BIGINT,
+      allowNull: false,
     },
     userId: {
       type: DataTypes.UUID,
+      allowNull: false,
     },
   },
   {

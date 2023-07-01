@@ -9,8 +9,8 @@
   "test": {
     "username": "postgres",
     "password": "12345678",
-    "database": "community-backend",
-    "host": "postgres",
+    "database": "postgres",
+    "host": "localhost",
     "dialect": "postgres"
   },
   "production": {

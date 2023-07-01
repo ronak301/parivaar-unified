@@ -11,6 +11,8 @@ module.exports = {
       },
       owner_id: {
         type: Sequelize.UUID,
+        allowNull: false,
+        foreignKey: true,
         references: {
           model: 'users',
           key: 'id',

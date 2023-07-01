@@ -11,6 +11,7 @@ module.exports = {
       },
       user_id: {
         type: Sequelize.UUID,
+        foreignKey: true,
         allowNull: false,
         references: {
           model: 'users',
@@ -21,6 +22,7 @@ module.exports = {
       },
       relative_id: {
         type: Sequelize.UUID,
+        foreignKey: true,
         allowNull: false,
         references: {
           model: 'users',
@@ -31,6 +33,7 @@ module.exports = {
       },
       type: {
         type: Sequelize.STRING,
+        allowNull: false,
       },
       created_at: {
         allowNull: false,

@@ -11,15 +11,18 @@ const Community = sequelize.define(
     },
     name: {
       type: DataTypes.STRING,
+      allowNull: false,
     },
     logo: {
       type: DataTypes.STRING,
     },
     description: {
       type: DataTypes.STRING,
+      allowNull: false,
     },
     type: {
       type: DataTypes.STRING,
+      allowNull: false,
     },
     subType: {
       type: DataTypes.STRING,
@@ -57,7 +60,3 @@ Community.belongsToMany(User, {
   foreignKey: 'communityId',
   onDelete: 'CASCADE',
 });
-
-// Community.hasMany(Executive, {
-//   foreignKey: 'community_id',
-// });

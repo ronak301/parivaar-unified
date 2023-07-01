@@ -1,3 +1,4 @@
+const { Sequelize } = require('sequelize');
 const { User, Community, CommunityMember, Executive } = require('../models');
 
 exports.insertCommunity = async (data) => {
@@ -22,6 +23,49 @@ exports.addCommunityMember = async (c_id, u_id) => {
       communityId: c_id,
       userId: u_id,
     });
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+};
+
+exports.getCommunities = async () => {
+  try {
+    const communities = await Community.findAll({
+      attributes: [
+        'id',
+        'name',
+        'logo',
+        'description',
+        'type',
+        'subType',
+        'code',
+        'status',
+        [
+          Sequelize.fn(
+            'COUNT',
+            Sequelize.col('members->CommunityMember.user_id')
+          ),
+          'total_members',
+        ],
+      ],
+      include: [
+        {
+          model: User,
+          as: 'members',
+          attributes: [],
+          through: {
+            attributes: [],
+          },
+        },
+      ],
+      group: [
+        Sequelize.col('Community.id'),
+        Sequelize.col('members->CommunityMember.community_id'),
+      ],
+    });
+
+    return communities;
   } catch (err) {
     console.log(err);
     throw err;

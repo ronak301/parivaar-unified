@@ -53,6 +53,18 @@ module.exports = {
           isEmail: true,
         },
       },
+      auth_id: {
+        type: Sequelize.UUID,
+        allowNull: false,
+        references: {
+          model: {
+            schema: 'auth', // Specify the schema name here
+            tableName: 'users', // Specify the table name here
+          },
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+      },
       blood_group: {
         type: Sequelize.STRING,
       },

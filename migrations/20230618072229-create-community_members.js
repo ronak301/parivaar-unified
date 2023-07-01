@@ -5,6 +5,8 @@ module.exports = {
     await queryInterface.createTable('community_members', {
       community_id: {
         type: Sequelize.BIGINT,
+        foreignKey: true,
+        allowNull: false,
         references: {
           model: 'communities',
           key: 'id',
@@ -14,6 +16,8 @@ module.exports = {
       },
       user_id: {
         type: Sequelize.UUID,
+        foreignKey: true,
+        allowNull: false,
         references: {
           model: 'users',
           key: 'id',

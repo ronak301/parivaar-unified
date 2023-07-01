@@ -17,7 +17,7 @@ exports.addRelative = async (data, transaction) => {
     );
   } catch (err) {
     console.log(err);
-    throw { message: 'Error while creating relationship' };
+    throw err;
   }
 };
 

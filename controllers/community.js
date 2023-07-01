@@ -3,16 +3,17 @@ const {
   getCommunityWithAll,
   insertCommunity,
   getCommunityMembers,
+  getCommunities,
 } = require('../services/community');
 
 const createCommunity = async (req, res) => {
   try {
-    const newcommunity = await insertCommunity(req.body);
+    const newCommunity = await insertCommunity(req.body);
 
-    res.json(newcommunity);
+    return res.json(newCommunity);
   } catch (err) {
     console.log(err);
-    res.status(500).json({ success: false, error: err });
+    return res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -23,12 +24,22 @@ const joinCommunity = async (req, res) => {
   try {
     await addCommunityMember(id, userId);
 
-    res
+    return res
       .status(200)
       .json({ success: true, message: 'Successfully joined community' });
   } catch (err) {
     console.log(err);
-    res.status(500).json({ success: false, message: err });
+    return res.status(500).json({ success: false, message: err });
+  }
+};
+
+const getAllCommunitiesController = async (req, res) => {
+  try {
+    const communities = await getCommunities();
+    res.json({ success: true, communities });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -59,6 +70,7 @@ const getCommunityMembersController = async (req, res) => {
 
 module.exports = {
   createCommunity,
+  getAllCommunitiesController,
   getCommunityWithAllController,
   joinCommunity,
   getCommunityMembersController,

@@ -29,7 +29,7 @@ const createRelative = async (req, res) => {
     await transaction.rollback();
     res.status(500).json({
       message: 'Something went wrong',
-      error: error,
+      error: error.message,
     });
   }
 };

@@ -11,12 +11,15 @@ const Relationship = sequelize.define(
     },
     userId: {
       type: DataTypes.UUID,
+      allowNull: false,
     },
     relativeId: {
       type: DataTypes.UUID,
+      allowNull: false,
     },
     type: {
       type: DataTypes.STRING,
+      allowNull: false,
     },
   },
   {

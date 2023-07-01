@@ -11,6 +11,8 @@ module.exports = {
       },
       community_id: {
         type: Sequelize.BIGINT,
+        foreignKey: true,
+        allowNull: false,
         references: {
           model: 'communities',
           key: 'id',
@@ -20,6 +22,8 @@ module.exports = {
       },
       user_id: {
         type: Sequelize.UUID,
+        foreignKey: true,
+        allowNull: false,
         references: {
           model: 'users',
           key: 'id',
@@ -29,6 +33,7 @@ module.exports = {
       },
       roles: {
         type: Sequelize.ARRAY(Sequelize.STRING),
+        defaultValue: [],
       },
       created_at: {
         allowNull: false,
