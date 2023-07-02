@@ -50,7 +50,7 @@ const CommunityMember = require('./CommunityMember.js');
 Community.belongsToMany(User, {
   through: CommunityMember,
   as: 'members',
-  foreignKey: 'community_id',
+  foreignKey: 'communityId',
   onDelete: 'CASCADE',
 });
 

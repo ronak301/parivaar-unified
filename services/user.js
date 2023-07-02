@@ -69,3 +69,15 @@ exports.updateUser = async (id, mutation) => {
     throw err;
   }
 };
+
+exports.searchUser = async (query) => {
+  try {
+    const users = await User.findAll({
+      where: query,
+    });
+    return users;
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+};

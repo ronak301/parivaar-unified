@@ -1,4 +1,9 @@
-const { insertUser, getUsersWithAll, updateUser } = require('../services/user');
+const {
+  insertUser,
+  getUsersWithAll,
+  updateUser,
+  searchUser,
+} = require('../services/user');
 
 const createUserController = async (req, res) => {
   const body = req.body;
@@ -39,9 +44,21 @@ const updateUserController = async (req, res) => {
   }
 };
 
+const searchUserController = async (req, res) => {
+  try {
+    const users = await searchUser(req.body);
+
+    return res.json({ success: true, data: users });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 module.exports = {
   getUsersController,
   createUserController,
   getUserByIdController,
   updateUserController,
+  searchUserController,
 };

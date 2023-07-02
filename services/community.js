@@ -1,5 +1,6 @@
 const { Sequelize } = require('sequelize');
 const { User, Community, CommunityMember, Executive } = require('../models');
+const Business = require('../models/Business');
 
 exports.insertCommunity = async (data) => {
   try {
@@ -17,11 +18,11 @@ exports.insertCommunity = async (data) => {
   }
 };
 
-exports.addCommunityMember = async (c_id, u_id) => {
+exports.addCommunityMember = async (communityId, userId) => {
   try {
     await CommunityMember.create({
-      communityId: c_id,
-      userId: u_id,
+      communityId,
+      userId,
     });
   } catch (err) {
     console.log(err);
@@ -176,10 +177,18 @@ exports.getCommunityWithAll = async (c_id) => {
 //   }
 // };
 
-exports.getCommunityMembers = async ({ id, skip, limit }) => {
+exports.getCommunityMembers = async ({ id, filter, skip, limit }) => {
   try {
     const members = await User.findAll({
-      attributes: ['firstName', 'lastName'],
+      where: filter,
+      attributes: [
+        'firstName',
+        'lastName',
+        'profilePicture',
+        'phone',
+        'bloodGroup',
+        'education',
+      ],
       include: [
         {
           model: Community,
@@ -187,6 +196,11 @@ exports.getCommunityMembers = async ({ id, skip, limit }) => {
           where: { id: id },
           attributes: [], // Exclude Community attributes
           through: { attributes: [] }, // Exclude 'through' attributes (CommunityMember)
+        },
+        {
+          model: Business,
+          as: 'business',
+          attributes: ['name', 'type'],
         },
       ],
       limit: limit,

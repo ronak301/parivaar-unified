@@ -55,7 +55,6 @@ module.exports = {
       },
       auth_id: {
         type: Sequelize.UUID,
-        allowNull: false,
         references: {
           model: {
             schema: 'auth', // Specify the schema name here

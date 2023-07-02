@@ -53,10 +53,10 @@ const getCommunityWithAllController = async (req, res) => {
 
 const getCommunityMembersController = async (req, res) => {
   const { id } = req.params;
-  const { skip, limit } = req.body;
+  const { filter, skip, limit } = req.body;
 
   try {
-    const members = await getCommunityMembers({ id, skip, limit });
+    const members = await getCommunityMembers({ id, filter, skip, limit });
     res.json({
       success: true,
       totalMembers: members.totalRecords,
