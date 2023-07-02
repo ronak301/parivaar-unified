@@ -13,9 +13,6 @@ exports.insertUser = async (data, transaction) => {
 };
 
 exports.getUsersWithAll = async () => {
-  const search = {
-    firstName: 'John',
-  };
   try {
     const users = await User.findAll({
       where: search,
@@ -76,6 +73,59 @@ exports.searchUser = async (query) => {
       where: query,
     });
     return users;
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+};
+
+exports.getUserById = async (id) => {
+  try {
+    const user = await User.findOne({
+      where: {
+        id: id,
+      },
+      attributes: {
+        exclude: ['createdAt', 'updatedAt'],
+      },
+
+      include: [
+        {
+          model: User,
+          as: 'relatives',
+          attributes: [
+            'id',
+            'firstName',
+            'lastName',
+            'profilePicture',
+            'phone',
+            'education',
+            'bloodGroup',
+          ],
+          through: {
+            as: 'relationship',
+            attributes: ['type'],
+          },
+          include: [
+            {
+              model: Business,
+              as: 'business',
+              attributes: ['name', 'type'],
+            },
+          ],
+        },
+        {
+          model: Business,
+          as: 'business',
+        },
+        {
+          model: Address,
+          as: 'address',
+        },
+      ],
+    });
+
+    return user;
   } catch (err) {
     console.log(err);
     throw err;

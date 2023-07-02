@@ -77,18 +77,16 @@ exports.getCommunityWithAll = async (c_id) => {
   try {
     const members = await Community.findByPk(c_id, {
       include: [
-        {
-          model: User,
-          as: 'members',
-          through: {
-            model: CommunityMember,
-            attributes: [],
-          },
-          as: 'members',
-          attributes: ['firstName', 'lastName'],
-          // limit: 10,
-          // offset: (page - 1) * pageSize,
-        },
+        // {
+        //   model: User,
+        //   as: 'members',
+        //   through: {
+        //     model: CommunityMember,
+        //     attributes: [],
+        //   },
+        //   as: 'members',
+        //   attributes: ['firstName', 'lastName'],
+        // },
         {
           model: User,
           as: 'executives',

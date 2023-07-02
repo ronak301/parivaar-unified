@@ -3,6 +3,7 @@ const {
   getUsersWithAll,
   updateUser,
   searchUser,
+  getUserById,
 } = require('../services/user');
 
 const createUserController = async (req, res) => {
@@ -32,7 +33,18 @@ const getUsersController = async (req, res) => {
   }
 };
 
-const getUserByIdController = async (req, res) => {};
+const getUserByIdController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await getUserById(id);
+
+    return res.json({ success: true, data: user });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
 
 const updateUserController = async (req, res) => {
   try {
