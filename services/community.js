@@ -73,9 +73,12 @@ exports.getCommunities = async () => {
   }
 };
 
-exports.getCommunityWithAll = async (c_id) => {
+exports.getCommunityWithAll = async (communityId) => {
   try {
-    const members = await Community.findByPk(c_id, {
+    const members = await Community.findByPk(communityId, {
+      attributes: {
+        exclude: ['createdAt', 'updatedAt'],
+      },
       include: [
         // {
         //   model: User,
@@ -90,9 +93,17 @@ exports.getCommunityWithAll = async (c_id) => {
         {
           model: User,
           as: 'executives',
+          attributes: [
+            'firstName',
+            'lastName',
+            'bloodGroup',
+            'profilePicture',
+            'phone',
+          ],
           through: {
             model: Executive,
-            attributes: [],
+            as: 'executive',
+            attributes: ['roles'],
           },
           attributes: ['firstName', 'lastName'],
         },
@@ -201,6 +212,7 @@ exports.getCommunityMembers = async ({ id, filter, skip, limit }) => {
           attributes: ['name', 'type'],
         },
       ],
+      order: [['firstName', 'ASC']],
       limit: limit,
       offset: skip,
     });
