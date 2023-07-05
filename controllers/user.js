@@ -10,11 +10,12 @@ const createUserController = async (req, res) => {
   const body = req.body;
 
   try {
-    await insertUser(body);
+    const user = await insertUser(body);
 
     return res.json({
       success: true,
       message: 'User created successfully',
+      user,
     });
   } catch (err) {
     console.log(err);

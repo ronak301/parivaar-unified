@@ -1,16 +1,23 @@
 const express = require('express');
+const cors = require('cors');
 const app = express();
 
 require('./config/database.js');
+
+// Middlewares
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(
+  cors({
+    origin: '*',
+  })
+);
 
 // Routes
 const userRoutes = require('./routes/user.js');
 const businessRoutes = require('./routes/business.js');
 const communityRoutes = require('./routes/community.js');
 const relationshipRoutes = require('./routes/relationship.js');
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
 // make a get route for / that returns a message
 app.get('/', (req, res) => {

@@ -5,8 +5,8 @@ const {
   deleteBusiness,
 } = require('../controllers/business');
 
-router.get('/', getBusiness);
+// router.get('/', getBusiness);
 router.post('/create', createBusiness);
-router.delete('/delete', deleteBusiness);
+// router.delete('/delete', deleteBusiness);
 
 module.exports = router;

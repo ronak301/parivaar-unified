@@ -8,9 +8,9 @@ const {
 } = require('../controllers/community');
 
 router.get('/all', getAllCommunitiesController);
-router.get('/:id', getCommunityWithAllController);
 router.post('/create', createCommunity);
 router.post('/join/:id', joinCommunity);
 router.get('/members/:id', getCommunityMembersController);
+router.get('/:id', getCommunityWithAllController);
 
 module.exports = router;

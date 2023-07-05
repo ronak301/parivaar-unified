@@ -15,11 +15,7 @@ const getBusiness = async (req, res) => {
 };
 
 const createBusiness = async (req, res) => {
-  const business = await Business.create({
-    name: 'My Business',
-    description: 'This is my business',
-    owner_id: '0f03c13c-190e-45e1-bde5-4dbfa51f4796',
-  });
+  const business = await Business.create(req.body);
 
   res.json(business);
 };
