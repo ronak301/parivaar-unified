@@ -4,6 +4,7 @@ const {
   updateUser,
   searchUser,
   getUserById,
+  getUserWithCommunities,
 } = require('../services/user');
 
 const createUserController = async (req, res) => {
@@ -17,6 +18,17 @@ const createUserController = async (req, res) => {
       message: 'User created successfully',
       user,
     });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+const getUserCommunityController = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const data = await getUserWithCommunities(id);
+    return res.json({ success: true, data });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ success: false, error: err.message });
@@ -74,4 +86,5 @@ module.exports = {
   getUserByIdController,
   updateUserController,
   searchUserController,
+  getUserCommunityController,
 };

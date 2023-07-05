@@ -15,38 +15,44 @@ exports.insertUser = async (data, transaction) => {
 exports.getUsersWithAll = async () => {
   try {
     const users = await User.findAll({
-      where: search,
-      include: [
-        {
-          model: User,
-          as: 'relatives',
-          through: {
-            as: 'relationship',
-            attributes: ['type'],
-          },
-          include: [
-            {
-              model: Business,
-              as: 'business',
-              attributes: ['name', 'type'],
-            },
-          ],
-        },
-        {
-          model: Business,
-          as: 'business',
-        },
-        {
-          model: Address,
-          as: 'address',
-        },
-        {
-          model: Community,
-          as: 'communities',
-        },
+      attributes: [
+        'id',
+        'firstName',
+        'lastName',
+        'profilePicture',
+        'bloodGroup',
+        'phone',
       ],
     });
     return users;
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+};
+
+exports.getUserWithCommunities = async (id) => {
+  try {
+    const user = await User.findOne({
+      where: {
+        id: id,
+      },
+      attributes: {
+        exclude: ['createdAt', 'updatedAt'],
+      },
+
+      include: [
+        {
+          model: Community,
+          as: 'communities',
+          through: {
+            attributes: [],
+          },
+        },
+      ],
+    });
+
+    return user;
   } catch (err) {
     console.log(err);
     throw err;
