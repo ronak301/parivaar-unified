@@ -1,7 +1,8 @@
 const Business = require('../models/Business');
 const User = require('../models/User');
+const { createBusiness } = require('../services/business');
 
-const getBusiness = async (req, res) => {
+const getBusinessController = async (req, res) => {
   const business = await Business.findAll({
     where: {
       name: 'My Business',
@@ -14,13 +15,20 @@ const getBusiness = async (req, res) => {
   res.json(business);
 };
 
-const createBusiness = async (req, res) => {
-  const business = await Business.create(req.body);
-
-  res.json(business);
+const createBusinessController = async (req, res) => {
+  try {
+    const business = await createBusiness(req.body);
+    res.json({ success: true, business });
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: business.js:23 ~ createBusinessController ~ err:',
+      err
+    );
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
-const deleteBusiness = async (req, res) => {
+const deleteBusinessController = async (req, res) => {
   const business = await Business.destroy({
     where: {
       id: 1,
@@ -31,7 +39,7 @@ const deleteBusiness = async (req, res) => {
 };
 
 module.exports = {
-  getBusiness,
-  createBusiness,
-  deleteBusiness,
+  getBusinessController,
+  createBusinessController,
+  deleteBusinessController,
 };

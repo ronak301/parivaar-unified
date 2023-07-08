@@ -1,12 +1,11 @@
 const router = require('express').Router();
 const {
-  createBusiness,
-  getBusiness,
-  deleteBusiness,
+  createBusinessController,
+  getBusinessController,
 } = require('../controllers/business');
 
-// router.get('/', getBusiness);
-router.post('/create', createBusiness);
+router.get('/', getBusinessController);
+router.post('/create', createBusinessController);
 // router.delete('/delete', deleteBusiness);
 
 module.exports = router;

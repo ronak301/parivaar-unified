@@ -1,3 +1,6 @@
+const { sequelize } = require('../config/database');
+const { createAddress } = require('../services/address');
+const { createBusiness } = require('../services/business');
 const {
   insertUser,
   getUsersWithAll,
@@ -9,17 +12,22 @@ const {
 
 const createUserController = async (req, res) => {
   const body = req.body;
+  const transaction = await sequelize.transaction();
 
   try {
-    const user = await insertUser(body);
+    const user = await insertUser(body, transaction);
+    await createBusiness({ ownerId: user.id, ...body.business }, transaction);
+    await createAddress({ userId: user.id, ...body.address }, transaction);
+    await transaction.commit();
 
     return res.json({
       success: true,
       message: 'User created successfully',
-      user,
+      id: user.id,
     });
   } catch (err) {
-    console.log(err);
+    console.log('🚀 ~ file: user.js:28 ~ createUserController ~ err:', err);
+    await transaction.rollback();
     return res.status(500).json({ success: false, error: err.message });
   }
 };
