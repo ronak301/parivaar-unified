@@ -59,6 +59,20 @@ exports.getUserWithCommunities = async (id) => {
   }
 };
 
+exports.deleteUser = async (id) => {
+  try {
+    await User.destroy({
+      where: {
+        id: id,
+      },
+    });
+    return true;
+  } catch (err) {
+    console.log('🚀 ~ file: user.js:71 ~ exports.deleteUser ~ err:', err);
+    throw err;
+  }
+};
+
 exports.updateUser = async (id, mutation) => {
   try {
     const user = await User.update(mutation, {

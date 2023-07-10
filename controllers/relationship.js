@@ -1,8 +1,12 @@
 const { sequelize } = require('../config/database');
-const { addRelative, addRelation } = require('../services/relationship');
+const {
+  addRelative,
+  addRelation,
+  deleteRelation,
+} = require('../services/relationship');
 const { insertUser } = require('../services/user');
 
-const createRelative = async (req, res) => {
+const createRelativeController = async (req, res) => {
   const body = req.body;
 
   const transaction = await sequelize.transaction();
@@ -21,39 +25,60 @@ const createRelative = async (req, res) => {
 
     await transaction.commit();
 
-    res.status(200).json({
+    return res.status(200).json({
       message: 'Relative created successfully',
     });
   } catch (error) {
     console.log(error);
     await transaction.rollback();
-    res.status(500).json({
+    return res.status(500).json({
       message: 'Something went wrong',
       error: error.message,
     });
   }
 };
 
-const createRelation = async (req, res) => {
+const createRelationController = async (req, res) => {
   const body = req.body;
 
   try {
     await addRelation(body);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Relationship created successfully',
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({
+    return res.status(500).json({
       message: 'Something went wrong',
-      error: error,
+      error: error.message,
+    });
+  }
+};
+
+const deleteRelationController = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await deleteRelation(id);
+    return res.status(200).json({
+      success: true,
+      message: 'Relationship deleted successfully',
+    });
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: relationship.js:65 ~ deleteRelationController ~ err:',
+      err
+    );
+    return res.status(500).json({
+      message: 'Something went wrong',
+      error: err,
     });
   }
 };
 
 module.exports = {
-  createRelative,
-  createRelation,
+  createRelativeController,
+  createRelationController,
+  deleteRelationController,
 };

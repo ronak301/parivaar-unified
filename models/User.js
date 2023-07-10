@@ -65,6 +65,9 @@ const User = sequelize.define(
     lastSeen: {
       type: DataTypes.DATEONLY,
     },
+    isSuperAdmin: {
+      type: DataTypes.BOOLEAN,
+    },
   },
   {
     tableName: 'users',

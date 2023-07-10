@@ -8,6 +8,7 @@ const {
   searchUser,
   getUserById,
   getUserWithCommunities,
+  deleteUser,
 } = require('../services/user');
 
 const createUserController = async (req, res) => {
@@ -39,6 +40,20 @@ const getUserCommunityController = async (req, res) => {
     return res.json({ success: true, data });
   } catch (err) {
     console.log(err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+const deleteUserController = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await deleteUser(id);
+    return res.json({
+      success: true,
+      message: 'User deleted successfully',
+    });
+  } catch (err) {
+    console.log('🚀 ~ file: user.js:56 ~ deleteUserController ~ err:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -95,4 +110,5 @@ module.exports = {
   updateUserController,
   searchUserController,
   getUserCommunityController,
+  deleteUserController,
 };

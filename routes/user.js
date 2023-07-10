@@ -6,9 +6,11 @@ const {
   updateUserController,
   searchUserController,
   getUserCommunityController,
+  deleteUserController,
 } = require('../controllers/user');
 
 router.post('/new', createUserController);
+router.delete('/delete/:id', deleteUserControllerf);
 router.get('/communities/:id', getUserCommunityController);
 router.get('/all', getUsersController);
 router.post('/search', searchUserController);

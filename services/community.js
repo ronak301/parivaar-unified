@@ -73,6 +73,23 @@ exports.getCommunities = async () => {
   }
 };
 
+exports.updateCommunity = async (id, mutation) => {
+  try {
+    const community = await Community.update(mutation, {
+      where: {
+        id: id,
+      },
+    });
+    return community;
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: community.js:85 ~ exports.updateCommunity= ~ err:',
+      err
+    );
+    throw err;
+  }
+};
+
 exports.getCommunityWithAll = async (communityId) => {
   try {
     const members = await Community.findByPk(communityId, {
@@ -94,6 +111,7 @@ exports.getCommunityWithAll = async (communityId) => {
           model: User,
           as: 'executives',
           attributes: [
+            'id',
             'firstName',
             'lastName',
             'bloodGroup',
@@ -103,9 +121,9 @@ exports.getCommunityWithAll = async (communityId) => {
           through: {
             model: Executive,
             as: 'executive',
-            attributes: ['roles'],
+            attributes: ['id', 'roles'],
           },
-          attributes: ['firstName', 'lastName'],
+          attributes: ['id', 'firstName', 'lastName'],
         },
       ],
     });
@@ -191,6 +209,7 @@ exports.getCommunityMembers = async ({ id, filter, skip, limit }) => {
     const members = await User.findAll({
       where: filter,
       attributes: [
+        'id',
         'firstName',
         'lastName',
         'profilePicture',
@@ -209,7 +228,7 @@ exports.getCommunityMembers = async ({ id, filter, skip, limit }) => {
         {
           model: Business,
           as: 'business',
-          attributes: ['name', 'type'],
+          attributes: ['id', 'name', 'type'],
         },
       ],
       order: [['firstName', 'ASC']],
@@ -236,5 +255,22 @@ exports.getCommunityMembers = async ({ id, filter, skip, limit }) => {
   } catch (error) {
     console.error(error);
     throw error;
+  }
+};
+
+exports.deleteCommunity = async (id) => {
+  try {
+    await Community.destroy({
+      where: {
+        id: id,
+      },
+    });
+    return true;
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: community.js:270 ~ exports.deleteCommunity ~ err:',
+      err
+    );
+    throw err;
   }
 };

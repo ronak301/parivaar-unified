@@ -30,7 +30,27 @@ exports.addRelation = async ({ userId, relativeId, type }) => {
     });
     return true;
   } catch (err) {
-    console.log(err);
-    throw { message: 'Error while creating relationship' };
+    console.log(
+      '🚀 ~ file: relationship.js:33 ~ exports.addRelation= ~ err:',
+      err
+    );
+    throw err;
+  }
+};
+
+exports.deleteRelation = async (id) => {
+  try {
+    await Relationship.destroy({
+      where: {
+        id,
+      },
+    });
+    return true;
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: relationship.js:47 ~ exports.deleteRelation ~ err:',
+      err
+    );
+    throw err;
   }
 };

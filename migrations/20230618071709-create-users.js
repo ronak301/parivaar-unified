@@ -74,6 +74,9 @@ module.exports = {
       last_seen: {
         type: Sequelize.DATEONLY,
       },
+      is_super_admin: {
+        type: Sequelize.BOOLEAN,
+      },
       created_at: {
         allowNull: false,
         type: Sequelize.DATE,
