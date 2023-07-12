@@ -29,7 +29,11 @@ const createUserController = async (req, res) => {
   } catch (err) {
     console.log('🚀 ~ file: user.js:28 ~ createUserController ~ err:', err);
     await transaction.rollback();
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+      message: err.errors[0]?.message || 'Failed to insert user',
+    });
   }
 };
 
