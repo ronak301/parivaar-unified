@@ -250,7 +250,7 @@ exports.getCommunityMembers = async ({
           attributes: ['id', 'name', 'type'],
         },
       ],
-      order: [order],
+      order: [['firstName', 'ASC']],
       limit: limit,
       offset: skip,
     });
