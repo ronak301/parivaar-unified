@@ -68,10 +68,17 @@ const updateCommunityController = async (req, res) => {
 
 const getCommunityMembersController = async (req, res) => {
   const { id } = req.params;
-  const { filter, skip, limit } = req.body;
+  const { query, filter, skip, limit, order } = req.body;
 
   try {
-    const members = await getCommunityMembers({ id, filter, skip, limit });
+    const members = await getCommunityMembers({
+      id,
+      query,
+      filter,
+      skip,
+      limit,
+      order,
+    });
     res.json({
       success: true,
       totalMembers: members.totalRecords,

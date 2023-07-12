@@ -124,15 +124,22 @@ exports.getUserById = async (id) => {
           ],
           through: {
             as: 'relationship',
-            attributes: ['type'],
+            attributes: ['id', 'type'],
           },
           include: [
             {
               model: Business,
               as: 'business',
-              attributes: ['name', 'type'],
+              attributes: ['id', 'name', 'type'],
             },
           ],
+        },
+        {
+          model: Community,
+          as: 'communities',
+          through: {
+            attributes: [],
+          },
         },
         {
           model: Business,

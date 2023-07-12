@@ -1,4 +1,4 @@
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op } = require('sequelize');
 const { User, Community, CommunityMember, Executive } = require('../models');
 const Business = require('../models/Business');
 
@@ -97,19 +97,14 @@ exports.getCommunityWithAll = async (communityId) => {
         exclude: ['createdAt', 'updatedAt'],
       },
       include: [
-        // {
-        //   model: User,
-        //   as: 'members',
-        //   through: {
-        //     model: CommunityMember,
-        //     attributes: [],
-        //   },
-        //   as: 'members',
-        //   attributes: ['firstName', 'lastName'],
-        // },
         {
           model: User,
           as: 'executives',
+          through: {
+            model: Executive,
+            as: 'executive',
+            attributes: ['id', 'roles'],
+          },
           attributes: [
             'id',
             'firstName',
@@ -118,12 +113,6 @@ exports.getCommunityWithAll = async (communityId) => {
             'profilePicture',
             'phone',
           ],
-          through: {
-            model: Executive,
-            as: 'executive',
-            attributes: ['id', 'roles'],
-          },
-          attributes: ['id', 'firstName', 'lastName'],
         },
       ],
     });
@@ -204,10 +193,40 @@ exports.getCommunityWithAll = async (communityId) => {
 //   }
 // };
 
-exports.getCommunityMembers = async ({ id, filter, skip, limit }) => {
+exports.getCommunityMembers = async ({
+  id,
+  query,
+  filter,
+  skip,
+  limit,
+  order,
+}) => {
   try {
     const members = await User.findAll({
-      where: filter,
+      where: {
+        [Op.and]: [
+          {
+            [Op.or]: [
+              {
+                firstName: {
+                  [Op.iLike]: `%${query}%`,
+                },
+              },
+              {
+                lastName: {
+                  [Op.iLike]: `%${query}%`,
+                },
+              },
+              {
+                phone: {
+                  [Op.iLike]: `%${query}%`,
+                },
+              },
+            ],
+          },
+          filter,
+        ],
+      },
       attributes: [
         'id',
         'firstName',
@@ -231,7 +250,7 @@ exports.getCommunityMembers = async ({ id, filter, skip, limit }) => {
           attributes: ['id', 'name', 'type'],
         },
       ],
-      order: [['firstName', 'ASC']],
+      order: [order],
       limit: limit,
       offset: skip,
     });
