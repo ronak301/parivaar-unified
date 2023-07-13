@@ -13,7 +13,7 @@ router.get('/all', getAllCommunitiesController);
 router.delete('/delete/:id', deleteCommunityController);
 router.post('/create', createCommunity);
 router.post('/join/:id', joinCommunity);
-router.get('/members/:id', getCommunityMembersController);
+router.post('/members/:id', getCommunityMembersController);
 router.put('/:id', updateCommunityController);
 router.get('/:id', getCommunityWithAllController);
 
