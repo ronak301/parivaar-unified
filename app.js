@@ -19,6 +19,7 @@ const businessRoutes = require('./routes/business.js');
 const communityRoutes = require('./routes/community.js');
 const relationshipRoutes = require('./routes/relationship.js');
 const executiveRoutes = require('./routes/executive.js');
+const addressRoutes = require('./routes/address.js');
 
 // make a get route for / that returns a message
 app.get('/', (req, res) => {
@@ -30,6 +31,7 @@ app.use('/business', businessRoutes);
 app.use('/community', communityRoutes);
 app.use('/relationship', relationshipRoutes);
 app.use('/executive', executiveRoutes);
+app.use('/address', addressRoutes);
 
 app.listen(3000, () => {
   console.log('Server started on port 3000');
