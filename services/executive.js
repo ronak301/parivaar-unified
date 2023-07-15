@@ -37,6 +37,24 @@ exports.addRole = async ({ id, roles }) => {
   }
 };
 
+exports.deleteExecutive = async (id) => {
+  try {
+    await Executive.destroy({
+      where: {
+        id: id,
+      },
+    });
+
+    return true;
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: executive.js:48 ~ exports.deleteExecutive ~ err:',
+      err
+    );
+    throw err;
+  }
+};
+
 exports.checkRoles = async ({ userId, communityId, rolesToCheck }) => {
   try {
     const data = await Executive.findOne({

@@ -97,13 +97,20 @@ const updateUserController = async (req, res) => {
 };
 
 const searchUserController = async (req, res) => {
+  const { query, filter, skip, limit, order } = req.body;
   try {
-    const users = await searchUser(req.body);
+    const users = await searchUser({
+      query,
+      filter,
+      skip,
+      limit,
+      order,
+    });
 
     return res.json({ success: true, data: users });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 

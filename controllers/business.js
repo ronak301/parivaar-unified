@@ -1,6 +1,6 @@
 const Business = require('../models/Business');
 const User = require('../models/User');
-const { createBusiness } = require('../services/business');
+const { createBusiness, updateBusiness } = require('../services/business');
 
 const getBusinessController = async (req, res) => {
   const business = await Business.findAll({
@@ -38,8 +38,26 @@ const deleteBusinessController = async (req, res) => {
   res.json(business);
 };
 
+const updateBusinessController = async (req, res) => {
+  try {
+    const business = await updateBusiness(req.params.id, req.body);
+    return res.json({
+      success: true,
+      business,
+      message: 'Business updated successfully',
+    });
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: business.js:49 ~ updateBusinessController ~ err:',
+      err
+    );
+    return res.status(500).json({ success: false, error: err?.message });
+  }
+};
+
 module.exports = {
   getBusinessController,
   createBusinessController,
   deleteBusinessController,
+  updateBusinessController,
 };

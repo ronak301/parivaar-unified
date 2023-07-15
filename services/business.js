@@ -12,3 +12,17 @@ exports.createBusiness = async (payload, transaction) => {
     throw error;
   }
 };
+
+exports.updateBusiness = async (id, mutation) => {
+  try {
+    const business = await Business.update(mutation, {
+      where: {
+        id: id,
+      },
+    });
+    return business;
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+};

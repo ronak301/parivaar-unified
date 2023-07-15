@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { User, Business, Address, Community } = require('../models');
 
 exports.insertUser = async (data, transaction) => {
@@ -87,10 +88,53 @@ exports.updateUser = async (id, mutation) => {
   }
 };
 
-exports.searchUser = async (query) => {
+exports.searchUser = async ({ query, filter, skip, limit, order }) => {
+  const { business: businessFilter, ...userFilter } = filter;
   try {
-    const users = await User.findAll({
-      where: query,
+    const users = await User.findAndCountAll({
+      where: {
+        [Op.and]: [
+          {
+            [Op.or]: [
+              {
+                firstName: {
+                  [Op.iLike]: `%${query}%`,
+                },
+              },
+              {
+                lastName: {
+                  [Op.iLike]: `%${query}%`,
+                },
+              },
+              {
+                phone: {
+                  [Op.iLike]: `%${query}%`,
+                },
+              },
+            ],
+          },
+          userFilter,
+        ],
+      },
+      attributes: [
+        'id',
+        'firstName',
+        'lastName',
+        'profilePicture',
+        'phone',
+        'bloodGroup',
+        'education',
+      ],
+      include: [
+        {
+          model: Business,
+          as: 'business',
+          where: businessFilter ?? {},
+          attributes: ['id', 'name', 'type'],
+        },
+      ],
+      limit: limit,
+      offset: skip,
     });
     return users;
   } catch (err) {

@@ -13,3 +13,20 @@ exports.createAddress = async (payload, transaction) => {
     throw error;
   }
 };
+
+exports.updateAddress = async (id, mutation) => {
+  try {
+    const address = await Address.update(mutation, {
+      where: {
+        id: id,
+      },
+    });
+    return address;
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: address.js:26 ~ exports.updateAddress= ~ err:',
+      err
+    );
+    throw err;
+  }
+};

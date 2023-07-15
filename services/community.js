@@ -201,6 +201,7 @@ exports.getCommunityMembers = async ({
   limit,
   order,
 }) => {
+  const { business: businessFilter, ...userFilter } = filter;
   try {
     const members = await User.findAll({
       where: {
@@ -224,7 +225,7 @@ exports.getCommunityMembers = async ({
               },
             ],
           },
-          filter,
+          userFilter,
         ],
       },
       attributes: [
@@ -247,6 +248,7 @@ exports.getCommunityMembers = async ({
         {
           model: Business,
           as: 'business',
+          where: businessFilter ?? {},
           attributes: ['id', 'name', 'type'],
         },
       ],
