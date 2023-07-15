@@ -37,6 +37,23 @@ exports.addRole = async ({ id, roles }) => {
   }
 };
 
+exports.updateExecutive = async (id, mutation) => {
+  try {
+    const executive = await Executive.update(mutation, {
+      where: {
+        id: id,
+      },
+    });
+    return executive;
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: executive.js:49 ~ exports.updateExecutive= ~ err:',
+      err
+    );
+    throw err;
+  }
+};
+
 exports.deleteExecutive = async (id) => {
   try {
     await Executive.destroy({

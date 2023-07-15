@@ -43,7 +43,6 @@ const updateBusinessController = async (req, res) => {
     const business = await updateBusiness(req.params.id, req.body);
     return res.json({
       success: true,
-      business,
       message: 'Business updated successfully',
     });
   } catch (err) {

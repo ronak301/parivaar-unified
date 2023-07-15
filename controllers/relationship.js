@@ -26,7 +26,9 @@ const createRelativeController = async (req, res) => {
     await transaction.commit();
 
     return res.status(200).json({
+      success: true,
       message: 'Relative created successfully',
+      id: user.id,
     });
   } catch (error) {
     console.log(error);
