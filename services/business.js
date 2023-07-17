@@ -26,3 +26,21 @@ exports.updateBusiness = async (id, mutation) => {
     throw err;
   }
 };
+
+exports.deleteBusiness = async (id) => {
+  try {
+    await Business.destroy({
+      where: {
+        id: id,
+      },
+    });
+
+    return true;
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: business.js:40 ~ exports.deleteBusiness ~ err:',
+      err
+    );
+    throw err;
+  }
+};

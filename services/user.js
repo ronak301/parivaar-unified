@@ -1,5 +1,7 @@
-const { Op } = require('sequelize');
 const { User, Business, Address, Community } = require('../models');
+const { Op, Sequelize } = require('sequelize');
+const { sequelize } = require('../config/database');
+const moment = require('moment');
 
 exports.insertUser = async (data, transaction) => {
   try {
@@ -28,6 +30,55 @@ exports.getUsersWithAll = async () => {
     return users;
   } catch (err) {
     console.log(err);
+    throw err;
+  }
+};
+
+exports.getUserEvents = async () => {
+  const currentYear = moment().year();
+  const nextYear = moment().add(1, 'years').year();
+
+  const currentMonth = moment().month() + 1; // as month index start from 0
+  const currentDay = moment().date();
+
+  const nextMonthDay = moment().add(1, 'months').date();
+  const nextMonth = moment().add(1, 'months').month() + 1; // as month index start from 0
+
+  try {
+    const data = await User.findAll({
+      where: Sequelize.literal(`(
+        (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) >= ${currentDay})
+        OR (EXTRACT(MONTH FROM dob) = ${nextMonth} AND EXTRACT(DAY FROM dob) <= ${nextMonthDay})
+        OR (
+          wedding_date is NOT NULL AND ((EXTRACT(MONTH FROM wedding_date) = ${currentMonth} AND EXTRACT(DAY FROM wedding_date) >= ${currentDay})
+          OR (EXTRACT(MONTH FROM wedding_date) = ${nextMonth} AND EXTRACT(DAY FROM wedding_date) <= ${nextMonthDay}))
+        ))`),
+      attributes: {
+        include: [
+          [
+            Sequelize.literal(`CASE 
+            WHEN
+              (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) >= ${currentDay})
+              OR (EXTRACT(MONTH FROM dob) = ${nextMonth} AND EXTRACT(DAY FROM dob) <= ${nextMonthDay})
+            THEN 'birthday'
+          
+            WHEN
+              wedding_date is NOT NULL
+              AND ((EXTRACT(MONTH FROM wedding_date) = ${currentMonth} AND EXTRACT(DAY FROM wedding_date) >= ${currentDay})
+              OR (EXTRACT(MONTH FROM wedding_date) = ${nextMonth} AND EXTRACT(DAY FROM wedding_date) <= ${nextMonthDay}))
+            THEN 'anniversary'   
+          
+            ELSE 'none'
+            END`),
+            'eventType',
+          ],
+        ],
+      },
+    });
+
+    return data;
+  } catch (err) {
+    console.log('🚀 ~ file: user.js:61 ~ exports.getUserEvents= ~ err:', err);
     throw err;
   }
 };
@@ -129,7 +180,7 @@ exports.searchUser = async ({ query, filter, skip, limit, order }) => {
         {
           model: Business,
           as: 'business',
-          where: businessFilter ?? {},
+          where: businessFilter ?? null,
           attributes: ['id', 'name', 'type'],
         },
       ],

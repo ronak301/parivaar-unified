@@ -9,6 +9,7 @@ const {
   getUserById,
   getUserWithCommunities,
   deleteUser,
+  getUserEvents,
 } = require('../services/user');
 
 const createUserController = async (req, res) => {
@@ -34,6 +35,16 @@ const createUserController = async (req, res) => {
       error: err.message,
       message: err.errors[0]?.message || 'Failed to insert user',
     });
+  }
+};
+
+const getUserEventsController = async (req, res) => {
+  try {
+    const data = await getUserEvents();
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.log('🚀 ~ file: user.js:44 ~ getUserEventsController ~ err:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -122,4 +133,5 @@ module.exports = {
   searchUserController,
   getUserCommunityController,
   deleteUserController,
+  getUserEventsController,
 };

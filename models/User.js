@@ -98,13 +98,6 @@ User.hasOne(Address, {
   onDelete: 'CASCADE',
 });
 
-// User.belongsToMany(Community, {
-//   through: Executive,
-//   as: 'executives',
-//   foreignKey: 'userId',
-//   onDelete: 'CASCADE',
-// });
-
 User.belongsToMany(Community, {
   through: CommunityMember,
   as: 'communities',
@@ -119,10 +112,3 @@ User.belongsToMany(User, {
   otherKey: 'relativeId',
   onDelete: 'CASCADE',
 });
-
-// User.belongsToMany(Community, {
-//   through: Executive,
-//   as: 'executives',
-//   foreignKey: 'userId',
-//   onDelete: 'CASCADE',
-// });

@@ -1,18 +1,40 @@
 const Business = require('../models/Business');
 const User = require('../models/User');
-const { createBusiness, updateBusiness } = require('../services/business');
+const {
+  createBusiness,
+  updateBusiness,
+  deleteBusiness,
+} = require('../services/business');
 
 const getBusinessController = async (req, res) => {
-  const business = await Business.findAll({
-    where: {
-      name: 'My Business',
-    },
-    include: {
-      model: User,
-    },
+  const businesses = await Business.findAll({
+    offset: 0,
+    limit: 10,
   });
 
-  res.json(business);
+  const ownerIds = businesses.map((business) => business.ownerId);
+
+  const users = await User.findAll({
+    where: {
+      id: ownerIds,
+    },
+    attributes: [
+      'id',
+      'firstName',
+      'lastName',
+      'profilePicture',
+      'phone',
+      'bloodGroup',
+      'education',
+    ],
+  });
+
+  // Then associate owners with businesses in-memory
+  const businessesWithOwners = businesses.map((business) => {
+    const owner = users.find((user) => user.id === business.ownerId);
+    return { ...business.toJSON(), owner };
+  });
+  res.json(businessesWithOwners);
 };
 
 const createBusinessController = async (req, res) => {
@@ -29,13 +51,20 @@ const createBusinessController = async (req, res) => {
 };
 
 const deleteBusinessController = async (req, res) => {
-  const business = await Business.destroy({
-    where: {
-      id: 1,
-    },
-  });
+  const { id } = req.params;
+  try {
+    await deleteBusiness(id);
+    return res
+      .status(201)
+      .json({ success: true, message: 'Business Deleted Successfully' });
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: business.js:67 ~ deleteBusinessController ~ err:',
+      err
+    );
 
-  res.json(business);
+    return res.status(500).json({ success: false, error: err?.message });
+  }
 };
 
 const updateBusinessController = async (req, res) => {

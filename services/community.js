@@ -47,7 +47,7 @@ exports.getCommunities = async () => {
             'COUNT',
             Sequelize.col('members->CommunityMember.user_id')
           ),
-          'total_members',
+          'totalMembers',
         ],
       ],
       include: [
@@ -248,7 +248,7 @@ exports.getCommunityMembers = async ({
         {
           model: Business,
           as: 'business',
-          where: businessFilter ?? {},
+          where: businessFilter ?? null,
           attributes: ['id', 'name', 'type'],
         },
       ],
