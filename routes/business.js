@@ -1,12 +1,12 @@
 const router = require('express').Router();
 const {
   createBusinessController,
-  getBusinessController,
   updateBusinessController,
   deleteBusinessController,
+  getBusinessesController,
 } = require('../controllers/business');
 
-router.get('/', getBusinessController);
+router.post('/', getBusinessesController);
 router.post('/create', createBusinessController);
 router.put('/:id', updateBusinessController);
 router.delete('/delete/:id', deleteBusinessController);

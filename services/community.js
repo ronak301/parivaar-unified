@@ -203,7 +203,7 @@ exports.getCommunityMembers = async ({
 }) => {
   const { business: businessFilter, ...userFilter } = filter;
   try {
-    const members = await User.findAll({
+    const members = await User.findAndCountAll({
       where: {
         [Op.and]: [
           {
@@ -226,6 +226,11 @@ exports.getCommunityMembers = async ({
             ],
           },
           userFilter,
+          businessFilter
+            ? {
+                '$business.type$': businessFilter.type,
+              }
+            : {},
         ],
       },
       attributes: [
@@ -248,7 +253,7 @@ exports.getCommunityMembers = async ({
         {
           model: Business,
           as: 'business',
-          where: businessFilter ?? null,
+          required: businessFilter ? true : false,
           attributes: ['id', 'name', 'type'],
         },
       ],
@@ -273,10 +278,7 @@ exports.getCommunityMembers = async ({
       totalRecords,
       members,
     };
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+  } catch (error) {}
 };
 
 exports.deleteCommunity = async (id) => {

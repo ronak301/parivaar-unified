@@ -12,6 +12,7 @@ const Business = sequelize.define(
     ownerId: {
       type: DataTypes.UUID,
       allowNull: false,
+      unique: true,
     },
     name: {
       type: DataTypes.STRING,

@@ -15,6 +15,27 @@ exports.insertUser = async (data, transaction) => {
   }
 };
 
+exports.getUsersByX = async (where) => {
+  try {
+    const users = await User.findAll({
+      where,
+      attributes: [
+        'id',
+        'firstName',
+        'lastName',
+        'profilePicture',
+        'phone',
+        'bloodGroup',
+        'education',
+      ],
+    });
+    return users;
+  } catch (err) {
+    console.log('🚀 ~ file: user.js:25 ~ exports.getUsersByX= ~ err:', err);
+    throw err;
+  }
+};
+
 exports.getUsersWithAll = async () => {
   try {
     const users = await User.findAll({

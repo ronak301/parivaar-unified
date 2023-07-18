@@ -13,6 +13,23 @@ exports.createBusiness = async (payload, transaction) => {
   }
 };
 
+exports.getBusinesses = async ({ skip, limit }) => {
+  try {
+    const { count, rows: businesses } = await Business.findAndCountAll({
+      limit: limit,
+      offset: skip,
+    });
+
+    return { count, businesses };
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: business.js:20 ~ exports.getBusinesses= ~ err:',
+      err
+    );
+    throw err;
+  }
+};
+
 exports.updateBusiness = async (id, mutation) => {
   try {
     const business = await Business.update(mutation, {

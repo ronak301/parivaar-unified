@@ -4,37 +4,38 @@ const {
   createBusiness,
   updateBusiness,
   deleteBusiness,
+  getBusinesses,
 } = require('../services/business');
+const { getUsersByX } = require('../services/user');
 
-const getBusinessController = async (req, res) => {
-  const businesses = await Business.findAll({
-    offset: 0,
-    limit: 10,
-  });
+const getBusinessesController = async (req, res) => {
+  const { skip, limit } = req.body;
+  try {
+    const { count, businesses } = await getBusinesses({ skip, limit });
 
-  const ownerIds = businesses.map((business) => business.ownerId);
+    const ownerIds = businesses.map((business) => business.ownerId);
 
-  const users = await User.findAll({
-    where: {
+    const users = await getUsersByX({
       id: ownerIds,
-    },
-    attributes: [
-      'id',
-      'firstName',
-      'lastName',
-      'profilePicture',
-      'phone',
-      'bloodGroup',
-      'education',
-    ],
-  });
+    });
 
-  // Then associate owners with businesses in-memory
-  const businessesWithOwners = businesses.map((business) => {
-    const owner = users.find((user) => user.id === business.ownerId);
-    return { ...business.toJSON(), owner };
-  });
-  res.json(businessesWithOwners);
+    // Then associate owners with businesses in-memory
+    const businessesWithOwners = businesses.map((business) => {
+      const owner = users.find((user) => user.id === business.ownerId);
+      return { ...business.toJSON(), owner };
+    });
+    res.json({
+      success: true,
+      total: count,
+      data: businessesWithOwners,
+    });
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: business.js:33 ~ getBusinessController ~ err:',
+      err
+    );
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 const createBusinessController = async (req, res) => {
@@ -84,7 +85,7 @@ const updateBusinessController = async (req, res) => {
 };
 
 module.exports = {
-  getBusinessController,
+  getBusinessesController,
   createBusinessController,
   deleteBusinessController,
   updateBusinessController,

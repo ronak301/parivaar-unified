@@ -17,6 +17,13 @@ const CommunityMember = sequelize.define(
     tableName: 'community_members',
     underscored: true,
     timestamps: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ['userId', 'communityId'],
+        name: 'unq_member',
+      },
+    ],
   }
 );
 

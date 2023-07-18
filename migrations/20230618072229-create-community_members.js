@@ -37,6 +37,13 @@ module.exports = {
         onUpdate: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
     });
+
+    // Add the unique constraint after creating the table
+    await queryInterface.addConstraint('community_members', {
+      fields: ['user_id', 'community_id'],
+      type: 'unique',
+      name: 'unq_member',
+    });
   },
 
   down: async (queryInterface, Sequelize) => {
@@ -48,6 +55,7 @@ module.exports = {
       'community_members',
       'community_members_user_id_fkey'
     );
+    await queryInterface.removeConstraint('community_members', 'unq_member');
     await queryInterface.dropTable('community_members');
   },
 };
