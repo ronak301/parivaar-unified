@@ -15,7 +15,6 @@ module.exports = {
       },
       last_name: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       profile_picture: {
         type: Sequelize.STRING,
@@ -25,11 +24,12 @@ module.exports = {
       },
       dob: {
         type: Sequelize.DATEONLY,
-        allowNull: false,
+      },
+      bio: {
+        type: Sequelize.STRING,
       },
       gender: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       education: {
         type: Sequelize.STRING,
@@ -39,7 +39,6 @@ module.exports = {
       },
       phone: {
         type: Sequelize.STRING,
-        unique: true,
       },
       landline: {
         type: Sequelize.STRING,
@@ -49,7 +48,6 @@ module.exports = {
       },
       email: {
         type: Sequelize.STRING,
-        allowNull: false,
         validate: {
           isEmail: true,
         },

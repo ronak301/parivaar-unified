@@ -23,11 +23,9 @@ module.exports = {
       },
       name: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       type: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       sub_type: {
         type: Sequelize.STRING,

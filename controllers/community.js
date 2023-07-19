@@ -6,6 +6,7 @@ const {
   getCommunities,
   updateCommunity,
   deleteCommunity,
+  deleteCommunityMember,
 } = require('../services/community');
 
 const createCommunity = async (req, res) => {
@@ -31,7 +32,7 @@ const joinCommunity = async (req, res) => {
       .json({ success: true, message: 'Successfully joined community' });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ success: false, message: err });
+    return res.status(500).json({ success: false, message: err?.message });
   }
 };
 
@@ -79,6 +80,7 @@ const getCommunityMembersController = async (req, res) => {
       limit,
       order,
     });
+
     res.json({
       success: true,
       totalMembers: members.totalRecords,
@@ -90,22 +92,24 @@ const getCommunityMembersController = async (req, res) => {
   }
 };
 
-const deleteCommunityController = async (req, res) => {
-  const { id } = req.params;
+const deleteCommunityMemberController = async (req, res) => {
+  const { communityId, userId } = req.body;
   try {
-    await deleteCommunity(id);
+    await deleteCommunityMember(communityId, userId);
     return res.json({
       success: true,
-      message: 'Community deleted successfully',
+      message: 'Community member deleted successfully',
     });
   } catch (err) {
     console.log(
-      '🚀 ~ file: community.js:94 ~ deleteCommunityController ~ err:',
+      '🚀 ~ file: community.js:103 ~ deleteCommunityMemberController ~ err:',
       err
     );
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: err?.message });
   }
 };
+
+const deleteCommunityController = async (req, res) => {};
 
 module.exports = {
   createCommunity,
@@ -115,4 +119,5 @@ module.exports = {
   getCommunityMembersController,
   updateCommunityController,
   deleteCommunityController,
+  deleteCommunityMemberController,
 };

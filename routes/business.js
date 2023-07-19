@@ -7,7 +7,7 @@ const {
 } = require('../controllers/business');
 
 router.post('/', getBusinessesController);
-router.post('/create', createBusinessController);
+router.post('/new', createBusinessController);
 router.put('/:id', updateBusinessController);
 router.delete('/delete/:id', deleteBusinessController);
 

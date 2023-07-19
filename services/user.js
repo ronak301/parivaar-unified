@@ -55,15 +55,12 @@ exports.getUsersWithAll = async () => {
   }
 };
 
-exports.getUserEvents = async () => {
-  const currentYear = moment().year();
-  const nextYear = moment().add(1, 'years').year();
-
-  const currentMonth = moment().month() + 1; // as month index start from 0
+exports.getUserEvents = async ({ skip, limit }) => {
+  const currentMonth = moment().month() + 1;
   const currentDay = moment().date();
 
   const nextMonthDay = moment().add(1, 'months').date();
-  const nextMonth = moment().add(1, 'months').month() + 1; // as month index start from 0
+  const nextMonth = moment().add(1, 'months').month() + 1;
 
   try {
     const data = await User.findAll({
@@ -95,6 +92,8 @@ exports.getUserEvents = async () => {
           ],
         ],
       },
+      offset: skip,
+      limit: limit,
     });
 
     return data;

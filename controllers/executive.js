@@ -3,6 +3,7 @@ const {
   addRole,
   deleteExecutive,
   updateExecutive,
+  checkAdmin,
 } = require('../services/executive');
 
 const createExecutiveController = async (req, res) => {
@@ -55,6 +56,20 @@ const updateExecutiveController = async (req, res) => {
   }
 };
 
+const checkAdminController = async (req, res) => {
+  const { phone } = req.body;
+  try {
+    const permission = await checkAdmin({ phone });
+    return res.status(201).json({ success: true, permission });
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: executive.js:64 ~ checkAdminController ~ err:',
+      err
+    );
+    return res.status(500).json({ success: false, error: err?.message });
+  }
+};
+
 const addRoleController = async (req, res) => {
   const { id, roles } = req.body;
   try {
@@ -72,5 +87,6 @@ module.exports = {
   createExecutiveController,
   addRoleController,
   deleteExecutiveController,
+  checkAdminController,
   updateExecutiveController,
 };

@@ -4,6 +4,11 @@ const { sequelize } = require('../config/database.js');
 const CommunityMember = sequelize.define(
   'CommunityMember',
   {
+    id: {
+      primaryKey: true,
+      type: DataTypes.BIGINT,
+      autoIncrement: true,
+    },
     communityId: {
       type: DataTypes.BIGINT,
       allowNull: false,

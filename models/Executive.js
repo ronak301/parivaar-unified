@@ -26,6 +26,13 @@ const Executive = sequelize.define(
     tableName: 'executives',
     timestamps: true,
     underscored: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ['communityId', 'userId'],
+        name: 'unq_executive',
+      },
+    ],
   }
 );
 

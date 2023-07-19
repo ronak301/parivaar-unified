@@ -47,7 +47,7 @@ const createBusinessController = async (req, res) => {
       '🚀 ~ file: business.js:23 ~ createBusinessController ~ err:',
       err
     );
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: err?.message });
   }
 };
 

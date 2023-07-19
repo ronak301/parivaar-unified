@@ -1,5 +1,6 @@
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op, QueryTypes } = require('sequelize');
 const { Executive } = require('../models');
+const { sequelize } = require('../config/database.js');
 
 exports.insertExecutive = async (data) => {
   try {
@@ -68,6 +69,29 @@ exports.deleteExecutive = async (id) => {
       '🚀 ~ file: executive.js:48 ~ exports.deleteExecutive ~ err:',
       err
     );
+    throw err;
+  }
+};
+
+exports.checkAdmin = async ({ phone }) => {
+  try {
+    const data = await sequelize.query(
+      `SELECT CASE
+      WHEN EXISTS(
+        SELECT true
+        FROM users u
+        LEFT JOIN executives e on u.id = e.user_id
+        WHERE u.phone = '${phone}'
+        AND 'ADMIN' = ANY(e.roles)
+      ) THEN true
+      ELSE false
+      END as permission`,
+      { type: QueryTypes.SELECT }
+    );
+
+    return data[0].permission;
+  } catch (err) {
+    console.log('🚀 ~ file: executive.js:99 ~ exports.checkAdmin= ~ err:', err);
     throw err;
   }
 };

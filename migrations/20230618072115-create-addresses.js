@@ -22,21 +22,18 @@ module.exports = {
       },
       full_address: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       pincode: {
         type: Sequelize.STRING,
       },
       city: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       locality: {
         type: Sequelize.STRING,
       },
       state: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       created_at: {
         allowNull: false,

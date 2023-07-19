@@ -47,6 +47,12 @@ module.exports = {
         onUpdate: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
     });
+
+    await queryInterface.addConstraint('executives', {
+      fields: ['community_id', 'user_id'],
+      type: 'unique',
+      name: 'unq_executive',
+    });
   },
 
   down: async (queryInterface, Sequelize) => {

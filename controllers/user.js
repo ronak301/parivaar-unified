@@ -18,7 +18,9 @@ const createUserController = async (req, res) => {
 
   try {
     const user = await insertUser(body, transaction);
-    await createBusiness({ ownerId: user.id, ...body.business }, transaction);
+    if (body.hasBusiness) {
+      await createBusiness({ ownerId: user.id, ...body.business }, transaction);
+    }
     await createAddress({ userId: user.id, ...body.address }, transaction);
     await transaction.commit();
 
@@ -39,8 +41,9 @@ const createUserController = async (req, res) => {
 };
 
 const getUserEventsController = async (req, res) => {
+  const { skip, limit } = req.query;
   try {
-    const data = await getUserEvents();
+    const data = await getUserEvents({ skip, limit });
     return res.json({ success: true, data });
   } catch (err) {
     console.log('🚀 ~ file: user.js:44 ~ getUserEventsController ~ err:', err);

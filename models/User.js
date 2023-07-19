@@ -15,7 +15,6 @@ const User = sequelize.define(
     },
     lastName: {
       type: DataTypes.STRING,
-      allowNull: false,
     },
     profilePicture: {
       type: DataTypes.STRING,
@@ -25,11 +24,12 @@ const User = sequelize.define(
     },
     dob: {
       type: DataTypes.DATEONLY,
-      allowNull: false,
+    },
+    bio: {
+      type: DataTypes.STRING,
     },
     gender: {
       type: DataTypes.STRING,
-      allowNull: false,
     },
     education: {
       type: DataTypes.STRING,
@@ -49,7 +49,6 @@ const User = sequelize.define(
     },
     email: {
       type: DataTypes.STRING,
-      allowNull: false,
       validate: {
         isEmail: true,
       },
@@ -84,7 +83,6 @@ const Relationship = require('./Relationship.js');
 const Address = require('./Address.js');
 const Community = require('./Community.js');
 const CommunityMember = require('./CommunityMember.js');
-// const Executive = require('./Executive.js');
 
 User.hasOne(Business, {
   as: 'business',

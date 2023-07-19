@@ -30,6 +30,23 @@ exports.addCommunityMember = async (communityId, userId) => {
   }
 };
 
+exports.deleteCommunityMember = async (communityId, userId) => {
+  try {
+    await CommunityMember.destroy({
+      where: {
+        communityId,
+        userId,
+      },
+    });
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: community.js:42 ~ exports.deleteCommunityMember ~ err:',
+      err
+    );
+    throw err;
+  }
+};
+
 exports.getCommunities = async () => {
   try {
     const communities = await Community.findAll({
@@ -262,7 +279,6 @@ exports.getCommunityMembers = async ({
       offset: skip,
     });
 
-    // count members in the community for pagination
     const totalRecords = await User.count({
       include: [
         {
@@ -278,7 +294,10 @@ exports.getCommunityMembers = async ({
       totalRecords,
       members,
     };
-  } catch (error) {}
+  } catch (error) {
+    console.log('🚀 ~ file: community.js:285 ~ error:', error);
+    throw error;
+  }
 };
 
 exports.deleteCommunity = async (id) => {

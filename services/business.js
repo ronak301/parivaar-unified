@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { Business } = require('../models');
 
 exports.createBusiness = async (payload, transaction) => {
@@ -16,6 +17,11 @@ exports.createBusiness = async (payload, transaction) => {
 exports.getBusinesses = async ({ skip, limit }) => {
   try {
     const { count, rows: businesses } = await Business.findAndCountAll({
+      where: {
+        name: {
+          [Op.ne]: null,
+        },
+      },
       limit: limit,
       offset: skip,
     });
