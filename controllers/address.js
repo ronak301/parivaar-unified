@@ -2,10 +2,9 @@ const { updateAddress } = require('../services/address');
 
 const updateAddressController = async (req, res) => {
   try {
-    const address = await updateAddress(req.params.id, req.body);
+    await updateAddress(req.params.id, req.body);
     return res.json({
       success: true,
-      address,
       message: 'Address updated successfully',
     });
   } catch (err) {

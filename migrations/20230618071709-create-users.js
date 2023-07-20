@@ -39,6 +39,7 @@ module.exports = {
       },
       phone: {
         type: Sequelize.STRING,
+        unique: true,
       },
       landline: {
         type: Sequelize.STRING,
