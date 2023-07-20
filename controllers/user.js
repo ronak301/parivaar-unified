@@ -10,6 +10,7 @@ const {
   getUserWithCommunities,
   deleteUser,
   getUserEvents,
+  getUsersByX,
 } = require('../services/user');
 
 const createUserController = async (req, res) => {
@@ -76,6 +77,24 @@ const deleteUserController = async (req, res) => {
   }
 };
 
+const checkSuperAdminController = async (req, res) => {
+  const { phone } = req.body;
+  try {
+    const data = await getUsersByX({
+      phone,
+      isSuperAdmin: true,
+    });
+
+    return res.json({ success: true, permission: data.length > 0 });
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: user.js:68 ~ checkSuperAdminController ~ err:',
+      err
+    );
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 const getUsersController = async (req, res) => {
   try {
     const users = await getUsersWithAll();
@@ -132,6 +151,7 @@ module.exports = {
   getUsersController,
   createUserController,
   getUserByIdController,
+  checkSuperAdminController,
   updateUserController,
   searchUserController,
   getUserCommunityController,

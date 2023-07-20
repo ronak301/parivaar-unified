@@ -8,10 +8,12 @@ const {
   getUserCommunityController,
   deleteUserController,
   getUserEventsController,
+  checkSuperAdminController,
 } = require('../controllers/user');
 
 router.post('/new', createUserController);
 router.get('/events', getUserEventsController);
+router.post('/check/superadmin', checkSuperAdminController);
 router.delete('/delete/:id', deleteUserController);
 router.get('/communities/:id', getUserCommunityController);
 router.get('/all', getUsersController);
