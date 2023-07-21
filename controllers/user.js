@@ -48,7 +48,7 @@ const getUserEventsController = async (req, res) => {
     return res.json({ success: true, data });
   } catch (err) {
     console.log('🚀 ~ file: user.js:44 ~ getUserEventsController ~ err:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: err?.message });
   }
 };
 
@@ -58,8 +58,11 @@ const getUserCommunityController = async (req, res) => {
     const data = await getUserWithCommunities(id);
     return res.json({ success: true, data });
   } catch (err) {
-    console.log(err);
-    return res.status(500).json({ success: false, error: err.message });
+    console.log(
+      '🚀 ~ file: user.js:61 ~ getUserCommunityController ~ err:',
+      err
+    );
+    return res.status(500).json({ success: false, error: err?.message });
   }
 };
 
@@ -73,7 +76,7 @@ const deleteUserController = async (req, res) => {
     });
   } catch (err) {
     console.log('🚀 ~ file: user.js:56 ~ deleteUserController ~ err:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: err?.message });
   }
 };
 
@@ -91,7 +94,7 @@ const checkSuperAdminController = async (req, res) => {
       '🚀 ~ file: user.js:68 ~ checkSuperAdminController ~ err:',
       err
     );
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: err?.message });
   }
 };
 
@@ -101,8 +104,8 @@ const getUsersController = async (req, res) => {
 
     return res.json({ success: true, data: users });
   } catch (err) {
-    console.log(err);
-    return res.status(500).json({ success: false, error: err.message });
+    console.log('🚀 ~ file: user.js:107 ~ getUsersController ~ err:', err);
+    return res.status(500).json({ success: false, error: err?.message });
   }
 };
 
@@ -114,8 +117,11 @@ const getUserByIdController = async (req, res) => {
 
     return res.json({ success: true, data: user });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ success: false, error: error.message });
+    console.log(
+      '🚀 ~ file: user.js:120 ~ getUserByIdController ~ error:',
+      error
+    );
+    return res.status(500).json({ success: false, error: error?.message });
   }
 };
 
@@ -124,8 +130,8 @@ const updateUserController = async (req, res) => {
     const user = await updateUser(req.params.id, req.body);
     return res.json({ success: true, message: 'User updated successfully' });
   } catch (err) {
-    console.log(err);
-    return res.status(500).json({ success: false, error: err.message });
+    console.log('🚀 ~ file: user.js:133 ~ updateUserController ~ err:', err);
+    return res.status(500).json({ success: false, error: err?.message });
   }
 };
 
@@ -142,8 +148,11 @@ const searchUserController = async (req, res) => {
 
     return res.json({ success: true, data: users });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ success: false, error: error.message });
+    console.log(
+      '🚀 ~ file: user.js:151 ~ searchUserController ~ error:',
+      error
+    );
+    return res.status(500).json({ success: false, error: error?.message });
   }
 };
 

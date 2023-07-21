@@ -13,7 +13,6 @@ exports.insertCommunity = async (data) => {
     });
     return community;
   } catch (err) {
-    console.log(err);
     throw err;
   }
 };
@@ -25,7 +24,6 @@ exports.addCommunityMember = async (communityId, userId) => {
       userId,
     });
   } catch (err) {
-    console.log(err);
     throw err;
   }
 };
@@ -39,10 +37,6 @@ exports.deleteCommunityMember = async (communityId, userId) => {
       },
     });
   } catch (err) {
-    console.log(
-      '🚀 ~ file: community.js:42 ~ exports.deleteCommunityMember ~ err:',
-      err
-    );
     throw err;
   }
 };
@@ -85,10 +79,6 @@ exports.getCommunities = async () => {
 
     return communities;
   } catch (err) {
-    console.log(
-      '🚀 ~ file: community.js:88 ~ exports.getCommunities= ~ err:',
-      err
-    );
     throw err;
   }
 };
@@ -102,10 +92,6 @@ exports.updateCommunity = async (id, mutation) => {
     });
     return community;
   } catch (err) {
-    console.log(
-      '🚀 ~ file: community.js:85 ~ exports.updateCommunity= ~ err:',
-      err
-    );
     throw err;
   }
 };
@@ -139,7 +125,6 @@ exports.getCommunityWithAll = async (communityId) => {
 
     return members;
   } catch (err) {
-    console.log(err);
     throw err;
   }
 };
@@ -308,7 +293,6 @@ exports.getCommunityMembers = async ({
       members,
     };
   } catch (error) {
-    console.log('🚀 ~ file: community.js:285 ~ error:', error);
     throw error;
   }
 };
@@ -322,10 +306,6 @@ exports.deleteCommunity = async (id) => {
     });
     return true;
   } catch (err) {
-    console.log(
-      '🚀 ~ file: community.js:270 ~ exports.deleteCommunity ~ err:',
-      err
-    );
     throw err;
   }
 };

@@ -1,5 +1,3 @@
-const Business = require('../models/Business');
-const User = require('../models/User');
 const {
   createBusiness,
   updateBusiness,
@@ -19,7 +17,6 @@ const getBusinessesController = async (req, res) => {
       id: ownerIds,
     });
 
-    // Then associate owners with businesses in-memory
     const businessesWithOwners = businesses.map((business) => {
       const owner = users.find((user) => user.id === business.ownerId);
       return { ...business.toJSON(), owner };
@@ -31,10 +28,10 @@ const getBusinessesController = async (req, res) => {
     });
   } catch (err) {
     console.log(
-      '🚀 ~ file: business.js:33 ~ getBusinessController ~ err:',
+      '🚀 ~ file: business.js:33 ~ getBusinessesController ~ err:',
       err
     );
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: err?.message });
   }
 };
 

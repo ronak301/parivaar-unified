@@ -15,8 +15,8 @@ const createCommunity = async (req, res) => {
 
     return res.json(newCommunity);
   } catch (err) {
-    console.log(err);
-    return res.status(500).json({ success: false, error: err.message });
+    console.log('🚀 ~ file: community.js:18 ~ createCommunity ~ err:', err);
+    return res.status(500).json({ success: false, error: err?.message });
   }
 };
 
@@ -31,7 +31,7 @@ const joinCommunity = async (req, res) => {
       .status(200)
       .json({ success: true, message: 'Successfully joined community' });
   } catch (err) {
-    console.log(err);
+    console.log('🚀 ~ file: community.js:34 ~ joinCommunity ~ err:', err);
     return res.status(500).json({ success: false, message: err?.message });
   }
 };
@@ -45,21 +45,30 @@ const getAllCommunitiesController = async (req, res) => {
       '🚀 ~ file: community.js:44 ~ getAllCommunitiesController ~ err:',
       err
     );
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: err?.message || 'Server side error occured',
-      });
+    res.status(500).json({
+      success: false,
+      message: err?.message || 'Server side error occured',
+    });
   }
 };
 
 const getCommunityWithAllController = async (req, res) => {
   const { id } = req.params;
 
-  const members = await getCommunityWithAll(id);
+  try {
+    const members = await getCommunityWithAll(id);
 
-  res.json(members);
+    res.json(members);
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: community.js:63 ~ getCommunityWithAllController ~ err:',
+      err
+    );
+    res.status(500).json({
+      success: false,
+      message: err?.message || 'Server side error occured',
+    });
+  }
 };
 
 const updateCommunityController = async (req, res) => {
@@ -70,8 +79,11 @@ const updateCommunityController = async (req, res) => {
       message: 'Community updated successfully',
     });
   } catch (err) {
-    console.log(err);
-    return res.status(500).json({ success: false, error: err.message });
+    console.log(
+      '🚀 ~ file: community.js:82 ~ updateCommunityController ~ err:',
+      err
+    );
+    return res.status(500).json({ success: false, error: err?.message });
   }
 };
 
@@ -95,8 +107,11 @@ const getCommunityMembersController = async (req, res) => {
       members: members.members,
     });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false, message: err });
+    console.log(
+      '🚀 ~ file: community.js:110 ~ getCommunityMembersController ~ err:',
+      err
+    );
+    res.status(500).json({ success: false, message: err?.message });
   }
 };
 
