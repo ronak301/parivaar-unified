@@ -218,7 +218,11 @@ exports.getCommunityMembers = async ({
   limit,
   order,
 }) => {
-  const { business: businessFilter, ...userFilter } = filter;
+  const {
+    business: businessFilter,
+    address: addressFilter,
+    ...userFilter
+  } = filter;
   try {
     const members = await User.findAndCountAll({
       where: {
@@ -272,6 +276,12 @@ exports.getCommunityMembers = async ({
           as: 'business',
           required: businessFilter ? true : false,
           attributes: ['id', 'name', 'type'],
+        },
+        {
+          model: Address,
+          as: 'address',
+          where: addressFilter ?? null,
+          attributes: [],
         },
       ],
       order: [['firstName', 'ASC']],

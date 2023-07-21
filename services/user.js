@@ -160,7 +160,11 @@ exports.updateUser = async (id, mutation) => {
 };
 
 exports.searchUser = async ({ query, filter, skip, limit, order }) => {
-  const { business: businessFilter, ...userFilter } = filter;
+  const {
+    business: businessFilter,
+    address: addressFilter,
+    ...userFilter
+  } = filter;
   try {
     const users = await User.findAndCountAll({
       where: {
@@ -202,6 +206,12 @@ exports.searchUser = async ({ query, filter, skip, limit, order }) => {
           as: 'business',
           where: businessFilter ?? null,
           attributes: ['id', 'name', 'type'],
+        },
+        {
+          model: Address,
+          as: 'address',
+          where: addressFilter ?? null,
+          attributes: [],
         },
       ],
       limit: limit,
