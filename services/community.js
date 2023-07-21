@@ -1,5 +1,11 @@
 const { Sequelize, Op } = require('sequelize');
-const { User, Community, CommunityMember, Executive } = require('../models');
+const {
+  User,
+  Community,
+  CommunityMember,
+  Executive,
+  Address,
+} = require('../models');
 const Business = require('../models/Business');
 
 exports.insertCommunity = async (data) => {
