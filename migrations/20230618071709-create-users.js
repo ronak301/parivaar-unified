@@ -19,6 +19,9 @@ module.exports = {
       profile_picture: {
         type: Sequelize.STRING,
       },
+      image_path: {
+        type: Sequelize.STRING,
+      },
       guardian_name: {
         type: Sequelize.STRING,
       },

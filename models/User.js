@@ -19,6 +19,9 @@ const User = sequelize.define(
     profilePicture: {
       type: DataTypes.STRING,
     },
+    imagePath: {
+      type: DataTypes.STRING,
+    },
     guardianName: {
       type: DataTypes.STRING,
     },
