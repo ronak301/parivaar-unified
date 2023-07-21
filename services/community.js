@@ -85,7 +85,10 @@ exports.getCommunities = async () => {
 
     return communities;
   } catch (err) {
-    console.log(err);
+    console.log(
+      '🚀 ~ file: community.js:88 ~ exports.getCommunities= ~ err:',
+      err
+    );
     throw err;
   }
 };

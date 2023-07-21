@@ -41,8 +41,16 @@ const getAllCommunitiesController = async (req, res) => {
     const communities = await getCommunities();
     res.json({ success: true, communities });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false, message: err.message });
+    console.log(
+      '🚀 ~ file: community.js:44 ~ getAllCommunitiesController ~ err:',
+      err
+    );
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: err?.message || 'Server side error occured',
+      });
   }
 };
 
@@ -109,7 +117,22 @@ const deleteCommunityMemberController = async (req, res) => {
   }
 };
 
-const deleteCommunityController = async (req, res) => {};
+const deleteCommunityController = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await deleteCommunity(id);
+    return res.json({
+      success: true,
+      message: 'Community deleted successfully',
+    });
+  } catch (err) {
+    console.log(
+      '🚀 ~ file: community.js:121 ~ deleteCommunityController ~ err:',
+      err
+    );
+    return res.status(500).json({ success: false, error: err?.message });
+  }
+};
 
 module.exports = {
   createCommunity,

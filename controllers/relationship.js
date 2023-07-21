@@ -31,11 +31,14 @@ const createRelativeController = async (req, res) => {
       id: user.id,
     });
   } catch (error) {
-    console.log(error);
+    console.log(
+      '🚀 ~ file: relationship.js:34 ~ createRelativeController ~ error:',
+      error
+    );
     await transaction.rollback();
     return res.status(500).json({
       message: 'Something went wrong',
-      error: error.message,
+      error: error?.message,
     });
   }
 };
