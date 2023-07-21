@@ -16,6 +16,9 @@ module.exports = {
       logo: {
         type: Sequelize.STRING,
       },
+      image_path: {
+        type: Sequelize.STRING,
+      },
       description: {
         type: Sequelize.STRING,
         allowNull: false,

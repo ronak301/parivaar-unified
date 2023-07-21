@@ -16,6 +16,9 @@ const Community = sequelize.define(
     logo: {
       type: DataTypes.STRING,
     },
+    imagePath: {
+      type: DataTypes.STRING,
+    },
     description: {
       type: DataTypes.STRING,
       allowNull: false,
