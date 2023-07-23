@@ -10,13 +10,7 @@ const Business = require('../models/Business');
 
 exports.insertCommunity = async (data) => {
   try {
-    const community = await Community.create({
-      name: data.name,
-      description: data.description,
-      type: data.type,
-      subType: data.subType,
-      status: data.status,
-    });
+    const community = await Community.create(data);
     return community;
   } catch (err) {
     throw err;
