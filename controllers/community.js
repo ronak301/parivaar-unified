@@ -32,7 +32,9 @@ const joinCommunity = async (req, res) => {
       .json({ success: true, message: 'Successfully joined community' });
   } catch (err) {
     console.log('🚀 ~ file: community.js:34 ~ joinCommunity ~ err:', err);
-    return res.status(500).json({ success: false, message: err?.message });
+    return res
+      .status(500)
+      .json({ success: false, error: err, message: err?.message });
   }
 };
 

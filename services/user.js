@@ -55,7 +55,7 @@ exports.getUsersWithAll = async () => {
   }
 };
 
-exports.getUserEvents = async ({ skip, limit }) => {
+exports.getUserEvents = async ({ communityId, skip, limit }) => {
   const currentMonth = moment().month() + 1;
   const currentDay = moment().date();
 
@@ -64,6 +64,18 @@ exports.getUserEvents = async ({ skip, limit }) => {
 
   try {
     const data = await User.findAll({
+      include: [
+        {
+          model: Community,
+          as: 'communities',
+          required: true,
+          through: {
+            attributes: [],
+            where: { communityId: communityId },
+          },
+          attributes: [],
+        },
+      ],
       where: Sequelize.literal(`(
         (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) >= ${currentDay})
         OR (EXTRACT(MONTH FROM dob) = ${nextMonth} AND EXTRACT(DAY FROM dob) <= ${nextMonthDay})
