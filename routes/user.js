@@ -12,7 +12,7 @@ const {
 } = require('../controllers/user');
 
 router.param('id', function (req, res, next, id) {
-  if (!id || isNaN(id)) {
+  if (!id) {
     res
       .status(400)
       .json({ success: false, error: 'ID parameter is missing in the route.' });
