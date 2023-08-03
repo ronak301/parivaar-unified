@@ -47,6 +47,7 @@ exports.getUsersWithAll = async () => {
         'bloodGroup',
         'phone',
       ],
+      order: [['firstName', 'ASC']],
     });
     return users;
   } catch (err) {

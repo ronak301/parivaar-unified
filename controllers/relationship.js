@@ -38,7 +38,7 @@ const createRelativeController = async (req, res) => {
     await transaction.rollback();
     return res.status(500).json({
       message: 'Something went wrong',
-      error: error?.message,
+      error: error.errors[0].message ?? error.message,
     });
   }
 };
