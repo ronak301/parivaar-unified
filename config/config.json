@@ -1,7 +1,7 @@
 {
   "development": {
     "username": "postgres",
-    "password": "BwY5qFIjhPB7SRXt",
+    "password": "sbQGwkg39QWFJ64k",
     "database": "postgres",
     "host": "db.vmkshebyuvhvgyiwqeqv.supabase.co",
     "dialect": "postgres"
@@ -15,7 +15,7 @@
   },
   "production": {
     "username": "postgres",
-    "password": "BwY5qFIjhPB7SRXt",
+    "password": "sbQGwkg39QWFJ64k",
     "database": "postgres",
     "host": "db.vmkshebyuvhvgyiwqeqv.supabase.co",
     "dialect": "postgres"

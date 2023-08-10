@@ -25,7 +25,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 //create a new sequelize instance with localhost postgres
 
-const sequelize = new Sequelize('postgres', 'postgres', 'zLgO7I1ske0zK9X8', {
+const sequelize = new Sequelize('postgres', 'postgres', 'sbQGwkg39QWFJ64k', {
   host: 'db.vmkshebyuvhvgyiwqeqv.supabase.co',
   dialect: 'postgres',
   logging: false,
