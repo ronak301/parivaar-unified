@@ -9,7 +9,7 @@ module.exports = {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
       },
-      first_name: {
+      full_name: {
         type: Sequelize.STRING,
         allowNull: true,
       },
