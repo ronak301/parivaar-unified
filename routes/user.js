@@ -10,6 +10,7 @@ const {
   getUserEventsController,
   checkSuperAdminController,
 } = require('../controllers/user');
+const authenticate = require('../middlewares/authenticate');
 
 router.param('id', function (req, res, next, id) {
   if (!id) {

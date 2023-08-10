@@ -185,6 +185,11 @@ exports.searchUser = async ({ query, filter, skip, limit, order }) => {
           {
             [Op.or]: [
               {
+                fullName: {
+                  [Op.iLike]: `%${query}%`,
+                },
+              },
+              {
                 firstName: {
                   [Op.iLike]: `%${query}%`,
                 },
@@ -239,10 +244,7 @@ exports.searchUser = async ({ query, filter, skip, limit, order }) => {
 
 exports.getUserById = async (id) => {
   try {
-    const user = await User.findOne({
-      where: {
-        id: id,
-      },
+    const user = await User.findByPk(id, {
       attributes: {
         exclude: ['createdAt', 'updatedAt'],
       },
