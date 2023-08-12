@@ -232,6 +232,10 @@ exports.searchUser = async ({ query, filter, skip, limit, order }) => {
           attributes: [],
         },
       ],
+      order: [
+        ['firstName', 'ASC'],
+        ['lastName', 'ASC'],
+      ],
       limit: limit,
       offset: skip,
     });

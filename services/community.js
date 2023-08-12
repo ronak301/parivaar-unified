@@ -277,7 +277,10 @@ exports.getCommunityMembers = async ({
           attributes: [],
         },
       ],
-      order: [['firstName', 'ASC']],
+      order: [
+        ['firstName', 'ASC'],
+        ['lastName', 'ASC'],
+      ],
       limit: limit,
       offset: skip,
     });

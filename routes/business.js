@@ -3,7 +3,7 @@ const {
   createBusinessController,
   updateBusinessController,
   deleteBusinessController,
-  getBusinessesController,
+  getBusinessesByCommunityController,
 } = require('../controllers/business');
 
 router.param('id', function (req, res, next, id) {
@@ -16,7 +16,7 @@ router.param('id', function (req, res, next, id) {
   }
 });
 
-router.post('/', getBusinessesController);
+router.post('/:community_id', getBusinessesByCommunityController);
 router.post('/new', createBusinessController);
 router.put('/:id', updateBusinessController);
 router.delete('/delete/:id', deleteBusinessController);

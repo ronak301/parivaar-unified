@@ -6,7 +6,7 @@ const {
 } = require('../services/business');
 const { getUsersByX } = require('../services/user');
 
-const getBusinessesController = async (req, res) => {
+const getBusinessesByCommunityController = async (req, res) => {
   const { skip, limit } = req.body;
   try {
     const { count, businesses } = await getBusinesses({ skip, limit });
@@ -48,6 +48,8 @@ const createBusinessController = async (req, res) => {
   }
 };
 
+const getBusinessByIdController = async (req, res) => {};
+
 const deleteBusinessController = async (req, res) => {
   const { id } = req.params;
   try {
@@ -82,7 +84,8 @@ const updateBusinessController = async (req, res) => {
 };
 
 module.exports = {
-  getBusinessesController,
+  getBusinessesByCommunityController,
+  getBusinessByIdController,
   createBusinessController,
   deleteBusinessController,
   updateBusinessController,
