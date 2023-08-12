@@ -218,6 +218,11 @@ exports.getCommunityMembers = async ({
           {
             [Op.or]: [
               {
+                fullName: {
+                  [Op.iLike]: `%${query}%`,
+                },
+              },
+              {
                 firstName: {
                   [Op.iLike]: `%${query}%`,
                 },
