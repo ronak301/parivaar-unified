@@ -19,10 +19,7 @@ const createUserController = async (req, res) => {
 
   try {
     const user = await insertUser(body, transaction);
-    if (body.hasBusiness) {
-      await createBusiness({ ownerId: user.id, ...body.business }, transaction);
-    }
-    await createAddress({ userId: user.id, ...body.address }, transaction);
+
     await transaction.commit();
 
     return res.json({

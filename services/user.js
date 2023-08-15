@@ -1,13 +1,20 @@
 const { User, Business, Address, Community } = require('../models');
 const { Op, Sequelize } = require('sequelize');
-const { sequelize } = require('../config/database');
 const moment = require('moment');
+const { createBusiness } = require('./business');
+const { createAddress } = require('./address');
 
 exports.insertUser = async (data, transaction) => {
   try {
     const user = await User.create(data, {
       transaction,
     });
+
+    if (data.hasBusiness) {
+      await createBusiness({ ownerId: user.id, ...data.business }, transaction);
+    }
+    await createAddress({ userId: user.id, ...data.address }, transaction);
+
     return user;
   } catch (err) {
     console.log(err);
