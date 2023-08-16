@@ -63,12 +63,73 @@ exports.getUsersWithAll = async () => {
   }
 };
 
-exports.getUserEvents = async ({ communityId, skip, limit }) => {
-  const currentMonth = moment().month() + 1;
-  const currentDay = moment().date();
+// exports.getUserEvents = async ({ communityId, skip, limit }) => {
+//   const currentMonth = moment().month() + 1;
+//   const currentDay = moment().date();
 
-  const nextMonthDay = moment().add(1, 'day').date();
-  const nextMonth = moment().add(1, 'day').month() + 1;
+//   const nextMonthDay = moment().add(1, 'months').date();
+//   const nextMonth = moment().add(1, 'months').month() + 1;
+
+//   try {
+//     const data = await User.findAll({
+//       include: [
+//         {
+//           model: Community,
+//           as: 'communities',
+//           required: true,
+//           through: {
+//             attributes: [],
+//             where: { communityId: communityId },
+//           },
+//           attributes: [],
+//         },
+//       ],
+//       where: Sequelize.literal(`(
+//         (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) >= ${currentDay})
+//         OR (EXTRACT(MONTH FROM dob) = ${nextMonth} AND EXTRACT(DAY FROM dob) <= ${nextMonthDay})
+//         OR (
+//           wedding_date is NOT NULL AND ((EXTRACT(MONTH FROM wedding_date) = ${currentMonth} AND EXTRACT(DAY FROM wedding_date) >= ${currentDay})
+//           OR (EXTRACT(MONTH FROM wedding_date) = ${nextMonth} AND EXTRACT(DAY FROM wedding_date) <= ${nextMonthDay}))
+//         ))`),
+//       attributes: {
+//         include: [
+//           [
+//             Sequelize.literal(`CASE
+//             WHEN
+//               (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) >= ${currentDay})
+//               OR (EXTRACT(MONTH FROM dob) = ${nextMonth} AND EXTRACT(DAY FROM dob) <= ${nextMonthDay})
+//             THEN 'birthday'
+
+//             WHEN
+//               wedding_date is NOT NULL
+//               AND ((EXTRACT(MONTH FROM wedding_date) = ${currentMonth} AND EXTRACT(DAY FROM wedding_date) >= ${currentDay})
+//               OR (EXTRACT(MONTH FROM wedding_date) = ${nextMonth} AND EXTRACT(DAY FROM wedding_date) <= ${nextMonthDay}))
+//             THEN 'anniversary'
+
+//             ELSE 'none'
+//             END`),
+//             'eventType',
+//           ],
+//         ],
+//       },
+//       order: [
+//         ['dob', 'DESC'],
+//         ['wedding_date', 'DESC'],
+//       ],
+//       offset: skip,
+//       limit: limit,
+//     });
+
+//     return data;
+//   } catch (err) {
+//     console.log('🚀 ~ file: user.js:61 ~ exports.getUserEvents= ~ err:', err);
+//     throw err;
+//   }
+// };
+
+exports.getUserEvents = async ({ communityId, skip, limit }) => {
+  const today = moment();
+  const tomorrow = moment().add(1, 'days');
 
   try {
     const data = await User.findAll({
@@ -84,30 +145,82 @@ exports.getUserEvents = async ({ communityId, skip, limit }) => {
           attributes: [],
         },
       ],
-      where: Sequelize.literal(`(
-        (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) >= ${currentDay})
-        OR (EXTRACT(MONTH FROM dob) = ${nextMonth} AND EXTRACT(DAY FROM dob) <= ${nextMonthDay})
-        OR (
-          wedding_date is NOT NULL AND ((EXTRACT(MONTH FROM wedding_date) = ${currentMonth} AND EXTRACT(DAY FROM wedding_date) >= ${currentDay})
-          OR (EXTRACT(MONTH FROM wedding_date) = ${nextMonth} AND EXTRACT(DAY FROM wedding_date) <= ${nextMonthDay}))
-        ))`),
+      where: {
+        [Sequelize.Op.or]: [
+          {
+            [Sequelize.Op.and]: [
+              Sequelize.where(
+                Sequelize.fn('MONTH', Sequelize.col('dob')),
+                today.month() + 1
+              ),
+              Sequelize.where(
+                Sequelize.fn('DAY', Sequelize.col('dob')),
+                today.date()
+              ),
+            ],
+          },
+          {
+            [Sequelize.Op.and]: [
+              Sequelize.where(
+                Sequelize.fn('MONTH', Sequelize.col('wedding_date')),
+                today.month() + 1
+              ),
+              Sequelize.where(
+                Sequelize.fn('DAY', Sequelize.col('wedding_date')),
+                today.date()
+              ),
+            ],
+          },
+          {
+            [Sequelize.Op.and]: [
+              Sequelize.where(
+                Sequelize.fn('MONTH', Sequelize.col('dob')),
+                tomorrow.month() + 1
+              ),
+              Sequelize.where(
+                Sequelize.fn('DAY', Sequelize.col('dob')),
+                tomorrow.date()
+              ),
+            ],
+          },
+          {
+            [Sequelize.Op.and]: [
+              Sequelize.where(
+                Sequelize.fn('MONTH', Sequelize.col('wedding_date')),
+                tomorrow.month() + 1
+              ),
+              Sequelize.where(
+                Sequelize.fn('DAY', Sequelize.col('wedding_date')),
+                tomorrow.date()
+              ),
+            ],
+          },
+        ],
+      },
       attributes: {
         include: [
           [
             Sequelize.literal(`CASE 
-            WHEN
-              (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) >= ${currentDay})
-              OR (EXTRACT(MONTH FROM dob) = ${nextMonth} AND EXTRACT(DAY FROM dob) <= ${nextMonthDay})
-            THEN 'birthday'
-          
-            WHEN
-              wedding_date is NOT NULL
-              AND ((EXTRACT(MONTH FROM wedding_date) = ${currentMonth} AND EXTRACT(DAY FROM wedding_date) >= ${currentDay})
-              OR (EXTRACT(MONTH FROM wedding_date) = ${nextMonth} AND EXTRACT(DAY FROM wedding_date) <= ${nextMonthDay}))
-            THEN 'anniversary'   
-          
-            ELSE 'none'
-            END`),
+              WHEN
+                (EXTRACT(MONTH FROM dob) = ${
+                  today.month() + 1
+                } AND EXTRACT(DAY FROM dob) = ${today.date()})
+                OR (EXTRACT(MONTH FROM wedding_date) = ${
+                  today.month() + 1
+                } AND EXTRACT(DAY FROM wedding_date) = ${today.date()})
+              THEN 'birthday'
+              
+              WHEN
+                (EXTRACT(MONTH FROM dob) = ${
+                  tomorrow.month() + 1
+                } AND EXTRACT(DAY FROM dob) = ${tomorrow.date()})
+                OR (EXTRACT(MONTH FROM wedding_date) = ${
+                  tomorrow.month() + 1
+                } AND EXTRACT(DAY FROM wedding_date) = ${tomorrow.date()})
+              THEN 'anniversary'   
+              
+              ELSE 'none'
+              END`),
             'eventType',
           ],
         ],
