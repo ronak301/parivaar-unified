@@ -28,7 +28,7 @@ const { createClient } = require('@supabase/supabase-js');
 const sequelize = new Sequelize('postgres', 'postgres', 'sbQGwkg39QWFJ64k', {
   host: 'db.vmkshebyuvhvgyiwqeqv.supabase.co',
   dialect: 'postgres',
-  logging: true,
+  logging: false,
 });
 
 // const sequelize = new Sequelize('postgres', 'postgres', '12345678', {

@@ -16,8 +16,8 @@ router.param('id', function (req, res, next, id) {
   }
 });
 
-router.post('/:community_id', getBusinessesByCommunityController);
 router.post('/new', createBusinessController);
+router.post('/:community_id', getBusinessesByCommunityController);
 router.put('/:id', updateBusinessController);
 router.delete('/delete/:id', deleteBusinessController);
 
