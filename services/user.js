@@ -67,8 +67,8 @@ exports.getUserEvents = async ({ communityId, skip, limit }) => {
   const currentMonth = moment().month() + 1;
   const currentDay = moment().date();
 
-  const nextMonthDay = moment().add(1, 'months').date();
-  const nextMonth = moment().add(1, 'months').month() + 1;
+  const nextMonthDay = moment().add(1, 'day').date();
+  const nextMonth = moment().add(1, 'day').month() + 1;
 
   try {
     const data = await User.findAll({
@@ -112,6 +112,10 @@ exports.getUserEvents = async ({ communityId, skip, limit }) => {
           ],
         ],
       },
+      order: [
+        ['dob', 'DESC'],
+        ['wedding_date', 'DESC'],
+      ],
       offset: skip,
       limit: limit,
     });

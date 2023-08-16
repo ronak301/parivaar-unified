@@ -41,10 +41,7 @@ const createUserController = async (req, res) => {
 const getUserEventsController = async (req, res) => {
   const { skip, limit } = req.query;
   const { communityId } = req.params;
-  console.log(
-    '🚀 ~ file: user.js:47 ~ getUserEventsController ~ communityId:',
-    communityId
-  );
+
   try {
     const data = await getUserEvents({ communityId, skip, limit });
     return res.json({ success: true, data });
