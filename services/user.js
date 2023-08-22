@@ -65,10 +65,12 @@ exports.getUsersWithAll = async () => {
 
 exports.getUserEvents = async ({ communityId, skip, limit }) => {
   const currentMonth = moment().month() + 1;
+
   const currentDay = moment().date();
 
-  const nextMonthDay = moment().add(1, 'day').date();
-  const nextMonth = moment().add(1, 'day').month() + 1;
+  const nextDay = moment().add(1, 'day').date();
+
+  const nextDayMonth = moment().add(1, 'days').month() + 1;
 
   try {
     const data = await User.findAll({
@@ -85,25 +87,25 @@ exports.getUserEvents = async ({ communityId, skip, limit }) => {
         },
       ],
       where: Sequelize.literal(`(
-        (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) >= ${currentDay})
-        OR (EXTRACT(MONTH FROM dob) = ${nextMonth} AND EXTRACT(DAY FROM dob) <= ${nextMonthDay})
-        OR (
-          wedding_date is NOT NULL AND ((EXTRACT(MONTH FROM wedding_date) = ${currentMonth} AND EXTRACT(DAY FROM wedding_date) >= ${currentDay})
-          OR (EXTRACT(MONTH FROM wedding_date) = ${nextMonth} AND EXTRACT(DAY FROM wedding_date) <= ${nextMonthDay}))
-        ))`),
+        (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) = ${currentDay})
+        OR (EXTRACT(MONTH FROM dob) = ${nextDayMonth} AND EXTRACT(DAY FROM dob) = ${nextDay})) OR
+        wedding_date is NOT NULL
+        AND ((EXTRACT(MONTH FROM wedding_date) = ${currentMonth} AND EXTRACT(DAY FROM wedding_date) = ${currentDay})
+        OR (EXTRACT(MONTH FROM wedding_date) = ${nextDayMonth} AND EXTRACT(DAY FROM wedding_date) = ${nextDay}))
+        `),
       attributes: {
         include: [
           [
             Sequelize.literal(`CASE
             WHEN
-              (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) >= ${currentDay})
-              OR (EXTRACT(MONTH FROM dob) = ${nextMonth} AND EXTRACT(DAY FROM dob) <= ${nextMonthDay})
+              (EXTRACT(MONTH FROM dob) = ${currentMonth} AND EXTRACT(DAY FROM dob) = ${currentDay})
+              OR (EXTRACT(MONTH FROM dob) = ${nextDayMonth} AND EXTRACT(DAY FROM dob) = ${nextDay})
             THEN 'birthday'
 
             WHEN
               wedding_date is NOT NULL
-              AND ((EXTRACT(MONTH FROM wedding_date) = ${currentMonth} AND EXTRACT(DAY FROM wedding_date) >= ${currentDay})
-              OR (EXTRACT(MONTH FROM wedding_date) = ${nextMonth} AND EXTRACT(DAY FROM wedding_date) <= ${nextMonthDay}))
+              AND ((EXTRACT(MONTH FROM wedding_date) = ${currentMonth} AND EXTRACT(DAY FROM wedding_date) = ${currentDay})
+              OR (EXTRACT(MONTH FROM wedding_date) = ${nextDayMonth} AND EXTRACT(DAY FROM wedding_date) = ${nextDay}))
             THEN 'anniversary'
 
             ELSE 'none'
@@ -113,8 +115,8 @@ exports.getUserEvents = async ({ communityId, skip, limit }) => {
         ],
       },
       order: [
-        ['dob', 'DESC'],
-        ['wedding_date', 'DESC'],
+        ['dob', 'ASC'],
+        ['wedding_date', 'ASC'],
       ],
       offset: skip,
       limit: limit,

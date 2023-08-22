@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Business } = require('../models');
+const { Business, Community, User, sequelize } = require('../models');
 
 exports.createBusiness = async (payload, transaction) => {
   try {
@@ -10,6 +10,41 @@ exports.createBusiness = async (payload, transaction) => {
     return business;
   } catch (error) {
     console.log('🚀 ~ file: business.js:7 ~ createBusiness ~ error:', error);
+    throw error;
+  }
+};
+
+exports.getBusinessByCommunityId = async ({ community_id, skip, limit }) => {
+  try {
+    const data = await User.findAll({
+      attributes: [],
+      include: [
+        {
+          model: Community,
+          as: 'communities',
+          required: true,
+          through: {
+            attributes: [],
+            where: { communityId: community_id },
+          },
+          attributes: [],
+        },
+        {
+          model: Business,
+          as: 'business',
+          required: true,
+        },
+      ],
+      offset: skip,
+      limit: limit,
+    });
+
+    return data;
+  } catch (error) {
+    console.log(
+      '🚀 ~ file: business.js:48 ~ exports.getBusinessByCommunityId= ~ error:',
+      error
+    );
     throw error;
   }
 };

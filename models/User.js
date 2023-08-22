@@ -65,6 +65,24 @@ const User = sequelize.define(
     bloodGroup: {
       type: DataTypes.STRING,
     },
+    facebookLink: {
+      type: DataTypes.STRING,
+    },
+    instagramLink: {
+      type: DataTypes.STRING,
+    },
+    linkedinLink: {
+      type: DataTypes.STRING,
+    },
+    birthTime: {
+      type: DataTypes.STRING,
+    },
+    bloodDonor: {
+      type: DataTypes.BOOLEAN,
+    },
+    numberOfTimesBloodDonated: {
+      type: DataTypes.INTEGER,
+    },
     isAccountManager: {
       type: DataTypes.BOOLEAN,
     },
