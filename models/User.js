@@ -31,8 +31,14 @@ const User = sequelize.define(
     dob: {
       type: DataTypes.DATEONLY,
     },
+    isMarried: {
+      type: DataTypes.BOOLEAN,
+    },
     bio: {
       type: DataTypes.STRING,
+    },
+    canEditFamilyMembers: {
+      type: DataTypes.BOOLEAN,
     },
     gender: {
       type: DataTypes.STRING,
