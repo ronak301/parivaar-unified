@@ -211,9 +211,30 @@ exports.getCommunityMembers = async ({
     address: addressFilter,
     ...userFilter
   } = filter;
+
+  const ageFilter = userFilter.age;
+
+  const currentDate = new Date();
+  const minDob = new Date(
+    currentDate.getFullYear() - ageFilter.min,
+    currentDate.getMonth(),
+    currentDate.getDate()
+  );
+  const maxDob = new Date(
+    currentDate.getFullYear() - ageFilter.max - 1,
+    currentDate.getMonth(),
+    currentDate.getDate()
+  );
+
+  delete userFilter.age;
+
   try {
     const members = await User.findAndCountAll({
       where: {
+        dob: {
+          [Op.gte]: maxDob,
+          [Op.lte]: minDob,
+        },
         [Op.and]: [
           {
             [Op.or]: [

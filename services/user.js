@@ -304,6 +304,7 @@ exports.searchUser = async ({ query, filter, skip, limit, order }) => {
     address: addressFilter,
     ...userFilter
   } = filter;
+
   try {
     const users = await User.findAndCountAll({
       where: {
@@ -342,6 +343,7 @@ exports.searchUser = async ({ query, filter, skip, limit, order }) => {
         'profilePicture',
         'phone',
         'bloodGroup',
+        'dob',
         'education',
       ],
       include: [
