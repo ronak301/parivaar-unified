@@ -212,21 +212,21 @@ exports.getCommunityMembers = async ({
     ...userFilter
   } = filter;
 
-  const ageFilter = userFilter.age;
+  // const ageFilter = userFilter.age;
 
-  const currentDate = new Date();
-  const minDob = new Date(
-    currentDate.getFullYear() - ageFilter.min,
-    currentDate.getMonth(),
-    currentDate.getDate()
-  );
-  const maxDob = new Date(
-    currentDate.getFullYear() - ageFilter.max - 1,
-    currentDate.getMonth(),
-    currentDate.getDate()
-  );
+  // const currentDate = new Date();
+  // const minDob = new Date(
+  //   currentDate.getFullYear() - ageFilter.min,
+  //   currentDate.getMonth(),
+  //   currentDate.getDate()
+  // );
+  // const maxDob = new Date(
+  //   currentDate.getFullYear() - ageFilter.max - 1,
+  //   currentDate.getMonth(),
+  //   currentDate.getDate()
+  // );
 
-  delete userFilter.age;
+  // delete userFilter.age;
 
   try {
     const members = await User.findAndCountAll({
