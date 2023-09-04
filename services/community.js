@@ -231,10 +231,6 @@ exports.getCommunityMembers = async ({
   try {
     const members = await User.findAndCountAll({
       where: {
-        dob: {
-          [Op.gte]: maxDob,
-          [Op.lte]: minDob,
-        },
         [Op.and]: [
           {
             [Op.or]: [
