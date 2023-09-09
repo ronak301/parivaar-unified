@@ -212,6 +212,32 @@ exports.getCommunityMembers = async ({
     ...userFilter
   } = filter;
 
+  let ageFilter = userFilter.age ?? {};
+  let minDob, maxDob;
+
+  if (Object.keys(ageFilter).length > 0) {
+    const currentDate = new Date();
+    minDob = new Date(
+      currentDate.getFullYear() - ageFilter.min,
+      currentDate.getMonth(),
+      currentDate.getDate()
+    );
+    maxDob = new Date(
+      currentDate.getFullYear() - ageFilter.max - 1,
+      currentDate.getMonth(),
+      currentDate.getDate()
+    );
+
+    ageFilter = {
+      dob: {
+        [Op.gte]: maxDob,
+        [Op.lte]: minDob,
+      },
+    };
+
+    delete userFilter.age;
+  }
+
   // const ageFilter = userFilter.age;
 
   // const currentDate = new Date();
@@ -257,6 +283,7 @@ exports.getCommunityMembers = async ({
             ],
           },
           userFilter,
+          ageFilter,
           businessFilter
             ? {
                 '$business.type$': businessFilter.type,
