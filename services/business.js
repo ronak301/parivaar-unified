@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
-const { Business, Community, User, sequelize } = require('../models');
+const { Business, Community, User } = require('../models');
+const db = require('../models');
 
 exports.createBusiness = async (payload, transaction) => {
   try {
@@ -14,10 +15,16 @@ exports.createBusiness = async (payload, transaction) => {
   }
 };
 
-exports.getBusinessByCommunityId = async ({ community_id, skip, limit }) => {
+exports.getBusinessByCommunityId = async ({
+  community_id,
+  query,
+  filter = {},
+  skip,
+  limit,
+}) => {
   try {
-    const data = await User.findAll({
-      attributes: [],
+    const data = await User.findAndCountAll({
+      attributes: ['firstName', 'lastName', 'phone'],
       include: [
         {
           model: Community,
@@ -32,6 +39,20 @@ exports.getBusinessByCommunityId = async ({ community_id, skip, limit }) => {
         {
           model: Business,
           as: 'business',
+          where: {
+            [Op.and]: [
+              {
+                [Op.or]: [
+                  {
+                    name: {
+                      [Op.iLike]: `${query}%`,
+                    },
+                  },
+                ],
+              },
+              filter,
+            ],
+          },
           required: true,
         },
       ],

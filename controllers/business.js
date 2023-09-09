@@ -8,12 +8,14 @@ const {
 const { getUsersByX } = require('../services/user');
 
 const getBusinessesByCommunityController = async (req, res) => {
-  const { skip, limit } = req.body;
+  const { query, filter, skip, limit } = req.body;
   const { community_id } = req.params;
 
   try {
     const data = await getBusinessByCommunityId({
       community_id,
+      query,
+      filter,
       skip,
       limit,
     });
