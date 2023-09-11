@@ -299,6 +299,7 @@ exports.getCommunityMembers = async ({
         'phone',
         'bloodGroup',
         'education',
+        'guardianName',
       ],
       include: [
         {
