@@ -47,6 +47,9 @@ exports.getBusinessByCommunityId = async ({
                     name: {
                       [Op.iLike]: `%${query}%`,
                     },
+                    description: {
+                      [Op.iLike]: `%${query}%`,
+                    },
                   },
                 ],
               },
