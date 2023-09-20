@@ -19,3 +19,12 @@ git pull
 ```cmd
 docker compose up --build -d
 ```
+
+## Backup Database
+
+> run the comands one by one and enter pg password when asked
+
+```bash
+pg_dump  -U postgres -p 5432 -h db.vmkshebyuvhvgyiwqeqv.supabase.co  -Fc -a -f $(date +%Y-%m-%d_%H-%M).out
+pg_dumpall -U postgres -p 5432 -h db.vmkshebyuvhvgyiwqeqv.supabase.co >> $(date +%Y-%m-%d_%H-%M).sql
+```
