@@ -430,3 +430,13 @@ exports.getUserById = async (id) => {
     throw err;
   }
 };
+
+exports.getUserByPhone = async (phone) => {
+  try {
+    const user = await User.findOne({ where: { phone: phone } });
+    return user;
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+};

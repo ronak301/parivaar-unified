@@ -9,6 +9,8 @@ const {
   deleteUserController,
   getUserEventsController,
   checkSuperAdminController,
+  sendOTPController,
+  verifyOTPController,
 } = require('../controllers/user');
 const authenticate = require('../middlewares/authenticate');
 
@@ -31,5 +33,7 @@ router.get('/all', getUsersController);
 router.post('/search', searchUserController);
 router.put('/:id', updateUserController);
 router.get('/:id', getUserByIdController);
+router.post('/sendOtp', sendOTPController);
+router.post('/verifyOtp', verifyOTPController);
 
 module.exports = router;
