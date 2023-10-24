@@ -384,6 +384,46 @@ exports.getUserById = async (id) => {
       include: [
         {
           model: User,
+          as: 'parent',
+          attributes: [
+            'id',
+            'firstName',
+            'lastName',
+            'profilePicture',
+            'phone',
+            'education',
+            'bloodGroup',
+          ],
+          include: [
+            {
+              model: Business,
+              as: 'business',
+              attributes: ['id', 'name', 'type'],
+            },
+          ],
+        },
+        {
+          model: User,
+          as: 'root',
+          attributes: [
+            'id',
+            'firstName',
+            'lastName',
+            'profilePicture',
+            'phone',
+            'education',
+            'bloodGroup',
+          ],
+          include: [
+            {
+              model: Business,
+              as: 'business',
+              attributes: ['id', 'name', 'type'],
+            },
+          ],
+        },
+        {
+          model: User,
           as: 'relatives',
           attributes: [
             'id',

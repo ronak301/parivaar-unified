@@ -98,6 +98,12 @@ const User = sequelize.define(
     isSuperAdmin: {
       type: DataTypes.BOOLEAN,
     },
+    parentNode: {
+      type: DataTypes.UUID,
+    },
+    rootNode: {
+      type: DataTypes.UUID,
+    },
   },
   {
     tableName: 'users',
@@ -118,6 +124,18 @@ User.hasOne(Business, {
   as: 'business',
   foreignKey: 'ownerId',
   onDelete: 'CASCADE',
+});
+
+User.belongsTo(User, {
+  as: 'parent',
+  foreignKey: 'parentNode',
+  onDelete: 'SET NULL',
+});
+
+User.belongsTo(User, {
+  as: 'root',
+  foreignKey: 'rootNode',
+  onDelete: 'SET NULL',
 });
 
 User.hasOne(Address, {

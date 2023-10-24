@@ -10,10 +10,6 @@ const executiveAuth = async (req, res, next) => {
       communityId,
       rolesToCheck: ['OWNER', 'ADMIN'],
     });
-    console.log(
-      '🚀 ~ file: executiveAuth.js:13 ~ executiveAuth ~ executive:',
-      executive
-    );
 
     if (executive) {
       return next();
