@@ -104,6 +104,12 @@ const User = sequelize.define(
     rootNode: {
       type: DataTypes.UUID,
     },
+    pushTokens: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
+    },
+    approvalStatus: {
+      type: DataTypes.STRING,
+    },
   },
   {
     tableName: 'users',

@@ -378,7 +378,7 @@ exports.getUserById = async (id) => {
   try {
     const user = await User.findByPk(id, {
       attributes: {
-        exclude: ['createdAt', 'updatedAt'],
+        exclude: ['createdAt', 'updatedAt','rootNode','parentNode'],
       },
 
       include: [
