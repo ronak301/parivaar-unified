@@ -36,6 +36,9 @@ const Community = sequelize.define(
     code: {
       type: DataTypes.STRING,
     },
+    showFamilyMembers: {
+      type: DataTypes.STRING,
+    },
   },
   {
     tableName: 'communities',

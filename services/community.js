@@ -53,6 +53,7 @@ exports.getCommunities = async () => {
         'subType',
         'code',
         'status',
+        'showFamilyMembers',
         [
           Sequelize.fn(
             'COUNT',
