@@ -1,4 +1,4 @@
-## To Sync On DigitalOcean Droplet:
+## To Sync On AWS VM:
 
 - Step 1: SSH into the droplet
 

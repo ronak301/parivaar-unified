@@ -1,8 +1,8 @@
-const { User, Business, Address, Community } = require('../models');
-const { Op, Sequelize } = require('sequelize');
-const moment = require('moment');
-const { createBusiness } = require('./business');
-const { createAddress } = require('./address');
+const { User, Business, Address, Community } = require("../models");
+const { Op, Sequelize } = require("sequelize");
+const moment = require("moment");
+const { createBusiness } = require("./business");
+const { createAddress } = require("./address");
 
 exports.insertUser = async (data, transaction) => {
   try {
@@ -27,18 +27,18 @@ exports.getUsersByX = async (where) => {
     const users = await User.findAll({
       where,
       attributes: [
-        'id',
-        'firstName',
-        'lastName',
-        'profilePicture',
-        'phone',
-        'bloodGroup',
-        'education',
+        "id",
+        "firstName",
+        "lastName",
+        "profilePicture",
+        "phone",
+        "bloodGroup",
+        "education",
       ],
     });
     return users;
   } catch (err) {
-    console.log('🚀 ~ file: user.js:25 ~ exports.getUsersByX= ~ err:', err);
+    console.log("🚀 ~ file: user.js:25 ~ exports.getUsersByX= ~ err:", err);
     throw err;
   }
 };
@@ -47,14 +47,14 @@ exports.getUsersWithAll = async () => {
   try {
     const users = await User.findAll({
       attributes: [
-        'id',
-        'firstName',
-        'lastName',
-        'profilePicture',
-        'bloodGroup',
-        'phone',
+        "id",
+        "firstName",
+        "lastName",
+        "profilePicture",
+        "bloodGroup",
+        "phone",
       ],
-      order: [['firstName', 'ASC']],
+      order: [["firstName", "ASC"]],
     });
     return users;
   } catch (err) {
@@ -68,16 +68,16 @@ exports.getUserEvents = async ({ communityId, skip, limit }) => {
 
   const currentDay = moment().date();
 
-  const nextDay = moment().add(1, 'day').date();
+  const nextDay = moment().add(1, "day").date();
 
-  const nextDayMonth = moment().add(1, 'days').month() + 1;
+  const nextDayMonth = moment().add(1, "days").month() + 1;
 
   try {
     const data = await User.findAll({
       include: [
         {
           model: Community,
-          as: 'communities',
+          as: "communities",
           required: true,
           through: {
             attributes: [],
@@ -110,13 +110,13 @@ exports.getUserEvents = async ({ communityId, skip, limit }) => {
 
             ELSE 'none'
             END`),
-            'eventType',
+            "eventType",
           ],
         ],
       },
       order: [
-        ['dob', 'ASC'],
-        ['wedding_date', 'ASC'],
+        ["dob", "ASC"],
+        ["wedding_date", "ASC"],
       ],
       offset: skip,
       limit: limit,
@@ -124,7 +124,7 @@ exports.getUserEvents = async ({ communityId, skip, limit }) => {
 
     return data;
   } catch (err) {
-    console.log('🚀 ~ file: user.js:61 ~ exports.getUserEvents= ~ err:', err);
+    console.log("🚀 ~ file: user.js:61 ~ exports.getUserEvents= ~ err:", err);
     throw err;
   }
 };
@@ -249,13 +249,13 @@ exports.getUserWithCommunities = async (id) => {
         id: id,
       },
       attributes: {
-        exclude: ['createdAt', 'updatedAt'],
+        exclude: ["createdAt", "updatedAt"],
       },
 
       include: [
         {
           model: Community,
-          as: 'communities',
+          as: "communities",
           through: {
             attributes: [],
           },
@@ -279,7 +279,7 @@ exports.deleteUser = async (id) => {
     });
     return true;
   } catch (err) {
-    console.log('🚀 ~ file: user.js:71 ~ exports.deleteUser ~ err:', err);
+    console.log("🚀 ~ file: user.js:71 ~ exports.deleteUser ~ err:", err);
     throw err;
   }
 };
@@ -337,32 +337,40 @@ exports.searchUser = async ({ query, filter, skip, limit, order }) => {
         ],
       },
       attributes: [
-        'id',
-        'firstName',
-        'lastName',
-        'profilePicture',
-        'phone',
-        'bloodGroup',
-        'dob',
-        'education',
+        "id",
+        "firstName",
+        "lastName",
+        "profilePicture",
+        "phone",
+        "bloodGroup",
+        "dob",
+        "education",
       ],
       include: [
         {
           model: Business,
-          as: 'business',
+          as: "business",
           where: businessFilter ?? null,
-          attributes: ['id', 'name', 'type'],
+          attributes: ["id", "name", "type"],
         },
         {
           model: Address,
-          as: 'address',
+          as: "address",
           where: addressFilter ?? null,
           attributes: [],
         },
+        {
+          model: Community,
+          as: "communities",
+          attributes: ["id"],
+          through: {
+            attributes: [],
+          },
+        },
       ],
       order: [
-        ['firstName', 'ASC'],
-        ['lastName', 'ASC'],
+        ["firstName", "ASC"],
+        ["lastName", "ASC"],
       ],
       limit: limit,
       offset: skip,
@@ -378,88 +386,88 @@ exports.getUserById = async (id) => {
   try {
     const user = await User.findByPk(id, {
       attributes: {
-        exclude: ['createdAt', 'updatedAt','rootNode','parentNode'],
+        exclude: ["createdAt", "updatedAt", "rootNode", "parentNode"],
       },
 
       include: [
         {
           model: User,
-          as: 'parent',
+          as: "parent",
           attributes: [
-            'id',
-            'firstName',
-            'lastName',
-            'profilePicture',
-            'phone',
-            'education',
-            'bloodGroup',
+            "id",
+            "firstName",
+            "lastName",
+            "profilePicture",
+            "phone",
+            "education",
+            "bloodGroup",
           ],
           include: [
             {
               model: Business,
-              as: 'business',
-              attributes: ['id', 'name', 'type'],
+              as: "business",
+              attributes: ["id", "name", "type"],
             },
           ],
         },
         {
           model: User,
-          as: 'root',
+          as: "root",
           attributes: [
-            'id',
-            'firstName',
-            'lastName',
-            'profilePicture',
-            'phone',
-            'education',
-            'bloodGroup',
+            "id",
+            "firstName",
+            "lastName",
+            "profilePicture",
+            "phone",
+            "education",
+            "bloodGroup",
           ],
           include: [
             {
               model: Business,
-              as: 'business',
-              attributes: ['id', 'name', 'type'],
+              as: "business",
+              attributes: ["id", "name", "type"],
             },
           ],
         },
         {
           model: User,
-          as: 'relatives',
+          as: "relatives",
           attributes: [
-            'id',
-            'firstName',
-            'lastName',
-            'profilePicture',
-            'phone',
-            'education',
-            'bloodGroup',
+            "id",
+            "firstName",
+            "lastName",
+            "profilePicture",
+            "phone",
+            "education",
+            "bloodGroup",
           ],
           through: {
-            as: 'relationship',
-            attributes: ['id', 'type'],
+            as: "relationship",
+            attributes: ["id", "type"],
           },
           include: [
             {
               model: Business,
-              as: 'business',
-              attributes: ['id', 'name', 'type'],
+              as: "business",
+              attributes: ["id", "name", "type"],
             },
           ],
         },
         {
           model: Community,
-          as: 'communities',
+          as: "communities",
           through: {
             attributes: [],
           },
         },
         {
           model: Business,
-          as: 'business',
+          as: "business",
         },
         {
           model: Address,
-          as: 'address',
+          as: "address",
         },
       ],
     });
