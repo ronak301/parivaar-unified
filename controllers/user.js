@@ -10,6 +10,7 @@ const {
   getUserWithCommunities,
   deleteUser,
   getUserEvents,
+  wishBirthday,
   getUsersByX,
   getUserByPhone,
 } = require("../services/user");
@@ -53,6 +54,24 @@ const getUserEventsController = async (req, res) => {
     return res.json({ success: true, data });
   } catch (err) {
     console.log("🚀 ~ file: user.js:44 ~ getUserEventsController ~ err:", err);
+    res.status(500).json({ success: false, error: err?.message });
+  }
+};
+
+const getUserEventsWishBirthdayController = async (req, res) => {
+  // const { skip, limit } = req.query;
+  // const { communityId } = req.params;
+
+  const { from, to, communityId } = req.body;
+
+  try {
+    const data = await wishBirthday({ from, to, communityId });
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.log(
+      "🚀 ~ file: user.js:68 ~ getUserEventsWishBirthdayController ~ err:",
+      err
+    );
     res.status(500).json({ success: false, error: err?.message });
   }
 };
@@ -274,4 +293,5 @@ module.exports = {
   getUserEventsController,
   sendOTPController,
   verifyOTPController,
+  getUserEventsWishBirthdayController,
 };
