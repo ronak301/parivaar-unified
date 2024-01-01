@@ -3,6 +3,7 @@ const { Op, Sequelize } = require("sequelize");
 const moment = require("moment");
 const { createBusiness } = require("./business");
 const { createAddress } = require("./address");
+const { sendPushNotification, getMessages } = require("../utils/notification");
 
 exports.insertUser = async (data, transaction) => {
   try {
@@ -61,6 +62,49 @@ exports.getUsersWithAll = async () => {
     console.log(err);
     throw err;
   }
+};
+
+exports.wishBirthday = async ({ from, to, communityId }) => {
+  const fromUser = await User.findOne({
+    where: {
+      id: from,
+    },
+    attributes: {
+      exclude: ["createdAt", "updatedAt"],
+    },
+  });
+  const toUser = await User.findOne({
+    where: {
+      id: to,
+    },
+    attributes: {
+      exclude: ["createdAt", "updatedAt"],
+    },
+  });
+
+  const community = await Community.findOne({
+    where: {
+      id: communityId,
+    },
+  });
+
+  console.log(community);
+
+  // send push notification to user with id <to> saying user has wished you birthday.
+
+  const message = `${fromUser?.firstName} Ji has wished you Happy Birthday 🎉`;
+
+  const data = await sendPushNotification(
+    getMessages([
+      {
+        pushToken: toUser?.pushTokens?.[0],
+        body: message,
+        title: community?.name,
+      },
+    ])
+  );
+
+  return {};
 };
 
 exports.getUserEvents = async ({ communityId, skip, limit }) => {
