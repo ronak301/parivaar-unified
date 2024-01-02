@@ -5,6 +5,13 @@ let expo = new Expo({
 });
 
 /**
+ * Keep this in sync with frontend
+ */
+export const NotificationTypes = {
+  BIRTHDAY_WISH: "BIRTHDAY_WISH",
+};
+
+/**
  *
  * @param {title, pushToken, body, data} pushMessages
  * @returns
@@ -25,6 +32,7 @@ exports.getMessages = (pushMessages) => {
       body,
       data,
       title,
+      data,
     });
   });
 

@@ -3,7 +3,11 @@ const { Op, Sequelize } = require("sequelize");
 const moment = require("moment");
 const { createBusiness } = require("./business");
 const { createAddress } = require("./address");
-const { sendPushNotification, getMessages } = require("../utils/notification");
+const {
+  sendPushNotification,
+  getMessages,
+  NotificationTypes,
+} = require("../utils/notification");
 
 exports.insertUser = async (data, transaction) => {
   try {
@@ -98,6 +102,12 @@ exports.wishBirthday = async ({ from, to, communityId }) => {
         pushToken: toUser?.pushTokens?.[0],
         body: message,
         title: community?.name,
+        data: {
+          type: NotificationTypes.BIRTHDAY_WISH,
+          params: {
+            communityId: community?.id,
+          },
+        },
       },
     ])
   );
