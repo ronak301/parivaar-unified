@@ -88,8 +88,6 @@ exports.wishBirthday = async ({ from, to, communityId }) => {
     },
   });
 
-  console.log(community);
-
   // send push notification to user with id <to> saying user has wished you birthday.
 
   const message = `${fromUser?.firstName} Ji has wished you Happy Birthday 🎉`;
@@ -104,7 +102,7 @@ exports.wishBirthday = async ({ from, to, communityId }) => {
     ])
   );
 
-  return {};
+  return data;
 };
 
 exports.getUserEvents = async ({ communityId, skip, limit }) => {
