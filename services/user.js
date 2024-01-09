@@ -3,11 +3,14 @@ const { Op, Sequelize } = require("sequelize");
 const moment = require("moment");
 const { createBusiness } = require("./business");
 const { createAddress } = require("./address");
-const {
-  sendPushNotification,
-  getMessages,
-  NotificationTypes,
-} = require("../utils/notification");
+const { sendPushNotification, getMessages } = require("../utils/notification");
+
+/**
+ * Keep this in sync with frontend
+ */
+const NotificationTypes = {
+  BIRTHDAY_WISH: "BIRTHDAY_WISH",
+};
 
 exports.insertUser = async (data, transaction) => {
   try {
@@ -493,6 +496,7 @@ exports.getUserById = async (id) => {
             "phone",
             "education",
             "bloodGroup",
+            "dob",
           ],
           through: {
             as: "relationship",
