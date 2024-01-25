@@ -52,6 +52,7 @@ module.exports = Community;
 const User = require('./User.js');
 const Executive = require('./Executive.js');
 const CommunityMember = require('./CommunityMember.js');
+const Applicant = require('./Applicant.js');
 
 Community.belongsToMany(User, {
   through: CommunityMember,
@@ -66,3 +67,9 @@ Community.belongsToMany(User, {
   foreignKey: 'communityId',
   onDelete: 'CASCADE',
 });
+
+// Community.belongsToMany(User, {
+//   through: Applicant,
+//   as: 'applicants',
+//   foreignKey: 'communityId',
+// });

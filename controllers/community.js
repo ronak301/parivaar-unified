@@ -1,3 +1,4 @@
+const { createApplicant } = require('../services/applicant');
 const {
   addCommunityMember,
   getCommunityWithAll,
@@ -22,10 +23,26 @@ const createCommunity = async (req, res) => {
 
 const joinCommunity = async (req, res) => {
   const { id } = req.params;
-  const { userId } = req.body;
+  const { userId, approvalStatus } = req.body;
+
+  //TODO: Incorporate approvalStatus
 
   try {
     await addCommunityMember(id, userId);
+
+    if (approvalStatus != null) {
+      createApplicant({
+        communityId: id,
+        userId,
+        approvalStatus,
+      });
+    } else {
+      createApplicant({
+        communityId: id,
+        userId,
+        approvalStatus: 'APPROVED',
+      });
+    }
 
     return res
       .status(200)

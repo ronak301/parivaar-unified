@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const bdayCron = require('./cron/birthdayCron.js');
 
 require('./config/database.js');
 

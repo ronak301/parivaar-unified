@@ -125,6 +125,7 @@ const Relationship = require('./Relationship.js');
 const Address = require('./Address.js');
 const Community = require('./Community.js');
 const CommunityMember = require('./CommunityMember.js');
+const Applicant = require('./Applicant.js');
 
 User.hasOne(Business, {
   as: 'business',
@@ -163,4 +164,10 @@ User.belongsToMany(User, {
   foreignKey: 'userId',
   otherKey: 'relativeId',
   onDelete: 'CASCADE',
+});
+
+User.belongsToMany(Community, {
+  through: Applicant,
+  as: 'applications',
+  foreignKey: 'userId',
 });

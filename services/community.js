@@ -239,22 +239,6 @@ exports.getCommunityMembers = async ({
     delete userFilter.age;
   }
 
-  // const ageFilter = userFilter.age;
-
-  // const currentDate = new Date();
-  // const minDob = new Date(
-  //   currentDate.getFullYear() - ageFilter.min,
-  //   currentDate.getMonth(),
-  //   currentDate.getDate()
-  // );
-  // const maxDob = new Date(
-  //   currentDate.getFullYear() - ageFilter.max - 1,
-  //   currentDate.getMonth(),
-  //   currentDate.getDate()
-  // );
-
-  // delete userFilter.age;
-
   try {
     const members = await User.findAndCountAll({
       where: {
@@ -307,8 +291,8 @@ exports.getCommunityMembers = async ({
           model: Community,
           as: 'communities',
           where: { id: id },
-          attributes: [], // Exclude Community attributes
-          through: { attributes: [] }, // Exclude 'through' attributes (CommunityMember)
+          attributes: [],
+          through: { attributes: [] },
         },
         {
           model: Business,
@@ -321,6 +305,18 @@ exports.getCommunityMembers = async ({
           as: 'address',
           where: addressFilter ?? null,
           attributes: [],
+        },
+        {
+          model: Community,
+          as: 'applications',
+          attributes: [],
+          required: true,
+          through: {
+            attributes: [],
+            where: {
+              approvalStatus: userFilter.approvalStatus ?? 'APPROVED',
+            },
+          },
         },
       ],
       order: [
