@@ -8,6 +8,7 @@ const {
   updateCommunityController,
   deleteCommunityController,
   deleteCommunityMemberController,
+  approveUser,
 } = require('../controllers/community');
 
 router.param('id', function (req, res, next, id) {
@@ -24,6 +25,7 @@ router.get('/all', getAllCommunitiesController);
 router.delete('/delete/:id', deleteCommunityController);
 router.post('/create', createCommunity);
 router.post('/join/:id', joinCommunity);
+router.patch('/approve/user', approveUser);
 router.post('/members/:id', getCommunityMembersController);
 router.delete('/member/delete', deleteCommunityMemberController);
 router.put('/:id', updateCommunityController);

@@ -8,6 +8,7 @@ const {
   updateCommunity,
   deleteCommunity,
   deleteCommunityMember,
+  approveUserForCommunity,
 } = require('../services/community');
 
 const createCommunity = async (req, res) => {
@@ -21,11 +22,25 @@ const createCommunity = async (req, res) => {
   }
 };
 
+const approveUser = async (req, res) => {
+  try {
+    const { userId, communityId, approvalStatus } = req.body;
+
+    await approveUserForCommunity(userId, communityId, approvalStatus);
+
+    return res.json({
+      success: true,
+      message: 'Approval Status updated successfully',
+    });
+  } catch (err) {
+    console.log('🚀 ~ file: community.js:35 ~ approveUser ~ err:', err);
+    return res.status(500).json({ success: false, error: err?.message });
+  }
+};
+
 const joinCommunity = async (req, res) => {
   const { id } = req.params;
   const { userId, approvalStatus } = req.body;
-
-  //TODO: Incorporate approvalStatus
 
   try {
     await addCommunityMember(id, userId);
@@ -177,4 +192,5 @@ module.exports = {
   updateCommunityController,
   deleteCommunityController,
   deleteCommunityMemberController,
+  approveUser,
 };

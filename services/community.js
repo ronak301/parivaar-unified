@@ -5,6 +5,7 @@ const {
   CommunityMember,
   Executive,
   Address,
+  Applicant,
 } = require('../models');
 const Business = require('../models/Business');
 
@@ -92,6 +93,26 @@ exports.updateCommunity = async (id, mutation) => {
       },
     });
     return community;
+  } catch (err) {
+    throw err;
+  }
+};
+
+exports.approveUserForCommunity = async (
+  userId,
+  communityId,
+  approvalStatus
+) => {
+  try {
+    await Applicant.update(
+      { approvalStatus },
+      {
+        where: {
+          userId,
+          communityId,
+        },
+      }
+    );
   } catch (err) {
     throw err;
   }
