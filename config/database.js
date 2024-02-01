@@ -1,5 +1,6 @@
 const Sequelize = require('sequelize');
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
 // Create a new Supabase client
 // const supabase = createClient(
@@ -25,11 +26,15 @@ const { createClient } = require('@supabase/supabase-js');
 
 //create a new sequelize instance with localhost postgres
 
-const sequelize = new Sequelize('postgres', 'postgres', 'sbQGwkg39QWFJ64k', {
-  host: 'db.vmkshebyuvhvgyiwqeqv.supabase.co',
-  dialect: 'postgres',
-  logging: false,
-});
+// const sequelize = new Sequelize('postgres', 'postgres', 'sbQGwkg39QWFJ64k', {
+//   host: 'aws-0-ap-south-1.pooler.supabase.com',
+//   dialect: 'postgres',
+//   logging: false,
+// });
+
+const sequelize = new Sequelize(
+  'postgres://postgres.vmkshebyuvhvgyiwqeqv:sbQGwkg39QWFJ64k@aws-0-ap-south-1.pooler.supabase.com:5432/postgres'
+);
 
 // const sequelize = new Sequelize('postgres', 'postgres', '12345678', {
 //   host: 'localhost',
