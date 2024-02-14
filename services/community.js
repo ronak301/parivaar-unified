@@ -1,4 +1,4 @@
-const { Sequelize, Op } = require('sequelize');
+const { Sequelize, Op } = require("sequelize");
 const {
   User,
   Community,
@@ -6,8 +6,8 @@ const {
   Executive,
   Address,
   Applicant,
-} = require('../models');
-const Business = require('../models/Business');
+} = require("../models");
+const Business = require("../models/Business");
 
 exports.insertCommunity = async (data) => {
   try {
@@ -46,27 +46,27 @@ exports.getCommunities = async () => {
   try {
     const communities = await Community.findAll({
       attributes: [
-        'id',
-        'name',
-        'logo',
-        'description',
-        'type',
-        'subType',
-        'code',
-        'status',
-        'showFamilyMembers',
+        "id",
+        "name",
+        "logo",
+        "description",
+        "type",
+        "subType",
+        "code",
+        "status",
+        "showFamilyMembers",
         [
           Sequelize.fn(
-            'COUNT',
-            Sequelize.col('members->CommunityMember.user_id')
+            "COUNT",
+            Sequelize.col("members->CommunityMember.user_id")
           ),
-          'totalMembers',
+          "totalMembers",
         ],
       ],
       include: [
         {
           model: User,
-          as: 'members',
+          as: "members",
           attributes: [],
           through: {
             attributes: [],
@@ -74,8 +74,8 @@ exports.getCommunities = async () => {
         },
       ],
       group: [
-        Sequelize.col('Community.id'),
-        Sequelize.col('members->CommunityMember.community_id'),
+        Sequelize.col("Community.id"),
+        Sequelize.col("members->CommunityMember.community_id"),
       ],
     });
 
@@ -122,24 +122,24 @@ exports.getCommunityWithAll = async (communityId) => {
   try {
     const members = await Community.findByPk(communityId, {
       attributes: {
-        exclude: ['createdAt', 'updatedAt'],
+        exclude: ["createdAt", "updatedAt"],
       },
       include: [
         {
           model: User,
-          as: 'executives',
+          as: "executives",
           through: {
             model: Executive,
-            as: 'executive',
-            attributes: ['id', 'roles'],
+            as: "executive",
+            attributes: ["id", "roles"],
           },
           attributes: [
-            'id',
-            'firstName',
-            'lastName',
-            'bloodGroup',
-            'profilePicture',
-            'phone',
+            "id",
+            "firstName",
+            "lastName",
+            "bloodGroup",
+            "profilePicture",
+            "phone",
           ],
         },
       ],
@@ -292,57 +292,57 @@ exports.getCommunityMembers = async ({
           ageFilter,
           businessFilter
             ? {
-                '$business.type$': businessFilter.type,
+                "$business.type$": businessFilter.type,
               }
             : {},
         ],
       },
       attributes: [
-        'id',
-        'firstName',
-        'lastName',
-        'profilePicture',
-        'phone',
-        'bloodGroup',
-        'education',
-        'guardianName',
+        "id",
+        "firstName",
+        "lastName",
+        "profilePicture",
+        "phone",
+        "bloodGroup",
+        "education",
+        "guardianName",
       ],
       include: [
         {
           model: Community,
-          as: 'communities',
+          as: "communities",
           where: { id: id },
           attributes: [],
           through: { attributes: [] },
         },
         {
           model: Business,
-          as: 'business',
+          as: "business",
           required: businessFilter ? true : false,
-          attributes: ['id', 'name', 'type'],
+          attributes: ["id", "name", "type"],
         },
         {
           model: Address,
-          as: 'address',
+          as: "address",
           where: addressFilter ?? null,
-          attributes: [],
+          attributes: ["id", "fullAddress", "locality"],
         },
         {
           model: Community,
-          as: 'applications',
+          as: "applications",
           attributes: [],
           required: true,
           through: {
             attributes: [],
             where: {
-              approvalStatus: userFilter.approvalStatus ?? 'APPROVED',
+              approvalStatus: userFilter.approvalStatus ?? "APPROVED",
             },
           },
         },
       ],
       order: [
-        ['firstName', 'ASC'],
-        ['lastName', 'ASC'],
+        ["firstName", "ASC"],
+        ["lastName", "ASC"],
       ],
       limit: limit,
       offset: skip,
@@ -352,7 +352,7 @@ exports.getCommunityMembers = async ({
       include: [
         {
           model: Community,
-          as: 'communities',
+          as: "communities",
           where: { id: id },
         },
       ],
