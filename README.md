@@ -1,5 +1,8 @@
 ## To Sync On AWS VM:
 
+// locally Run project
+npm run dev
+
 - Step 1: SSH into the droplet
 
 - Step 2:
