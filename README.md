@@ -4,23 +4,25 @@
 npm run dev
 
 - Step 1: SSH into the droplet
+  ssh -i parivaar4.pem ec2-user@13.232.72.180
 
 - Step 2:
 
 ```cmd
-cd /home/community-backend/
+cd cloudflared_ronak/community-backend
 ```
 
 - Step 3:
 
 ```cmd
-git pull
+git pull origin main
+cd ..
 ```
 
 - Step 4:
 
 ```cmd
-docker compose up --build -d
+sudo docker-compose up --build -d
 ```
 
 ## Backup Database
