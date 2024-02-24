@@ -497,6 +497,7 @@ exports.getUserById = async (id) => {
             "education",
             "bloodGroup",
             "dob",
+            "guardianName",
           ],
           through: {
             as: "relationship",
