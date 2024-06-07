@@ -306,6 +306,8 @@ exports.getCommunityMembers = async ({
         "bloodGroup",
         "education",
         "guardianName",
+        "dob",
+        "gender",
       ],
       include: [
         {
