@@ -196,6 +196,8 @@ const sendOTPController = async (req, res) => {
       });
       // Create New users here if signups are enabled
     }
+
+    // Check rate limiting (max 1 SMS every 30 seconds)
     let otpInfo = await redis.getOTP(number);
     let currTime = Date.now();
 
@@ -204,6 +206,85 @@ const sendOTPController = async (req, res) => {
       return res.json({ success: false, error: "Max 1 SMS every 30 secs" });
     }
 
+    // Message Central API configuration
+    const messageCentralAuthToken = process.env.MESSAGE_CENTRAL_AUTH_TOKEN;
+    const messageCentralCustomerId = process.env.MESSAGE_CENTRAL_CUSTOMER_ID;
+    const countryCode = process.env.MESSAGE_CENTRAL_COUNTRY_CODE || "91";
+    const otpLength = process.env.MESSAGE_CENTRAL_OTP_LENGTH || "6";
+
+    if (!messageCentralAuthToken || !messageCentralCustomerId) {
+      console.error("Message Central credentials not configured");
+      return res.status(500).json({
+        success: false,
+        error: "OTP service configuration error",
+      });
+    }
+
+    // Send OTP using Message Central API
+    const sendOtpUrl = `https://cpaas.messagecentral.com/verification/v3/send`;
+    const sendOtpParams = new URLSearchParams({
+      countryCode: countryCode,
+      customerId: messageCentralCustomerId,
+      flowType: "SMS",
+      mobileNumber: number,
+      otpLength: otpLength,
+    });
+
+    let sendOtpResponse;
+    try {
+      sendOtpResponse = await axios.post(
+        `${sendOtpUrl}?${sendOtpParams.toString()}`,
+        {},
+        {
+          headers: {
+            authToken: messageCentralAuthToken,
+          },
+        }
+      );
+    } catch (apiError) {
+      console.error(
+        "Message Central API error:",
+        apiError.response?.data || apiError.message
+      );
+      return res.status(500).json({
+        success: false,
+        error: "Failed to send OTP. Please try again later.",
+      });
+    }
+
+    // Extract verificationId from response
+    // Message Central API returns verificationId nested in data.data
+    const verificationId =
+      sendOtpResponse.data?.data?.verificationId ||
+      sendOtpResponse.data?.verificationId ||
+      sendOtpResponse.data?.verification_id ||
+      sendOtpResponse.data?.id;
+    if (!verificationId) {
+      console.error(
+        "Failed to get verificationId from Message Central:",
+        sendOtpResponse.data
+      );
+      return res.status(500).json({
+        success: false,
+        error: "Failed to send OTP",
+      });
+    }
+
+    // Store verificationId in Redis with expiry (3 minutes = 180 seconds)
+    otpInfo = {
+      verificationId: verificationId,
+      sentAt: currTime,
+    };
+    await redis.setOTP(number, otpInfo, 180);
+
+    console.log(
+      `OTP sent via Message Central for user:${number} id:${user.id} verificationId:${verificationId}`
+    );
+
+    return res.json({ success: true });
+
+    /* ========== OLD IMPLEMENTATION (COMMENTED FOR FUTURE REFERENCE) ==========
+    // Old TextLocal implementation
     if (!otpInfo || otpInfo.expires < currTime) {
       // Create a new otpInfo if no otp exists or already expired
       otpInfo = {
@@ -225,6 +306,7 @@ const sendOTPController = async (req, res) => {
     console.log(response.data);
 
     return res.json({ success: true });
+    ========== END OF OLD IMPLEMENTATION ========== */
   } catch (error) {
     console.log("🚀 ~ file: user.js:190 ~ sendOTPController ~ error:", error);
     return res.status(500).json({ success: false, error: error?.message });
@@ -235,9 +317,115 @@ const verifyOTPController = async (req, res) => {
   try {
     const { number, otp } = req.body;
 
+    if (!number || !otp) {
+      return res.status(401).json({ success: false });
+    }
+
     let otpInfo = await redis.getOTP(number);
     let user = await getUserByPhone(number);
 
+    if (!user || !otpInfo) {
+      return res.status(401).json({ success: false });
+    }
+
+    // Message Central API configuration
+    const messageCentralAuthToken = process.env.MESSAGE_CENTRAL_AUTH_TOKEN;
+    const messageCentralCustomerId = process.env.MESSAGE_CENTRAL_CUSTOMER_ID;
+    const countryCode = process.env.MESSAGE_CENTRAL_COUNTRY_CODE || "91";
+
+    if (!messageCentralAuthToken || !messageCentralCustomerId) {
+      console.error("Message Central credentials not configured");
+      return res.status(500).json({
+        success: false,
+        error: "OTP service configuration error",
+      });
+    }
+
+    // Verify OTP using Message Central API
+    const verificationId = otpInfo.verificationId;
+    if (!verificationId) {
+      return res.status(401).json({ success: false });
+    }
+
+    const verifyOtpUrl = `https://cpaas.messagecentral.com/verification/v3/validateOtp`;
+    const verifyOtpParams = new URLSearchParams({
+      countryCode: countryCode,
+      mobileNumber: number,
+      verificationId: verificationId,
+      customerId: messageCentralCustomerId,
+      code: otp,
+    });
+
+    let verifyOtpResponse;
+    try {
+      verifyOtpResponse = await axios.get(
+        `${verifyOtpUrl}?${verifyOtpParams.toString()}`,
+        {
+          headers: {
+            authToken: messageCentralAuthToken,
+          },
+        }
+      );
+    } catch (apiError) {
+      // Handle API errors (invalid OTP, expired, etc.)
+      if (
+        apiError.response?.status === 401 ||
+        apiError.response?.status === 400
+      ) {
+        return res.status(401).json({ success: false });
+      }
+      console.error(
+        "Message Central API error:",
+        apiError.response?.data || apiError.message
+      );
+      return res.status(500).json({
+        success: false,
+        error: "Failed to verify OTP. Please try again.",
+      });
+    }
+
+    // Check if OTP verification was successful
+    // Message Central API may return different response formats
+    const responseData = verifyOtpResponse.data;
+    const isVerified =
+      responseData?.verified === true ||
+      responseData?.status === "VERIFIED" ||
+      responseData?.status === "SUCCESS" ||
+      (verifyOtpResponse.status === 200 && responseData && !responseData.error);
+
+    if (isVerified) {
+      // Done with the OTP - delete from Redis
+      await redis.deleteOTP(number);
+
+      const userjwt = jwt.sign(
+        {
+          aud: "authenticated",
+          exp: 1920072200,
+          sub: user.id,
+          role: "authenticated",
+          phone: "91" + number,
+          app_metadata: {
+            provider: "phone",
+            providers: ["phone"],
+          },
+          user_metadata: null,
+        },
+        "r52dRNfbeSAGrK0AsR+ZxAAjgSIvmmhkpDn93ZevM1pyy8qk9L+3R4yfFaH/YH0UqG9kIoDhHLTs3YQQqsHBxQ=="
+      );
+
+      return res.json({
+        success: true,
+        data: {
+          jwt: userjwt,
+          userId: user.id,
+        },
+      });
+    } else {
+      return res.status(401).json({ success: false });
+    }
+
+    /* ========== OLD IMPLEMENTATION (COMMENTED FOR FUTURE REFERENCE) ==========
+    // Old OTP verification implementation
     if (!user || !otpInfo || otpInfo.expires < Date.now()) {
       return res.status(401).json({ success: false });
     }
@@ -272,11 +460,15 @@ const verifyOTPController = async (req, res) => {
     } else {
       return res.status(401).json({ success: false });
     }
+    ========== END OF OLD IMPLEMENTATION ========== */
   } catch (error) {
-    console.log(
-      "🚀 ~ file: user.js:120 ~ getUserByIdController ~ error:",
-      error
-    );
+    console.log("🚀 ~ file: user.js:120 ~ verifyOTPController ~ error:", error);
+
+    // Handle specific error cases
+    if (error.response?.status === 401 || error.response?.status === 400) {
+      return res.status(401).json({ success: false });
+    }
+
     return res.status(500).json({ success: false, error: error?.message });
   }
 };
