@@ -184,11 +184,11 @@ function FamilyMemberCard({
         <Field label="Last Name">
           <Input placeholder="Last name" />
         </Field>
-        <Field label="Phone">
-          <Input type="tel" placeholder="10-digit phone" />
-        </Field>
         <Field label="Guardian Name">
           <Input placeholder="Guardian name" />
+        </Field>
+        <Field label="Phone">
+          <Input type="tel" placeholder="10-digit phone" />
         </Field>
         <Dropdown label="Gender" options={config?.Gender ?? []} />
         <Dropdown label="Blood Group" options={config?.BloodGroups ?? []} />
@@ -269,6 +269,9 @@ export function FormShowcase({
             <Field label="Last Name">
               <Input placeholder="Last name" />
             </Field>
+            <Field label="Guardian Name">
+              <Input placeholder="Father / Husband name" />
+            </Field>
             <Field label="Phone Number">
               <Input type="tel" placeholder="10-digit phone number" />
             </Field>
@@ -277,9 +280,6 @@ export function FormShowcase({
             </Field>
             <Field label="Date of Birth">
               <Input type="date" />
-            </Field>
-            <Field label="Guardian Name">
-              <Input placeholder="Father / Husband name" />
             </Field>
             <Field label="Native Place">
               <Input placeholder="Native place" />
@@ -310,13 +310,6 @@ export function FormShowcase({
             <Textarea placeholder="Full address" rows={3} />
           </Field>
           <div className="grid grid-cols-2 gap-4">
-            {localityOptions.length > 0 && (
-              <Dropdown
-                label="Locality"
-                options={localityOptions}
-                placeholder="Select locality"
-              />
-            )}
             <Dropdown
               label="State"
               options={STATES}
@@ -331,6 +324,13 @@ export function FormShowcase({
                 selectedState ? "Select city" : "Select state first"
               }
             />
+            {localityOptions.length > 0 && (
+              <Dropdown
+                label="Locality"
+                options={localityOptions}
+                placeholder="Select locality"
+              />
+            )}
             <Field label="Pincode">
               <Input placeholder="6-digit pincode" />
             </Field>
