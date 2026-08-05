@@ -212,11 +212,9 @@ function FamilyMemberCard({
 }
 
 export function FormShowcase({
-  communityName,
   config,
   localities,
 }: {
-  communityName: string;
   config: RemoteConfig | undefined;
   localities: string[];
 }) {
@@ -236,13 +234,6 @@ export function FormShowcase({
     <div className="space-y-8">
       {/* Header + Personal Info */}
       <div className="rounded-2xl border bg-background p-6 shadow-sm">
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold">{communityName}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Family Registration Form
-          </p>
-        </div>
-
         {/* Head Photo */}
         <div className="mb-6 flex justify-center">
           <label className="group relative flex size-28 cursor-pointer flex-col items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30 bg-muted/40 transition-colors hover:border-primary/50 hover:bg-muted/60">

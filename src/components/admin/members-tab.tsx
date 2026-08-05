@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Trash2, Link as LinkIcon } from "lucide-react";
+import { Trash2, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -102,10 +102,9 @@ export function MembersTab({
 
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
-  function copyFormLink() {
+  function openForm() {
     const url = `${window.location.origin}/community/${communityId}/form`;
-    navigator.clipboard.writeText(url);
-    toast.success("Form link copied");
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -118,9 +117,9 @@ export function MembersTab({
           className="max-w-xs"
         />
         <div className="flex gap-2">
-          <Button variant="outline" onClick={copyFormLink}>
-            <LinkIcon className="size-3.5" />
-            Copy form link
+          <Button variant="outline" onClick={openForm}>
+            <ExternalLink className="size-3.5" />
+            Open Form
           </Button>
           <AddMemberDialog communityId={communityId} config={config} />
         </div>
