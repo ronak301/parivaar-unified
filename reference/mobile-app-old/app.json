@@ -1,0 +1,118 @@
+{
+  "expo": {
+    "owner": "ronakkothari",
+    "name": "Parivaar",
+    "slug": "parivaar-community-app",
+    "scheme": "parivaar-community-app",
+    "orientation": "portrait",
+    "version": "1.0.11",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0777FF"
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#0777FF"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "icon": "./assets/icon.png",
+      "supportsTablet": false,
+      "bundleIdentifier": "com.parivaarcommunityapp.parivaarcommunityapp",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": [
+          "instagram",
+          "instagram-stories",
+          "whatsapp",
+          "instagram",
+          "instagram-stories",
+          "whatsapp"
+        ],
+        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
+        "NSPhotoLibraryAddUsageDescription": "Allow Parivaar App to save photos.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "versionCode": 101,
+      "softwareKeyboardLayoutMode": "pan",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.parivaarcommunityapp.parivaarcommunityapp",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_MEDIA_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "db1e4004-0442-4bc3-9c93-e33d7e75acd5"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/db1e4004-0442-4bc3-9c93-e33d7e75acd5"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you update your profile with image from gallery."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "flipper": false,
+            "deploymentTarget": "13.0"
+          }
+        }
+      ],
+      [
+        "expo-updates",
+        {
+          "username": "ronakkothari"
+        }
+      ],
+      ["sentry-expo"],
+      [
+        "expo-notifications",
+        {
+          "color": "#ffffff"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Allow Parivaar App to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      "expo-router"
+    ]
+  },
+  "hooks": {
+    "postPublish": [
+      {
+        "file": "sentry-expo/upload-sourcemaps",
+        "config": {
+          "organization": "parivaar-3ee417fc8",
+          "project": "parivaa-mobile",
+          "authToken": "cfd66daa4b6879b885f0e637d50e6d56d8fcab31a5ac72a9e8ba569935ce7365"
+        }
+      }
+    ]
+  }
+}

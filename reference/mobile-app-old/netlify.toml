@@ -1,0 +1,16 @@
+# Parivaar web (Vite + React) — build from `web/`
+# Connect this repo in Netlify; these settings apply automatically.
+
+[build]
+  base = "web"
+  command = "yarn install && yarn build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Client-side routing (React Router)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

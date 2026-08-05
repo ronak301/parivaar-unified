@@ -1,0 +1,39 @@
+{
+  "name": "parivaar-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@chakra-ui/react": "^2.8.2",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@reduxjs/toolkit": "^1.9.5",
+    "axios": "^1.4.0",
+    "compare-versions": "^6.1.0",
+    "firebase": "^10.1.0",
+    "framer-motion": "^11.18.2",
+    "lodash": "^4.17.21",
+    "moment": "^2.30.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.45.1",
+    "react-redux": "^8.1.1",
+    "react-router-dom": "^6.22.0",
+    "redux": "^4.2.1",
+    "redux-persist": "^6.0.0",
+    "use-debounce": "^10.1.1"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.195",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.0"
+  }
+}
