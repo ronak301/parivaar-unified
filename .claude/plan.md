@@ -69,7 +69,7 @@ parivaar-web-unified/
 │   └── src/{api,components,modules,stores,hooks,types,utils}/
 ├── web-admin/                # Next.js admin portal (shadcn/ui)
 │   └── src/{app,components,lib,hooks}/
-├── reference/                # Old apps kept for reference (old mobile app + old backend/admin code)
+├── archive/                # Old apps kept for archival reference (old mobile app + old backend/admin code)
 └── package.json              # npm workspaces root (marketing site dropped for now)
 ```
 
@@ -82,7 +82,7 @@ parivaar-web-unified/
 #### 1A. Shared Package + Backend Core (Week 1)
 
 **`packages/shared/`** — Types, constants, Zod schemas shared across all 3 apps
-- Port constants from `reference/mobile-app-old/src/utils/constants.ts` (BloodGroups, BusinessTypes, Gender, RelationshipTypes, CommunityTypes)
+- Port constants from `archive/mobile-app-old/src/utils/constants.ts` (BloodGroups, BusinessTypes, Gender, RelationshipTypes, CommunityTypes)
 - Zod schemas for user create/update, business, auth (reusable in backend validation AND mobile forms)
 - TypeScript interfaces for all 9 collections
 
@@ -182,9 +182,9 @@ parivaar-web-unified/
 
 | Pattern | Source | What to Keep |
 |---------|--------|-------------|
-| Schema-driven forms | `reference/mobile-app-old/.../EditProfileScreen.tsx` | FIELDS array + getElement() switch |
-| OTP autofill | `reference/mobile-app-old/.../EnterOtp.tsx:131-132` | `textContentType: "oneTimeCode"` (iOS), `autoComplete: "sms-otp"` (Android) |
-| Infinite scroll guard | `reference/mobile-app-old/.../MembersList.tsx:188-193` | onEndReached + onMomentumScrollEnd |
+| Schema-driven forms | `archive/mobile-app-old/.../EditProfileScreen.tsx` | FIELDS array + getElement() switch |
+| OTP autofill | `archive/mobile-app-old/.../EnterOtp.tsx:131-132` | `textContentType: "oneTimeCode"` (iOS), `autoComplete: "sms-otp"` (Android) |
+| Infinite scroll guard | `archive/mobile-app-old/.../MembersList.tsx:188-193` | onEndReached + onMomentumScrollEnd |
 | MessageCentral OTP | `backend/controllers/user.js:183-474` | Send/verify API flow, rate limiting |
 | Redis dual-mode | `backend/config/redis.js` | In-memory fallback when REDIS_ENABLED unset |
 | Push notification chunks | `backend/utils/notification.js` | Expo SDK chunking + receipt polling |
