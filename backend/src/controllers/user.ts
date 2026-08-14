@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { createUserSchema, updateUserSchema, searchUsersSchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
-import { User, Family } from '../models';
+import { User, Family, Business } from '../models';
 
 export async function createUser(req: AuthRequest, res: Response): Promise<void> {
   const parsed = createUserSchema.safeParse(req.body);
@@ -98,9 +98,35 @@ export async function searchUsers(req: AuthRequest, res: Response): Promise<void
   if (filters?.bloodGroup) filter.bloodGroup = filters.bloodGroup;
   if (filters?.locality) filter['address.locality'] = filters.locality;
   if (filters?.city) filter['address.city'] = filters.city;
+  if (filters?.district) filter['address.district'] = filters.district;
   if (filters?.nativePlace) filter.nativePlace = filters.nativePlace;
-  if (filters?.sampradaya) filter.sampradaya = filters.sampradaya;
+  if (filters?.nativeDistrict) filter.nativeDistrict = filters.nativeDistrict;
   if (filters?.isFamilyHead !== undefined) filter.isFamilyHead = filters.isFamilyHead;
+
+  if (filters?.ageMin !== undefined || filters?.ageMax !== undefined) {
+    const today = new Date();
+    const dobFilter: Record<string, Date> = {};
+    if (filters.ageMin !== undefined) {
+      dobFilter.$lte = new Date(today.getFullYear() - filters.ageMin, today.getMonth(), today.getDate());
+    }
+    if (filters.ageMax !== undefined) {
+      dobFilter.$gte = new Date(today.getFullYear() - filters.ageMax - 1, today.getMonth(), today.getDate() + 1);
+    }
+    filter.dob = dobFilter;
+  }
+
+  if (filters?.sampradaya) {
+    const familyIds = await Family.distinct('_id', { sampradaya: filters.sampradaya });
+    filter.familyId = { $in: familyIds };
+  }
+
+  if (filters?.businessCategory) {
+    const ownerIds = await Business.distinct('ownerId', {
+      category: filters.businessCategory,
+      ...(communityId ? { communityId } : {}),
+    });
+    filter._id = { $in: ownerIds };
+  }
 
   if (q) {
     filter.$text = { $search: q };
