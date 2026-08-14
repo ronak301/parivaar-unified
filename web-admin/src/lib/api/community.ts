@@ -15,3 +15,12 @@ export async function getCommunity(
   const res = await client.get(`/communities/${id}`);
   return res.data.community;
 }
+
+export async function updateCommunity(
+  client: AxiosInstance,
+  id: string,
+  data: Partial<Community>,
+): Promise<Community> {
+  const res = await client.put(`/communities/${id}`, data);
+  return res.data.community;
+}

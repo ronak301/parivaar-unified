@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getAdminClient } from '@/lib/auth/admin-client';
 import { getCommunities } from '@/lib/api/community';
 import {
@@ -35,7 +36,8 @@ export default async function CommunitiesPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {communities.map((community) => (
-          <Card key={community._id}>
+          <Link key={community._id} href={`/communities/${community._id}`}>
+          <Card className="transition-colors hover:bg-muted/50">
             <CardHeader>
               <div className="flex items-start gap-3">
                 <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
@@ -62,6 +64,7 @@ export default async function CommunitiesPage() {
               </div>
             </CardContent>
           </Card>
+          </Link>
         ))}
       </div>
     </div>
