@@ -1,31 +1,34 @@
 {
-  "name": "community_app",
+  "name": "@parivaar/backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@redis/client": "^1.5.11",
-    "@supabase/supabase-js": "^2.24.0",
-    "axios": "^1.5.1",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.1",
-    "expo-server-sdk": "^3.7.0",
-    "express": "^4.18.2",
+    "@parivaar/shared": "*",
+    "express": "^4.21.0",
+    "mongoose": "^8.7.0",
     "jsonwebtoken": "^9.0.2",
-    "moment": "^2.29.4",
-    "node-cron": "^3.0.3",
-    "pg": "^8.11.0",
-    "sequelize": "^6.32.1"
+    "redis": "^4.7.0",
+    "axios": "^1.7.0",
+    "expo-server-sdk": "^3.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "firebase-admin": "^12.6.0",
+    "zod": "^3.23.8",
+    "crypto": "^1.0.1",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
-    "sequelize-cli": "^6.6.1"
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.0.0",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
   }
 }

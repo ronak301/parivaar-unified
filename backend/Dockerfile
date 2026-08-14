@@ -1,17 +1,15 @@
-FROM node:18-bullseye-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
 COPY package*.json ./
+COPY ../packages/shared ./packages/shared
 
-RUN apt-get update || : && apt-get install -y --no-install-recommends \
-    python3 \
-    build-essential && \
-    rm -rf /var/lib/apt/lists/* && \
-    npm install
+RUN npm install
 
 COPY . .
+RUN npm run build
 
-EXPOSE 80
+EXPOSE 3001
 
-CMD [ "npm", "start" ]
+CMD ["node", "dist/index.js"]
