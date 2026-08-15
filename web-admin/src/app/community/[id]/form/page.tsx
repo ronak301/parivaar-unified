@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { Gender, BloodGroups, BusinessTypes } from '@parivaar/shared';
 import { states, getCitiesForState, getDistrictsForState } from '@/lib/locations';
 import type { Community } from '@parivaar/shared';
@@ -16,6 +17,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
   const [state, setState] = useState('Karnataka');
   const [city, setCity] = useState('Bengaluru');
   const [locality, setLocality] = useState('');
+  const [showAllFields, setShowAllFields] = useState(false);
 
   useEffect(() => {
     async function fetchCommunity() {
@@ -50,9 +52,19 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
         <div className="mx-auto max-w-4xl">
           {/* Header */}
           <div className="bg-gradient-to-r from-black via-slate-900 to-black text-white rounded-t-2xl px-8 py-16 sm:px-10 sm:py-20 text-center">
-            <div className="flex flex-col gap-2">
-              <h1 className="text-4xl sm:text-5xl font-bold text-white">{community?.name}</h1>
-              <p className="text-base sm:text-lg text-gray-300 font-medium">Registration Form</p>
+            <div className="flex flex-col gap-4 items-center">
+              <div className="flex flex-col gap-2">
+                <h1 className="text-4xl sm:text-5xl font-bold text-white">{community?.name}</h1>
+                <p className="text-base sm:text-lg text-gray-300 font-medium">Registration Form</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAllFields(!showAllFields)}
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+              >
+                {showAllFields ? 'Hide Details' : 'View All Fields'}
+              </Button>
             </div>
           </div>
 
@@ -67,11 +79,11 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            <Separator />
-
+            {showAllFields && (
+            <>
             {/* Personal Info */}
-            <div className="flex flex-col gap-3">
-              <p className="text-sm font-medium">Personal Information</p>
+            <div className="border rounded-lg p-5 bg-gray-50 flex flex-col gap-3">
+              <p className="text-sm font-semibold text-foreground">Personal Information</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">Sampradaya</Label>
@@ -178,11 +190,9 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            <Separator />
-
             {/* Address */}
-            <div className="flex flex-col gap-3">
-              <p className="text-sm font-medium">Address</p>
+            <div className="border rounded-lg p-5 bg-gray-50 flex flex-col gap-3">
+              <p className="text-sm font-semibold text-foreground">Address</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-2 sm:col-span-2">
                   <Label className="text-xs sm:text-sm">Full address</Label>
@@ -261,11 +271,9 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            <Separator />
-
             {/* Business */}
-            <div className="flex flex-col gap-3">
-              <p className="text-sm font-medium">Business (Optional)</p>
+            <div className="border rounded-lg p-5 bg-gray-50 flex flex-col gap-3">
+              <p className="text-sm font-semibold text-foreground">Business (Optional)</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">Business name</Label>
@@ -337,6 +345,8 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>
