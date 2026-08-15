@@ -7,6 +7,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/search', ctrl.searchUsers);
+router.get('/check-phone', ctrl.checkPhone);
 router.get('/community/:communityId', communityScope(), ctrl.getUsersByCommunity);
 router.get('/events/:communityId', communityScope(), ctrl.getUserEvents);
 router.get('/:id', ctrl.getUser);

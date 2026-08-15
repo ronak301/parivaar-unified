@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { createBusinessSchema, updateBusinessSchema, createEnquirySchema, createPromotionSchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
-import { Business, BusinessEnquiry, BusinessPromotion } from '../models';
+import { User, Business, BusinessEnquiry, BusinessPromotion } from '../models';
 
 export async function createBusiness(req: AuthRequest, res: Response): Promise<void> {
   const parsed = createBusinessSchema.safeParse(req.body);
@@ -10,9 +10,26 @@ export async function createBusiness(req: AuthRequest, res: Response): Promise<v
     return;
   }
 
+  const { ownerId, ...data } = parsed.data;
+  let resolvedOwnerId = req.user?._id;
+
+  if (ownerId) {
+    const isAdmin = req.user?.role === 'super_admin' || req.user?.role === 'community_admin';
+    if (!isAdmin) {
+      res.status(403).json({ error: 'Not authorized to set business owner' });
+      return;
+    }
+    const owner = await User.findById(ownerId);
+    if (!owner) {
+      res.status(404).json({ error: 'Owner not found' });
+      return;
+    }
+    resolvedOwnerId = owner._id;
+  }
+
   const business = await Business.create({
-    ...parsed.data,
-    ownerId: req.user?._id,
+    ...data,
+    ownerId: resolvedOwnerId,
   });
 
   res.status(201).json({ success: true, business });

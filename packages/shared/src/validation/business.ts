@@ -13,6 +13,7 @@ export const createBusinessSchema = z.object({
   logo: z.string().url().optional(),
   googleMapsLink: z.string().url().max(500).optional(),
   communityId: z.string(),
+  ownerId: z.string().optional(),
 });
 
 export const updateBusinessSchema = createBusinessSchema.partial().omit({

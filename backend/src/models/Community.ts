@@ -2,19 +2,13 @@ import mongoose, { Schema, type Document } from 'mongoose';
 
 const designationSchema = new Schema(
   {
+    id: { type: String, required: true },
+    memberId: { type: Schema.Types.ObjectId, ref: 'User' },
     name: { type: String, required: true },
+    photo: String,
     sansthan: String,
     designation: { type: String, required: true },
     year: { type: String, required: true },
-  },
-  { _id: false },
-);
-
-const featuresSchema = new Schema(
-  {
-    welcomeScreen: { type: Boolean, default: false },
-    aboutScreenExtraInfo: { type: Boolean, default: false },
-    showOnlyHeadsInAllMembers: { type: Boolean, default: false },
   },
   { _id: false },
 );
@@ -28,20 +22,15 @@ export interface ICommunity extends Document {
   state?: string;
   city?: string;
   status: string;
-  type?: string;
-  subType?: string;
-  showFamilyMembers: string;
   designations: Array<{
+    id: string;
+    memberId?: mongoose.Types.ObjectId;
     name: string;
+    photo?: string;
     sansthan?: string;
     designation: string;
     year: string;
   }>;
-  features: {
-    welcomeScreen: boolean;
-    aboutScreenExtraInfo: boolean;
-    showOnlyHeadsInAllMembers: boolean;
-  };
   localities: string[];
 }
 
@@ -54,16 +43,8 @@ const communitySchema = new Schema<ICommunity>(
     contactPersonNumber: String,
     state: String,
     city: String,
-    status: { type: String, default: 'Inactive' },
-    type: String,
-    subType: String,
-    showFamilyMembers: {
-      type: String,
-      enum: ['ALL', 'SINGLE', 'SPOUSE', 'SPOUSE_AND_KIDS'],
-      default: 'ALL',
-    },
+    status: { type: String, default: 'Pending' },
     designations: [designationSchema],
-    features: { type: featuresSchema, default: () => ({}) },
     localities: [String],
   },
   { timestamps: true },

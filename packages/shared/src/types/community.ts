@@ -1,16 +1,11 @@
-export type FamilyDetailsType = 'ALL' | 'SINGLE' | 'SPOUSE' | 'SPOUSE_AND_KIDS';
-
 export interface Designation {
+  id: string;
+  memberId?: string;
   name: string;
+  photo?: string;
   sansthan?: string;
   designation: string;
   year: string;
-}
-
-export interface CommunityFeatures {
-  welcomeScreen?: boolean;
-  aboutScreenExtraInfo?: boolean;
-  showOnlyHeadsInAllMembers?: boolean;
 }
 
 export interface Community {
@@ -23,12 +18,8 @@ export interface Community {
   state?: string;
   city?: string;
   status?: string;
-  type?: string;
-  subType?: string;
 
-  showFamilyMembers?: FamilyDetailsType;
   designations?: Designation[];
-  features?: CommunityFeatures;
   localities?: string[];
 
   createdAt?: string;

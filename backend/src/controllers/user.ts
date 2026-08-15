@@ -3,6 +3,19 @@ import { createUserSchema, updateUserSchema, searchUsersSchema } from '@parivaar
 import type { AuthRequest } from '../middleware';
 import { User, Family, Business } from '../models';
 
+export async function checkPhone(req: AuthRequest, res: Response): Promise<void> {
+  const phone = req.query.phone as string;
+  if (!phone) {
+    res.status(400).json({ error: 'phone query parameter is required' });
+    return;
+  }
+
+  const existing = await User.findOne({ phone })
+    .select('_id firstName lastName fullName phone communityIds')
+    .populate('communityIds', 'name');
+  res.json({ success: true, exists: !!existing, user: existing ?? undefined });
+}
+
 export async function createUser(req: AuthRequest, res: Response): Promise<void> {
   const parsed = createUserSchema.safeParse(req.body);
   if (!parsed.success) {

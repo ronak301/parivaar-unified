@@ -134,7 +134,7 @@ async function generateEnrollmentId(): Promise<string> {
   throw new Error('Failed to generate unique enrollment ID after 10 attempts');
 }
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('validate', async function (next) {
   if (this.isNew && !this.enrollmentId) {
     this.enrollmentId = await generateEnrollmentId();
   }

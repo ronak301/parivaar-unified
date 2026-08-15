@@ -20,7 +20,13 @@ interface MembersResponse {
   pagination?: { page: number; limit: number; total: number; totalPages: number };
 }
 
-export function CommunityMembersTab({ communityId }: { communityId: string }) {
+export function CommunityMembersTab({
+  communityId,
+  refreshKey,
+}: {
+  communityId: string;
+  refreshKey?: number;
+}) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<MembersResponse | null>(null);
@@ -56,7 +62,7 @@ export function CommunityMembersTab({ communityId }: { communityId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [communityId, search, page]);
+  }, [communityId, search, page, refreshKey]);
 
   const users = data?.users ?? [];
   const pagination = data?.pagination;

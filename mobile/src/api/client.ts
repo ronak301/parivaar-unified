@@ -5,7 +5,7 @@ const TOKEN_KEY = 'auth_token';
 
 const apiClient = axios.create({
   baseURL: __DEV__
-    ? 'http://localhost:3000/api'
+    ? 'http://localhost:3001/api'
     : 'https://api.parivaar.app/api',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },

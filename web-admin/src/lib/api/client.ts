@@ -18,7 +18,9 @@ function createClient(token?: string): AxiosInstance {
     (error) => {
       const message =
         error.response?.data?.error ?? error.message ?? 'Request failed';
-      return Promise.reject(new Error(message));
+      const wrapped = new Error(message) as Error & { status?: number };
+      wrapped.status = error.response?.status;
+      return Promise.reject(wrapped);
     },
   );
 

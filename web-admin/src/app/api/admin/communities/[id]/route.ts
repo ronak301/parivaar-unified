@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/auth/admin-client';
-import { getCommunity, updateCommunity } from '@/lib/api/community';
+import { deleteCommunity, getCommunity, updateCommunity } from '@/lib/api/community';
+import { respondToAuthError } from '@/lib/api/route-error';
 
 export async function GET(
   _request: NextRequest,
@@ -12,8 +13,7 @@ export async function GET(
     const community = await getCommunity(client, id);
     return NextResponse.json({ success: true, community });
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to load community';
-    return NextResponse.json({ error: message }, { status: 502 });
+    return respondToAuthError(e, 'Failed to load community');
   }
 }
 
@@ -32,7 +32,20 @@ export async function PUT(
     const community = await updateCommunity(client, id, body);
     return NextResponse.json({ success: true, community });
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to update community';
-    return NextResponse.json({ error: message }, { status: 502 });
+    return respondToAuthError(e, 'Failed to update community');
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  try {
+    const client = await getAdminClient();
+    await deleteCommunity(client, id);
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    return respondToAuthError(e, 'Failed to delete community');
   }
 }

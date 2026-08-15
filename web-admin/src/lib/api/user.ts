@@ -1,4 +1,32 @@
 import type { AxiosInstance } from 'axios';
+import type { User, UserListItem } from '@parivaar/shared';
+
+export async function checkPhone(
+  client: AxiosInstance,
+  phone: string,
+): Promise<{ exists: boolean; user?: { _id: string; firstName: string; lastName?: string; fullName?: string; communityIds?: { _id: string; name: string }[] } }> {
+  const res = await client.get('/users/check-phone', { params: { phone } });
+  return res.data;
+}
+
+export async function createUser(
+  client: AxiosInstance,
+  data: Record<string, unknown>,
+): Promise<User> {
+  const res = await client.post('/users', data);
+  return res.data.user;
+}
+
+export async function searchUsers(
+  client: AxiosInstance,
+  communityId: string,
+  query: string,
+): Promise<UserListItem[]> {
+  const res = await client.get('/users/search', {
+    params: { communityId, query, limit: 10 },
+  });
+  return res.data.users;
+}
 
 export async function getUsersByCommunity(
   client: AxiosInstance,

@@ -2,9 +2,8 @@ import { z } from 'zod';
 
 export const phoneSchema = z
   .string()
-  .min(10, 'Phone number must be at least 10 digits')
-  .max(13, 'Phone number is too long')
-  .regex(/^\+?[0-9]{10,13}$/, 'Invalid phone number format');
+  .length(10, 'Phone number must be exactly 10 digits')
+  .regex(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits');
 
 export const otpSchema = z
   .string()

@@ -86,7 +86,7 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
     <Card>
       <CardContent className="flex flex-col gap-4">
         <Select value={status} onValueChange={(value) => setStatus(value as ApprovalStatus)}>
-          <SelectTrigger className="w-fit">
+          <SelectTrigger size="lg" className="w-fit">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

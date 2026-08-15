@@ -15,6 +15,7 @@ const addressSchema = z.object({
 export const createUserSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().max(100).optional(),
+  profilePicture: z.string().url().optional(),
   guardianName: z.string().max(200).optional(),
   dob: z.string().optional(),
   weddingDate: z.string().optional(),
@@ -22,7 +23,7 @@ export const createUserSchema = z.object({
   gender: z.string().optional(),
   phone: z
     .string()
-    .regex(/^\+?[0-9]{10,13}$/, 'Invalid phone number')
+    .regex(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits')
     .optional(),
   email: z.string().email('Invalid email').optional(),
   education: z.string().max(200).optional(),
@@ -54,16 +55,16 @@ export const searchUsersSchema = z.object({
       gender: z.string().optional(),
       locality: z.string().optional(),
       businessCategory: z.string().optional(),
-      ageMin: z.number().min(0).max(150).optional(),
-      ageMax: z.number().min(0).max(150).optional(),
+      ageMin: z.coerce.number().min(0).max(150).optional(),
+      ageMax: z.coerce.number().min(0).max(150).optional(),
       nativePlace: z.string().optional(),
       nativeDistrict: z.string().optional(),
       sampradaya: z.string().optional(),
       city: z.string().optional(),
       district: z.string().optional(),
-      isFamilyHead: z.boolean().optional(),
+      isFamilyHead: z.coerce.boolean().optional(),
     })
     .optional(),
-  page: z.number().min(1).default(1),
-  limit: z.number().min(1).max(100).default(20),
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
 });
