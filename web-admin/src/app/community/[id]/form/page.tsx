@@ -17,7 +17,6 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
   const [state, setState] = useState('Karnataka');
   const [city, setCity] = useState('Bengaluru');
   const [locality, setLocality] = useState('');
-  const [showAllFields, setShowAllFields] = useState(false);
 
   useEffect(() => {
     async function fetchCommunity() {
@@ -52,19 +51,9 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
         <div className="mx-auto max-w-4xl">
           {/* Header */}
           <div className="bg-gradient-to-r from-black via-slate-900 to-black text-white rounded-t-2xl px-8 py-16 sm:px-10 sm:py-20 text-center">
-            <div className="flex flex-col gap-4 items-center">
-              <div className="flex flex-col gap-2">
-                <h1 className="text-4xl sm:text-5xl font-bold text-white">{community?.name}</h1>
-                <p className="text-base sm:text-lg text-gray-300 font-medium">Registration Form</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAllFields(!showAllFields)}
-                className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-              >
-                {showAllFields ? 'Hide Details' : 'View All Fields'}
-              </Button>
+            <div className="flex flex-col gap-2">
+              <h1 className="text-4xl sm:text-5xl font-bold text-white">{community?.name}</h1>
+              <p className="text-base sm:text-lg text-gray-300 font-medium">Registration Form</p>
             </div>
           </div>
 
@@ -79,8 +68,6 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {showAllFields && (
-            <>
             {/* Personal Info */}
             <div className="border rounded-lg p-5 bg-gray-50 flex flex-col gap-3">
               <p className="text-sm font-semibold text-foreground">Personal Information</p>
@@ -345,8 +332,13 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
             </div>
-            </>
-            )}
+
+            {/* Add Family Member CTA */}
+            <div className="flex gap-3 pt-6 border-t">
+              <Button className="flex-1" size="lg">
+                + Add Family Member
+              </Button>
+            </div>
           </div>
         </div>
       </div>
