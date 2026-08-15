@@ -5,17 +5,18 @@ WORKDIR /app
 # Copy entire monorepo
 COPY . .
 
+# Install all workspace dependencies
+RUN npm install --include=dev
+
 # Build shared package first (backend depends on it)
 WORKDIR /app/packages/shared
-RUN npm install --include=dev
 RUN npm run build
 
-# Then build backend
+# Build backend (now shared is built and available)
 WORKDIR /app/backend
-RUN npm install --include=dev
 RUN npm run build
 
-# Remove dev dependencies for production
+# Clean dev dependencies for production
 RUN npm prune --omit=dev
 
 EXPOSE 3001
