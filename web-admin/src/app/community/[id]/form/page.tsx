@@ -9,15 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Gender, BloodGroups, BusinessTypes } from '@parivaar/shared';
 import { states, getCitiesForState, getDistrictsForState } from '@/lib/locations';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import type { Community } from '@parivaar/shared';
 
 export default function CommunityFormPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,6 +18,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
   const [state, setState] = useState('Karnataka');
   const [city, setCity] = useState('Bengaluru');
   const [locality, setLocality] = useState('');
+  const [showAddMember, setShowAddMember] = useState(false);
 
   useEffect(() => {
     async function fetchCommunity() {
@@ -350,20 +343,27 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
             {/* Family Members Section */}
             <div className="space-y-4 border-t pt-6">
               <h2 className="text-lg font-semibold text-foreground">Family Members</h2>
-              {community && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="w-full" size="lg" variant="default">
-                      <Plus />
-                      Add Family Member
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto sm:max-w-3xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl">Add Family Member</DialogTitle>
-                    </DialogHeader>
+              {!showAddMember && (
+                <Button className="w-full" size="lg" onClick={() => setShowAddMember(true)}>
+                  <Plus />
+                  Add Family Member
+                </Button>
+              )}
 
-                    <div className="space-y-6">
+              {showAddMember && (
+                <div className="space-y-5 border rounded-lg p-6 bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-semibold text-foreground">Add Family Member</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAddMember(false)}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-6">
                       {/* Photo Upload */}
                       <div className="flex flex-col gap-3">
                         <Label className="text-sm font-medium">Photo</Label>
@@ -500,11 +500,17 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                       </div>
                     </div>
 
-                    <DialogFooter>
-                      <Button size="lg" className="w-full">Add Member</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAddMember(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button className="flex-1">Add Member</Button>
+                  </div>
+                </div>
               )}
             </div>
           </div>
