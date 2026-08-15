@@ -1,18 +1,15 @@
 'use client';
 
-import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  Users,
   Building2,
   LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/communities', label: 'Communities', icon: Building2 },
+  { href: '/admin/communities', label: 'Communities', icon: Building2 },
 ] as const;
 
 export default function AdminLayout({
@@ -20,20 +17,18 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
 
-  async function handleLogout() {
-    await fetch('/api/admin/logout', { method: 'POST' });
-    router.push('/login');
-    router.refresh();
+  function handleLogout() {
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC';
+    window.location.href = '/';
   }
 
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-60 flex-col border-r bg-card">
         <div className="flex h-14 items-center border-b px-4">
-          <Link href="/dashboard" className="text-lg font-semibold">
+          <Link href="/admin/communities" className="text-lg font-semibold">
             Parivaar Admin
           </Link>
         </div>

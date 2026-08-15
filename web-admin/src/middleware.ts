@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SESSION_COOKIE_NAME = 'parivaar_admin_session';
-
 export function middleware(request: NextRequest) {
-  // Auth disabled for development — direct access allowed
+  // Allow public form pages
+  if (request.nextUrl.pathname.startsWith('/community/')) {
+    return NextResponse.next();
+  }
+
+  // Check for auth token
+  const hasAuth = request.cookies.get('auth_token');
+
+  // Redirect to login if not authenticated and trying to access admin
+  if (!hasAuth && request.nextUrl.pathname.startsWith('/admin')) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
   return NextResponse.next();
 }
 
