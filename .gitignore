@@ -15,3 +15,8 @@ coverage/
 # Secrets folder - NEVER commit!
 secrets/
 !secrets/.gitkeep
+
+# Config files with credentials
+**/config/database.js
+**/config/*.env
+archive/old-backend/config/
