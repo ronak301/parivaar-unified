@@ -10,7 +10,7 @@ import { Gender, BloodGroups, BusinessTypes } from '@parivaar/shared';
 import { states, getCitiesForState, getDistrictsForState } from '@/lib/locations';
 import type { Community } from '@parivaar/shared';
 
-export default function CommunityFormPage({ params }: { params: { id: string } }) {
+export default function CommunityFormPage({ params }: { params: Promise<{ id: string }> }) {
   const [community, setCommunity] = useState<Community | null>(null);
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState('Karnataka');
@@ -20,7 +20,8 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
   useEffect(() => {
     async function fetchCommunity() {
       try {
-        const res = await fetch(`/api/admin/communities/${params.id}`);
+        const { id } = await params;
+        const res = await fetch(`/api/admin/communities/${id}`);
         if (res.ok) {
           const data = await res.json();
           console.log('Fetched community:', data.community);
@@ -33,7 +34,7 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
       }
     }
     fetchCommunity();
-  }, [params.id]);
+  }, [params]);
 
   if (loading) {
     return (
