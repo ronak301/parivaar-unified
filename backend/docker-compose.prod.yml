@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: parivaar-api
+    restart: always
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongo
+      - redis
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/parivaar
+      - REDIS_URL=redis://redis:6379
+      - REDIS_ENABLED=true
+      - NODE_ENV=production
+    volumes:
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+    networks:
+      - parivaar-network
+
+  mongo:
+    image: mongo:7
+    container_name: parivaar-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - parivaar-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: parivaar-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - parivaar-network
+
+volumes:
+  mongo-data:
+    driver: local
+
+networks:
+  parivaar-network:
+    driver: bridge
