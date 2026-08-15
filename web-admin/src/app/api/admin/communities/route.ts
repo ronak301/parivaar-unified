@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/auth/admin-client';
 import { createCommunity } from '@/lib/api/community';
 import { respondToAuthError } from '@/lib/api/route-error';
+import { getBackendUrl } from '@/lib/api/backend-url';
 
 export async function GET() {
   try {
-    const response = await fetch('http://localhost:3001/api/communities', {
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/communities`, {
       headers: {
         'Authorization': 'Bearer dev-token',
         'Content-Type': 'application/json',

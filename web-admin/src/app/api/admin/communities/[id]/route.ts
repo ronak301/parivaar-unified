@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/api/backend-url';
 
 export async function GET(
   _request: NextRequest,
@@ -6,7 +7,8 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const response = await fetch(`http://localhost:3001/api/communities/${id}`, {
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/communities/${id}`, {
       headers: {
         'Authorization': 'Bearer dev-token',
         'Content-Type': 'application/json',
@@ -43,7 +45,8 @@ export async function PUT(
   }
 
   try {
-    const response = await fetch(`http://localhost:3001/api/communities/${id}`, {
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/communities/${id}`, {
       method: 'PUT',
       headers: {
         'Authorization': 'Bearer dev-token',
@@ -74,7 +77,8 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const response = await fetch(`http://localhost:3001/api/communities/${id}`, {
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/communities/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': 'Bearer dev-token',
