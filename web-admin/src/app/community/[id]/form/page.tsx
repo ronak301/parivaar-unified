@@ -49,10 +49,10 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
       <div className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-4xl">
           {/* Header */}
-          <div className="bg-gradient-to-r from-black via-slate-900 to-black text-white rounded-t-2xl px-8 py-16 sm:px-10 sm:py-20">
+          <div className="bg-gradient-to-r from-black via-slate-900 to-black text-white rounded-t-2xl px-8 py-16 sm:px-10 sm:py-20 text-center">
             <div className="flex flex-col gap-2">
-              <h1 className="text-5xl sm:text-6xl font-bold text-white">{community?.name}</h1>
-              <p className="text-lg sm:text-xl text-gray-300 font-medium">Registration Form</p>
+              <h1 className="text-4xl sm:text-5xl font-bold text-white">{community?.name}</h1>
+              <p className="text-base sm:text-lg text-gray-300 font-medium">Registration Form</p>
             </div>
           </div>
 
