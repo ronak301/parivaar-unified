@@ -15,6 +15,7 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState('Karnataka');
   const [city, setCity] = useState('Bengaluru');
+  const [locality, setLocality] = useState('');
 
   useEffect(() => {
     async function fetchCommunity() {
@@ -232,7 +233,22 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">Locality</Label>
-                  <Input placeholder="Neighborhood/area" />
+                  {(community?.localities ?? []).length > 0 ? (
+                    <Select value={locality} onValueChange={(v) => v && setLocality(v)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select locality" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(community?.localities ?? []).map((loc) => (
+                          <SelectItem key={loc} value={loc}>
+                            {loc}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input placeholder="Neighborhood/area" />
+                  )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">Pincode (6 digits)</Label>
