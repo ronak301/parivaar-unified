@@ -4,10 +4,10 @@
 
 ```
 OLD SYSTEM (Keep Running - Mobile App Users)
-api.parivaarapp.in:3001 → Old Node.js + Supabase (Friend's VM)
+api.parivaarapp.in:3001 → /apps/ronak/community-backend (Node.js + Supabase)
 
 NEW SYSTEM (Deploy New - Web Admin)
-api.parivaarapp.in:3002 → New Node.js + MongoDB + Redis (Your VM)
+api.parivaarapp.in:3002 → /apps/ronak/parivaar-web-unified/backend (Node.js + MongoDB + Redis)
 ```
 
 Both run in parallel. Old users unaffected. Migrate whenever ready.
@@ -16,75 +16,60 @@ Both run in parallel. Old users unaffected. Migrate whenever ready.
 
 ## Backend Deployment (Docker)
 
-### On Your VM (api.parivaarapp.in)
+### On Your VM
 
 1. **SSH into your VM:**
 ```bash
-ssh user@api.parivaarapp.in
+ssh ubuntu@144.24.147.134
 ```
 
 2. **Clone/update the repo:**
 ```bash
-cd /path/to/parivaar
+cd /apps/ronak
+git clone https://github.com/ronak301/parivaar-unified.git parivaar-web-unified
+# OR if already cloned:
+cd parivaar-web-unified
 git pull origin main
 ```
 
-3. **Ensure docker-compose.prod.yml is present:**
+3. **Navigate to backend:**
 ```bash
-cd backend
-ls docker-compose.prod.yml
+cd /apps/ronak/parivaar-web-unified/backend
 ```
 
-4. **Create/update .env file with your credentials:**
-
-Copy your existing `.env` file to the VM (it has real credentials):
+4. **Copy your .env file from local machine:**
 ```bash
-scp backend/.env user@api.parivaarapp.in:/path/to/backend/
+# From your local machine:
+scp backend/.env ubuntu@144.24.147.134:/apps/ronak/parivaar-web-unified/backend/
 ```
 
-Or manually create/update:
+5. **Copy firebase credentials:**
 ```bash
-nano backend/.env
+# From your local machine:
+scp backend/firebase-service-account.json ubuntu@144.24.147.134:/apps/ronak/parivaar-web-unified/backend/
 ```
 
-Make sure it includes:
-- `MONGODB_URI` — your MongoDB Atlas connection string
-- `JWT_SECRET` — your JWT secret
-- `FIREBASE_SERVICE_ACCOUNT_PATH` — path to firebase credentials
-- `CORS_ORIGINS` — add your domain names
-- `DEV_OTP_BYPASS=true` or `false` as needed
-```
-
-5. **Make sure firebase-service-account.json exists:**
+6. **Run the deploy script (handles everything):**
 ```bash
-ls firebase-service-account.json
-# If not, copy it from your local machine:
-# scp firebase-service-account.json user@api.parivaarapp.in:/path/to/backend/
+# On VM:
+bash deploy.sh
 ```
 
-6. **Stop old containers (if any):**
-```bash
-docker-compose -f docker-compose.prod.yml down
-```
-
-7. **Start with Docker Compose (runs on port 3002):**
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-8. **Check logs:**
-```bash
-docker-compose -f docker-compose.prod.yml logs -f app
-```
+The script will:
+- ✅ Check .env and firebase files exist
+- ✅ Stop old containers
+- ✅ Build and start Docker on port 3002
+- ✅ Test API health
+- ✅ Show you next steps
 
 ### Verify Backend is Running
 
 ```bash
-# New API on port 3002
+# New API on port 3002 (your new system)
 curl http://api.parivaarapp.in:3002/api/communities
 # Should return JSON response
 
-# Old API still works on port 3001 (from friend's VM)
+# Old API still works on port 3001 (community-backend)
 curl http://api.parivaarapp.in:3001/api/communities
 # Still returns data - mobile users unaffected
 ```
@@ -118,25 +103,31 @@ curl http://api.parivaarapp.in:3001/api/communities
 ## Running Both Systems Safely
 
 ### Summary
-- **Port 3001** (old): api.parivaarapp.in:3001 → Supabase backend (friend's VM) - Mobile app ✅
-- **Port 3002** (new): api.parivaarapp.in:3002 → MongoDB backend (your VM) - Web admin ✅
+- **Port 3001**: api.parivaarapp.in:3001 → `/apps/ronak/community-backend` (old system)
+  - Status: Running (mobile app users)
+  - Location: `/apps/ronak/community-backend` with `docker-compose.yml`
+  
+- **Port 3002**: api.parivaarapp.in:3002 → `/apps/ronak/parivaar-web-unified/backend` (new system)
+  - Status: Ready to deploy
+  - Location: `/apps/ronak/parivaar-web-unified/backend` with `docker-compose.prod.yml`
 
 ### Check Both Are Running
 ```bash
-# Old API (friend's VM)
+# Old API on port 3001
 curl http://api.parivaarapp.in:3001/health
 
-# New API (your VM)  
+# New API on port 3002
 curl http://api.parivaarapp.in:3002/health
 
 # Both should respond
 ```
 
-### No Migration Yet
-- Old users keep using port 3001 (completely unaffected)
-- New web admin uses port 3002 (isolated environment)
-- Zero downtime, zero risk
-- Migrate users whenever you're ready (days/weeks/months later)
+### Zero Risk Deployment
+- Old system **completely untouched** at `/apps/ronak/community-backend`
+- New system deploys **separately** at `/apps/ronak/parivaar-web-unified/backend`
+- Mobile users keep working on port 3001
+- Web admin works independently on port 3002
+- Migrate users whenever you're ready
 
 ---
 

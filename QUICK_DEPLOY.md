@@ -3,7 +3,13 @@
 ## On Your VM - One Command:
 
 ```bash
-cd /path/to/parivaar-web-unified/backend
+# SSH to your VM
+ssh ubuntu@144.24.147.134
+
+# Navigate to the repo
+cd /apps/ronak/parivaar-web-unified/backend
+
+# Run deploy script
 bash deploy.sh
 ```
 
@@ -25,12 +31,15 @@ That's it! The script handles everything:
 
 ## Before You Run
 
-Just need to copy ONE file to VM:
+Copy two files from your local machine to VM:
+
 ```bash
-scp backend/firebase-service-account.json user@api.parivaarapp.in:/path/to/parivaar-web-unified/backend/
+# From your local parivaar-web-unified directory:
+scp backend/.env ubuntu@144.24.147.134:/apps/ronak/parivaar-web-unified/backend/
+scp backend/firebase-service-account.json ubuntu@144.24.147.134:/apps/ronak/parivaar-web-unified/backend/
 ```
 
-Then run the deploy script above. Done! 🚀
+Then SSH to VM and run the deploy script above. Done! 🚀
 
 ## Result
 
