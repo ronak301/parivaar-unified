@@ -2,14 +2,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy entire monorepo structure to preserve paths
+# Copy entire monorepo
 COPY . .
 
-# Install dependencies in backend folder
+# Build shared package first (backend depends on it)
+WORKDIR /app/packages/shared
+RUN npm install --include=dev
+RUN npm run build
+
+# Then build backend
 WORKDIR /app/backend
 RUN npm install --include=dev
-
-# Build TypeScript
 RUN npm run build
 
 # Remove dev dependencies for production
