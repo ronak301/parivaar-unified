@@ -5,6 +5,8 @@
     "rootDir": "src",
     "module": "commonjs",
     "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "paths": {
       "@parivaar/shared": ["../packages/shared/src"]
     }
