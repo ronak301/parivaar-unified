@@ -2,15 +2,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY ../packages/shared ./packages/shared
+# Copy package files (from backend/ folder, build context is monorepo root)
+COPY backend/package*.json ./
 
-# Install all dependencies
+# Copy shared package
+COPY packages/shared /app/packages/shared
+
+# Install all dependencies (including dev for TypeScript)
 RUN npm install --include=dev
 
-# Copy source code
-COPY . .
+# Copy backend source code
+COPY backend/ .
 
 # Build TypeScript
 RUN npm run build
