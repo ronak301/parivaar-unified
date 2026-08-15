@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Gender, BloodGroups, BusinessTypes } from '@parivaar/shared';
 import { states, getCitiesForState, getDistrictsForState } from '@/lib/locations';
+import { AddFamilyDialog } from '@/components/admin/add-family-dialog';
 import type { Community } from '@parivaar/shared';
 
 export default function CommunityFormPage({ params }: { params: Promise<{ id: string }> }) {
@@ -334,11 +335,14 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Add Family Member CTA */}
-            <div className="flex gap-3 pt-6 border-t">
-              <Button className="flex-1" size="lg">
-                + Add Family Member
-              </Button>
-            </div>
+            {community && (
+              <div className="flex gap-3 pt-6 border-t">
+                <AddFamilyDialog
+                  community={community}
+                  onMemberAdded={() => {}}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
