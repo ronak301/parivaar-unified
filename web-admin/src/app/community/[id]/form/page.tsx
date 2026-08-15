@@ -44,7 +44,7 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen flex flex-col bg-white">
       <div className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-4xl">
           {/* Header */}
@@ -59,7 +59,7 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
           </div>
 
           {/* Form */}
-          <div className="rounded-b-2xl border border-t-0 bg-black/40 backdrop-blur-md p-6 sm:p-8 space-y-5">
+          <div className="rounded-b-2xl border border-t-0 bg-white p-6 sm:p-8 space-y-5">
             {/* Photo Section */}
             <div className="flex flex-col gap-3">
               <p className="text-sm font-medium">Photo Upload</p>
