@@ -11,3 +11,7 @@ npm-debug.log*
 yarn-debug.log*
 .vercel
 coverage/
+
+# Secrets folder - NEVER commit!
+secrets/
+!secrets/.gitkeep
