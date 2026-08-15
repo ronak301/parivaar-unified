@@ -6,7 +6,7 @@ export const API_BASE_URL =
 function createClient(token?: string): AxiosInstance {
   const instance = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 10_000,
+    timeout: 30_000,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,19 +13,46 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        await fetch('/api/auth/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        router.push('/admin');
+      }
+    };
+    checkAuth();
+  }, [router]);
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    if (phone === '9999999999' && password === '000000') {
-      // Set dummy auth token
-      document.cookie = 'auth_token=dummy_token; path=/';
-      router.push('/admin');
+    if (phone === '9999999999' && password === '123456') {
+      const token = 'dummy_token_' + Date.now();
+      localStorage.setItem('auth_token', token);
+
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+
+      if (res.ok) {
+        router.push('/admin');
+      } else {
+        setError('Login failed');
+        setLoading(false);
+      }
       return;
     }
 
-    setError('Invalid credentials. Use 9999999999 / 000000');
+    setError('Invalid credentials');
     setLoading(false);
   }
 
@@ -43,7 +70,7 @@ export default function LoginPage() {
             <Input
               id="phone"
               type="tel"
-              placeholder="9999999999"
+              placeholder="Enter phone number"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               disabled={loading}
@@ -68,12 +95,6 @@ export default function LoginPage() {
             {loading ? 'Logging in...' : 'Login'}
           </Button>
         </form>
-
-        <div className="mt-6 p-4 bg-muted rounded text-xs text-muted-foreground">
-          <p className="font-semibold mb-2">Demo Credentials:</p>
-          <p>Phone: <code className="bg-background px-1 rounded">9999999999</code></p>
-          <p>Password: <code className="bg-background px-1 rounded">000000</code></p>
-        </div>
       </div>
     </div>
   );

@@ -68,7 +68,7 @@ export function CommunitiesListView({
                 <TableRow key={community._id} className="cursor-pointer">
                   <TableCell className="p-0">
                     <Link
-                      href={`/communities/${community._id}`}
+                      href={`/admin/communities/${community._id}`}
                       className="flex items-center gap-3 px-2 py-2.5"
                     >
                       <Avatar size="sm">
@@ -81,14 +81,14 @@ export function CommunitiesListView({
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <Link href={`/communities/${community._id}`} className="block px-2 py-2.5">
+                    <Link href={`/admin/communities/${community._id}`} className="block px-2 py-2.5">
                       {community.city && community.state
                         ? `${community.city}, ${community.state}`
                         : (community.city ?? community.state ?? '—')}
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <Link href={`/communities/${community._id}`} className="block px-2 py-2.5">
+                    <Link href={`/admin/communities/${community._id}`} className="block px-2 py-2.5">
                       {community.status ? (
                         <Badge variant={statusVariant(community.status)}>
                           {community.status}
@@ -100,7 +100,7 @@ export function CommunitiesListView({
                   </TableCell>
                   <TableCell>
                     <Link
-                      href={`/communities/${community._id}`}
+                      href={`/admin/communities/${community._id}`}
                       className="block px-2 py-2.5 text-muted-foreground"
                     >
                       {community.createdAt

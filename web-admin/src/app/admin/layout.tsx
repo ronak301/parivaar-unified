@@ -19,8 +19,9 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
 
-  function handleLogout() {
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC';
+  async function handleLogout() {
+    localStorage.removeItem('auth_token');
+    await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/';
   }
 
