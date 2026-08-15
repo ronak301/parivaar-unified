@@ -11,6 +11,7 @@
   "scripts": {
     "backend:dev": "npm run dev --workspace=backend",
     "admin:dev": "npm run dev --workspace=web-admin",
-    "shared:build": "npm run build --workspace=@parivaar/shared"
+    "shared:build": "npm run build --workspace=@parivaar/shared",
+    "admin:build": "npm run build --workspace=web-admin"
   }
 }

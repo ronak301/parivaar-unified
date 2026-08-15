@@ -1,6 +1,5 @@
 [build]
-  base = "web-admin"
-  command = "cd .. && npm run shared:build && cd web-admin && npm run build"
+  command = "npm run shared:build && npm run admin:build"
   publish = "web-admin/.next"
 
 [env.production]
