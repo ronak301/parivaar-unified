@@ -1,5 +1,19 @@
 # Parivaar Deployment Guide
 
+## Architecture
+
+```
+OLD SYSTEM (Keep Running - Mobile App Users)
+api.parivaarapp.in:3001 → Old Node.js + Supabase (Friend's VM)
+
+NEW SYSTEM (Deploy New - Web Admin)
+api.parivaarapp.in:3002 → New Node.js + MongoDB + Redis (Your VM)
+```
+
+Both run in parallel. Old users unaffected. Migrate whenever ready.
+
+---
+
 ## Backend Deployment (Docker)
 
 ### On Your VM (api.parivaarapp.in)
@@ -53,7 +67,7 @@ ls firebase-service-account.json
 docker-compose -f docker-compose.prod.yml down
 ```
 
-7. **Start with Docker Compose:**
+7. **Start with Docker Compose (runs on port 3002):**
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
@@ -66,8 +80,13 @@ docker-compose -f docker-compose.prod.yml logs -f app
 ### Verify Backend is Running
 
 ```bash
-curl http://api.parivaarapp.in:3001/api/communities
+# New API on port 3002
+curl http://api.parivaarapp.in:3002/api/communities
 # Should return JSON response
+
+# Old API still works on port 3001 (from friend's VM)
+curl http://api.parivaarapp.in:3001/api/communities
+# Still returns data - mobile users unaffected
 ```
 
 ---
@@ -78,7 +97,12 @@ curl http://api.parivaarapp.in:3001/api/communities
    - Go to Netlify Dashboard
    - Select your site
    - Build & deploy → Environment
-   - Add/Update: `NEXT_PUBLIC_API_BASE_URL=https://api.parivaarapp.in/api`
+   - Add/Update: `NEXT_PUBLIC_API_BASE_URL=http://api.parivaarapp.in:3002/api`
+   
+   Or if using domain with reverse proxy:
+   ```
+   NEXT_PUBLIC_API_BASE_URL=https://api-v2.parivaarapp.in/api
+   ```
 
 2. **Trigger redeploy:**
    - Push to main branch OR
@@ -91,13 +115,38 @@ curl http://api.parivaarapp.in:3001/api/communities
 
 ---
 
+## Running Both Systems Safely
+
+### Summary
+- **Port 3001** (old): api.parivaarapp.in:3001 → Supabase backend (friend's VM) - Mobile app ✅
+- **Port 3002** (new): api.parivaarapp.in:3002 → MongoDB backend (your VM) - Web admin ✅
+
+### Check Both Are Running
+```bash
+# Old API (friend's VM)
+curl http://api.parivaarapp.in:3001/health
+
+# New API (your VM)  
+curl http://api.parivaarapp.in:3002/health
+
+# Both should respond
+```
+
+### No Migration Yet
+- Old users keep using port 3001 (completely unaffected)
+- New web admin uses port 3002 (isolated environment)
+- Zero downtime, zero risk
+- Migrate users whenever you're ready (days/weeks/months later)
+
+---
+
 ## Monitoring
 
 ```bash
-# Check if containers are running
+# Check if new containers are running
 docker ps | grep parivaar
 
-# View logs
+# View new API logs
 docker-compose -f docker-compose.prod.yml logs -f
 
 # Restart if needed
@@ -112,13 +161,19 @@ docker-compose -f docker-compose.prod.yml up -d --build
 
 ## Troubleshooting
 
-**API not responding:**
+**New API not responding (port 3002):**
 ```bash
-# Check if port 3001 is open
-netstat -an | grep 3001
+# Check if port 3002 is open
+netstat -an | grep 3002
 
 # Check container logs
 docker-compose -f docker-compose.prod.yml logs app
+```
+
+**Old API down (port 3001):**
+```bash
+# Contact your friend - it's on their VM
+# Or check: curl http://api.parivaarapp.in:3001/health
 ```
 
 **Database connection issues:**
@@ -134,3 +189,16 @@ docker logs parivaar-mongo
 ```bash
 docker logs parivaar-redis
 ```
+
+---
+
+## Future Migration (No Rush)
+
+When ready to migrate users from old → new (weeks/months later):
+
+1. **Set up data sync** between Supabase ↔ MongoDB
+2. **Test with subset** of users using new API
+3. **Gradually migrate** users to new system
+4. **Sunset old API** once everyone is migrated
+
+For now: **Both systems run in parallel, zero downtime, old users keep working!** ✅

@@ -3,10 +3,10 @@ version: '3.8'
 services:
   app:
     build: .
-    container_name: parivaar-api
+    container_name: parivaar-api-v2
     restart: always
     ports:
-      - "3001:3001"
+      - "3002:3001"
     depends_on:
       - mongo
       - redis
