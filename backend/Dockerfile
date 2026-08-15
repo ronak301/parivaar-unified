@@ -2,13 +2,13 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files (from backend/ folder, build context is monorepo root)
+# Copy package files from backend
 COPY backend/package*.json ./
 
-# Copy shared package
-COPY packages/shared /app/packages/shared
+# Pre-copy @parivaar/shared to node_modules (local monorepo package)
+COPY packages/shared ./node_modules/@parivaar/shared
 
-# Install all dependencies (including dev for TypeScript)
+# Install dependencies (shared already in node_modules)
 RUN npm install --include=dev
 
 # Copy backend source code
