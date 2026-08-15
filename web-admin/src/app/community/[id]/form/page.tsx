@@ -9,7 +9,15 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Gender, BloodGroups, BusinessTypes } from '@parivaar/shared';
 import { states, getCitiesForState, getDistrictsForState } from '@/lib/locations';
-import { AddFamilyDialog } from '@/components/admin/add-family-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Plus } from 'lucide-react';
 import type { Community } from '@parivaar/shared';
 
 export default function CommunityFormPage({ params }: { params: Promise<{ id: string }> }) {
@@ -59,10 +67,14 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
           </div>
 
           {/* Form */}
-          <div className="rounded-b-2xl border border-t-0 bg-white p-6 sm:p-8 space-y-5">
-            {/* Photo Section */}
-            <div className="flex flex-col gap-3">
-              <p className="text-sm font-medium">Photo Upload</p>
+          <div className="rounded-b-2xl border border-t-0 bg-white p-6 sm:p-8 space-y-8">
+            {/* Family Head Information */}
+            <div className="space-y-5">
+              <h2 className="text-lg font-semibold text-foreground">Family Head Information</h2>
+
+              {/* Photo Section */}
+              <div className="flex flex-col gap-3">
+                <p className="text-sm font-medium">Photo Upload</p>
               <div className="rounded-lg border-2 border-dashed border-border p-6 text-center">
                 <p className="text-sm text-muted-foreground">Profile photo (drag & drop or click)</p>
                 <p className="mt-1 text-xs text-muted-foreground">PNG, JPEG, WebP · Max 3MB</p>
@@ -333,16 +345,168 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
             </div>
+            </div>
 
-            {/* Add Family Member CTA */}
-            {community && (
-              <div className="flex gap-3 pt-6 border-t">
-                <AddFamilyDialog
-                  community={community}
-                  onMemberAdded={() => {}}
-                />
-              </div>
-            )}
+            {/* Family Members Section */}
+            <div className="space-y-4 border-t pt-6">
+              <h2 className="text-lg font-semibold text-foreground">Family Members</h2>
+              {community && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full" size="lg" variant="default">
+                      <Plus />
+                      Add Family Member
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto sm:max-w-3xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">Add Family Member</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-6">
+                      {/* Photo Upload */}
+                      <div className="flex flex-col gap-3">
+                        <Label className="text-sm font-medium">Photo</Label>
+                        <div className="rounded-lg border-2 border-dashed border-border p-6 text-center">
+                          <p className="text-sm text-muted-foreground">Profile photo (drag & drop or click)</p>
+                          <p className="mt-1 text-xs text-muted-foreground">PNG, JPEG, WebP · Max 3MB</p>
+                        </div>
+                      </div>
+
+                      {/* Relation Fields */}
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="relation" className="text-sm">Relation (Optional)</Label>
+                          <Select>
+                            <SelectTrigger id="relation" className="w-full">
+                              <SelectValue placeholder="Select relation" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="father">Father</SelectItem>
+                              <SelectItem value="mother">Mother</SelectItem>
+                              <SelectItem value="spouse">Spouse</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="relatedTo" className="text-sm">Related to (Optional)</Label>
+                          <Input id="relatedTo" placeholder="Member name" />
+                        </div>
+                      </div>
+
+                      {/* Personal Information */}
+                      <div className="border rounded-lg p-4 bg-gray-50 space-y-4">
+                        <p className="text-sm font-semibold text-foreground">Personal Information</p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Sampradaya</Label>
+                            <Select>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select sampradaya" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Terapanthi">Terapanthi</SelectItem>
+                                <SelectItem value="Sthanakvasi">Sthanakvasi</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">First name *</Label>
+                            <Input placeholder="John" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Last name *</Label>
+                            <Input placeholder="Doe" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Phone (10 digits)</Label>
+                            <Input placeholder="9876543210" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Email</Label>
+                            <Input type="email" placeholder="john@example.com" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Date of birth</Label>
+                            <Input type="date" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Gender</Label>
+                            <Select>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select gender" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Gender.map((g) => (
+                                  <SelectItem key={g.id} value={g.id}>
+                                    {g.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Blood group</Label>
+                            <Select>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select blood group" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {BloodGroups.map((bg) => (
+                                  <SelectItem key={bg.id} value={bg.label}>
+                                    {bg.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Address */}
+                      <div className="border rounded-lg p-4 bg-gray-50 space-y-4">
+                        <p className="text-sm font-semibold text-foreground">Address</p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="flex flex-col gap-2 sm:col-span-2">
+                            <Label className="text-xs">Full address</Label>
+                            <Input placeholder="Street address" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">State</Label>
+                            <Select>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select state" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {states.map((s) => (
+                                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">City</Label>
+                            <Input placeholder="City" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Locality</Label>
+                            <Input placeholder="Locality" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Pincode</Label>
+                            <Input placeholder="560001" maxLength={6} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button size="lg" className="w-full">Add Member</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </div>
         </div>
       </div>
