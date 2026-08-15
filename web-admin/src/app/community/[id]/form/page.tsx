@@ -233,22 +233,18 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">Locality</Label>
-                  {(community?.localities ?? []).length > 0 ? (
-                    <Select value={locality} onValueChange={(v) => v && setLocality(v)}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select locality" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(community?.localities ?? []).map((loc) => (
-                          <SelectItem key={loc} value={loc}>
-                            {loc}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input placeholder="Neighborhood/area" />
-                  )}
+                  <Select value={locality} onValueChange={(v) => v && setLocality(v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select locality" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(community?.localities ?? []).map((loc) => (
+                        <SelectItem key={loc} value={loc}>
+                          {loc}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">Pincode (6 digits)</Label>
