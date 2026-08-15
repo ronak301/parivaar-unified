@@ -23,6 +23,7 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
         const res = await fetch(`/api/admin/communities/${params.id}`);
         if (res.ok) {
           const data = await res.json();
+          console.log('Fetched community:', data.community);
           setCommunity(data.community);
         }
       } catch (err) {
@@ -43,7 +44,7 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
       <div className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-4xl">
           {/* Header */}
