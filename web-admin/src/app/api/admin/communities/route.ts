@@ -7,22 +7,29 @@ import { getBackendUrl } from '@/lib/api/backend-url';
 export async function GET() {
   try {
     const backendUrl = getBackendUrl();
+    console.log('Fetching communities from:', backendUrl);
+
     const response = await fetch(`${backendUrl}/api/communities`, {
+      method: 'GET',
       headers: {
         'Authorization': 'Bearer dev-token',
         'Content-Type': 'application/json',
       },
-      signal: AbortSignal.timeout(45000),
+      signal: AbortSignal.timeout(10000),
+      // Add mode for CORS
+      mode: 'cors',
     });
 
     if (!response.ok) {
-      throw new Error(`Backend returned ${response.status}`);
+      const text = await response.text();
+      console.error('Backend error:', response.status, text);
+      throw new Error(`Backend returned ${response.status}: ${text}`);
     }
 
     const data = await response.json();
     return NextResponse.json({ success: true, communities: data.communities });
   } catch (e) {
-    console.error('Failed to fetch communities:', e);
+    console.error('Failed to fetch communities:', e instanceof Error ? e.message : e);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : 'Failed to load communities' },
       { status: 500 }

@@ -13,7 +13,7 @@ export async function GET(
         'Authorization': 'Bearer dev-token',
         'Content-Type': 'application/json',
       },
-      signal: AbortSignal.timeout(45000),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) {
@@ -53,7 +53,7 @@ export async function PUT(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(45000),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) {
@@ -84,7 +84,7 @@ export async function DELETE(
         'Authorization': 'Bearer dev-token',
         'Content-Type': 'application/json',
       },
-      signal: AbortSignal.timeout(45000),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) {
