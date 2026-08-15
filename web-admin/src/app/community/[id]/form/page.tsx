@@ -48,16 +48,18 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
       <div className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-4xl">
           {/* Header */}
-          <div className="bg-gradient-to-r from-black via-slate-900 to-black text-white rounded-t-2xl px-8 py-12 sm:px-10 sm:py-16">
-            <div className="flex flex-col gap-2">
-              <p className="text-xs sm:text-sm font-semibold text-primary/80 uppercase tracking-wider">Parivaar App</p>
-              <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Single Platform for Communities</h1>
-              <p className="mt-3 text-sm sm:text-base text-gray-300 max-w-2xl">Register your family with {community?.name} and connect with your community members.</p>
+          <div className="bg-gradient-to-r from-black via-slate-900 to-black text-white rounded-t-2xl px-8 py-10 sm:px-10 sm:py-12">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-baseline gap-2">
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider">Parivaar App</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white">Single Platform for Communities</h1>
+              </div>
+              <p className="mt-2 text-sm text-gray-400 max-w-2xl">Register your family with {community?.name}</p>
             </div>
           </div>
 
           {/* Form */}
-          <div className="rounded-b-2xl border border-t-0 bg-card p-6 sm:p-8 space-y-5">
+          <div className="rounded-b-2xl border border-t-0 bg-black/40 backdrop-blur-md p-6 sm:p-8 space-y-5">
             {/* Photo Section */}
             <div className="flex flex-col gap-3">
               <p className="text-sm font-medium">Photo Upload</p>

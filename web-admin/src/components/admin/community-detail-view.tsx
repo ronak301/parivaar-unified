@@ -19,10 +19,10 @@ export function CommunityDetailView({ community }: { community: Community }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
-        <Button variant="ghost" size="sm" className="w-fit" render={<Link href="/communities" />}>
-          <ArrowLeft />
-          Back to communities
-        </Button>
+        <Link href="/communities" className="w-fit inline-flex items-center gap-1 text-sm hover:bg-muted px-3 py-2 rounded-lg transition-colors">
+          <ArrowLeft className="size-4" />
+          <span>Back to communities</span>
+        </Link>
 
         <div className="flex items-start gap-3">
           <Avatar className="size-10" size="lg">
