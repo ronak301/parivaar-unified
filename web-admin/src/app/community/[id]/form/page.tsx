@@ -399,18 +399,6 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                         <p className="text-sm font-semibold text-foreground">Personal Information</p>
                         <div className="grid gap-3 sm:grid-cols-2">
                           <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Sampradaya</Label>
-                            <Select>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select sampradaya" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Terapanthi">Terapanthi</SelectItem>
-                                <SelectItem value="Sthanakvasi">Sthanakvasi</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex flex-col gap-2">
                             <Label className="text-xs">First name *</Label>
                             <Input placeholder="John" />
                           </div>
@@ -431,6 +419,10 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                             <Input type="date" />
                           </div>
                           <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Guardian name</Label>
+                            <Input placeholder="Parent name" />
+                          </div>
+                          <div className="flex flex-col gap-2">
                             <Label className="text-xs">Gender</Label>
                             <Select>
                               <SelectTrigger className="w-full">
@@ -446,6 +438,18 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                             </Select>
                           </div>
                           <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Wedding date</Label>
+                            <Input type="date" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Education</Label>
+                            <Input placeholder="e.g., Bachelor's Degree" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Special education</Label>
+                            <Input placeholder="Certifications, degrees" />
+                          </div>
+                          <div className="flex flex-col gap-2">
                             <Label className="text-xs">Blood group</Label>
                             <Select>
                               <SelectTrigger className="w-full">
@@ -459,6 +463,22 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                                 ))}
                               </SelectContent>
                             </Select>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Nanihaal</Label>
+                            <Input placeholder="Location" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Hobbies</Label>
+                            <Input placeholder="e.g., Reading, Sports" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Achievements</Label>
+                            <Input placeholder="Awards, accomplishments" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Aadhar (last 4 digits)</Label>
+                            <Input placeholder="1234" maxLength={4} />
                           </div>
                         </div>
                       </div>
@@ -489,12 +509,70 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                             <Input placeholder="City" />
                           </div>
                           <div className="flex flex-col gap-2">
+                            <Label className="text-xs">District</Label>
+                            <Input placeholder="District" />
+                          </div>
+                          <div className="flex flex-col gap-2">
                             <Label className="text-xs">Locality</Label>
                             <Input placeholder="Locality" />
                           </div>
                           <div className="flex flex-col gap-2">
                             <Label className="text-xs">Pincode</Label>
                             <Input placeholder="560001" maxLength={6} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Business */}
+                      <div className="border rounded-lg p-4 bg-gray-50 space-y-4">
+                        <p className="text-sm font-semibold text-foreground">Business (Optional)</p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Business name</Label>
+                            <Input placeholder="Company name" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Category</Label>
+                            <Select>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {BusinessTypes.map((bt) => (
+                                  <SelectItem key={bt.id} value={bt.id}>
+                                    {bt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Business phone</Label>
+                            <Input placeholder="9876543210" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Website</Label>
+                            <Input placeholder="https://example.com" />
+                          </div>
+                          <div className="flex flex-col gap-2 sm:col-span-2">
+                            <Label className="text-xs">Description</Label>
+                            <Textarea placeholder="Business details..." rows={2} />
+                          </div>
+                          <div className="flex flex-col gap-2 sm:col-span-2">
+                            <Label className="text-xs">Address</Label>
+                            <Input placeholder="Business address" />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">Instagram profile</Label>
+                            <Input placeholder="https://instagram.com/..." />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label className="text-xs">LinkedIn profile</Label>
+                            <Input placeholder="https://linkedin.com/..." />
+                          </div>
+                          <div className="flex flex-col gap-2 sm:col-span-2">
+                            <Label className="text-xs">Google Maps link</Label>
+                            <Input placeholder="https://maps.google.com/..." />
                           </div>
                         </div>
                       </div>
