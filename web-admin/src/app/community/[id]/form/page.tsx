@@ -48,9 +48,12 @@ export default function CommunityFormPage({ params }: { params: { id: string } }
       <div className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-4xl">
           {/* Header */}
-          <div className="bg-black text-white rounded-t-2xl px-6 py-4 sm:px-8 sm:py-5">
-            <h1 className="text-2xl sm:text-3xl font-bold">{community?.name || 'Family Registration Form'}</h1>
-            <p className="mt-1 text-xs sm:text-sm text-gray-300">Fill in all details to register your family</p>
+          <div className="bg-gradient-to-r from-black via-slate-900 to-black text-white rounded-t-2xl px-8 py-12 sm:px-10 sm:py-16">
+            <div className="flex flex-col gap-2">
+              <p className="text-xs sm:text-sm font-semibold text-primary/80 uppercase tracking-wider">Parivaar App</p>
+              <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Single Platform for Communities</h1>
+              <p className="mt-3 text-sm sm:text-base text-gray-300 max-w-2xl">Register your family with {community?.name} and connect with your community members.</p>
+            </div>
           </div>
 
           {/* Form */}
