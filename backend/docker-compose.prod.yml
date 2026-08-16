@@ -20,6 +20,7 @@ services:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
     networks:
       - parivaar-network
+      - caddynet
 
   mongo:
     image: mongo:7
@@ -48,3 +49,5 @@ volumes:
 networks:
   parivaar-network:
     driver: bridge
+  caddynet:
+    external: true
