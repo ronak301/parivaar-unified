@@ -13,7 +13,6 @@ services:
     env_file:
       - .env
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/parivaar
       - REDIS_URL=redis://redis:6379
       - REDIS_ENABLED=true
       - NODE_ENV=production
