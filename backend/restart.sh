@@ -1,10 +1,10 @@
 #!/bin/bash
 
 echo "Stopping v2 backend..."
-docker-compose -f docker-compose.prod.yml down
+docker compose -f docker compose.prod.yml down
 
 echo "Starting v2 backend..."
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker compose.prod.yml up -d
 
 echo "Waiting for backend to start..."
 sleep 3
