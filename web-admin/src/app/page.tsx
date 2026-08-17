@@ -57,10 +57,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-slate-900 to-black">
-      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-        <div className="flex flex-col gap-2 mb-8 text-center">
-          <h1 className="text-3xl font-bold text-foreground">Parivaar Admin</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#07006c] via-[#3230c4] to-[#6a44c7]">
+      <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-2xl">
+        <div className="flex flex-col gap-2 mb-8 items-center text-center">
+          <img src="/logo.png" alt="Parivaar" className="h-16 w-16" />
+          <h1 className="text-3xl font-bold text-foreground">PARIVAAR</h1>
           <p className="text-sm text-muted-foreground">Community Management System</p>
         </div>
 
@@ -70,7 +71,7 @@ export default function LoginPage() {
             <Input
               id="phone"
               type="tel"
-              placeholder="Enter phone number"
+              placeholder="9999999999"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               disabled={loading}
@@ -82,7 +83,7 @@ export default function LoginPage() {
             <Input
               id="password"
               type="password"
-              placeholder="••••••"
+              placeholder="123456"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
@@ -95,6 +96,10 @@ export default function LoginPage() {
             {loading ? 'Logging in...' : 'Login'}
           </Button>
         </form>
+
+        <p className="text-xs text-muted-foreground text-center mt-6">
+          Demo credentials: 9999999999 / 123456
+        </p>
       </div>
     </div>
   );

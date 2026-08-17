@@ -1,15 +1,17 @@
 import type { Response } from 'express';
 import mongoose from 'mongoose';
+import { createFamilySchema, addFamilyMemberSchema, changeFamilyHeadSchema, batchCreateFamilySchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
-import { User, Family } from '../models';
+import { User, Family, Business } from '../models';
 
 export async function createFamily(req: AuthRequest, res: Response): Promise<void> {
-  const { headId, sampradaya, communityIds } = req.body;
-
-  if (!headId) {
-    res.status(400).json({ error: 'headId is required' });
+  const parsed = createFamilySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
     return;
   }
+
+  const { headId, sampradaya, communityIds } = parsed.data;
 
   const head = await User.findById(headId);
   if (!head) {
@@ -43,7 +45,7 @@ export async function getFamilyTree(req: AuthRequest, res: Response): Promise<vo
     return;
   }
 
-  const members = await User.find({ familyId: family._id })
+  const members = await User.find({ familyId: family._id, isBlocked: { $ne: true } })
     .select('enrollmentId firstName lastName fullName profilePicture dob gender phone fatherId motherId spouseId childrenIds isFamilyHead isAlive demiseDate');
 
   res.json({ success: true, family, members });
@@ -66,7 +68,13 @@ export async function updateFamily(req: AuthRequest, res: Response): Promise<voi
 }
 
 export async function changeFamilyHead(req: AuthRequest, res: Response): Promise<void> {
-  const { newHeadId } = req.body;
+  const parsed = changeFamilyHeadSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    return;
+  }
+
+  const { newHeadId } = parsed.data;
   const family = await Family.findById(req.params.id);
 
   if (!family) {
@@ -91,14 +99,129 @@ export async function changeFamilyHead(req: AuthRequest, res: Response): Promise
   res.json({ success: true, family });
 }
 
+export async function batchCreateFamily(req: AuthRequest, res: Response): Promise<void> {
+  const parsed = batchCreateFamilySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const { head: headData, communityIds, sampradaya, business: businessData, members: membersData } = parsed.data;
+
+    const communityObjectIds = communityIds.map((id) => new mongoose.Types.ObjectId(id));
+
+    const headUser = await User.create({ ...headData, communityIds: communityObjectIds });
+
+    const family = await Family.create({
+      headId: headUser._id,
+      sampradaya,
+      communityIds: communityObjectIds,
+    });
+
+    headUser.familyId = family._id;
+    headUser.isFamilyHead = true;
+    await headUser.save();
+
+    if (businessData) {
+      try {
+        await Business.create({
+          ...businessData,
+          ownerId: headUser._id,
+          communityId: communityIds[0],
+        });
+      } catch (err) {
+        console.error('Business creation failed in batch:', err);
+      }
+    }
+
+    const createdMembers: Array<{ _id: string; firstName: string; lastName?: string }> = [];
+
+    if (membersData && membersData.length > 0) {
+      const allUsers = [headUser];
+
+      for (const memberData of membersData) {
+        const { relation, relativeIndex, ...userData } = memberData;
+
+        const memberUser = await User.create({
+          ...userData,
+          communityIds: communityObjectIds,
+          familyId: family._id,
+        });
+
+        if (relation && relativeIndex !== undefined) {
+          const relativeUser = relativeIndex === -1 ? headUser : allUsers[relativeIndex + 1];
+          if (relativeUser) {
+            switch (relation) {
+              case 'father':
+                memberUser.fatherId = relativeUser._id;
+                relativeUser.childrenIds.push(memberUser._id);
+                break;
+              case 'mother':
+                memberUser.motherId = relativeUser._id;
+                relativeUser.childrenIds.push(memberUser._id);
+                break;
+              case 'spouse':
+                memberUser.spouseId = relativeUser._id;
+                relativeUser.spouseId = memberUser._id;
+                break;
+              case 'child':
+                memberUser.childrenIds.push(relativeUser._id);
+                relativeUser.fatherId = memberUser._id;
+                break;
+              case 'son':
+              case 'daughter':
+                if (relativeUser.gender === 'female') {
+                  memberUser.motherId = relativeUser._id;
+                } else {
+                  memberUser.fatherId = relativeUser._id;
+                }
+                relativeUser.childrenIds.push(memberUser._id);
+                if (relation === 'son') memberUser.gender = 'male';
+                else memberUser.gender = 'female';
+                break;
+            }
+            await relativeUser.save();
+            await memberUser.save();
+          }
+        }
+
+        allUsers.push(memberUser);
+        createdMembers.push({
+          _id: memberUser._id.toString(),
+          firstName: memberUser.firstName,
+          lastName: memberUser.lastName,
+        });
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      family,
+      head: { _id: headUser._id.toString(), firstName: headUser.firstName, lastName: headUser.lastName },
+      members: createdMembers,
+    });
+  } catch (err) {
+    console.error('batchCreateFamily error:', err);
+    const message = err instanceof Error ? err.message : 'Failed to create family';
+    res.status(500).json({ error: message });
+  }
+}
+
 export async function addFamilyMember(req: AuthRequest, res: Response): Promise<void> {
+  const parsed = addFamilyMemberSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    return;
+  }
+
   const family = await Family.findById(req.params.id);
   if (!family) {
     res.status(404).json({ error: 'Family not found' });
     return;
   }
 
-  const { userId, relation, relativeId } = req.body;
+  const { userId, relation, relativeId } = parsed.data;
   const user = await User.findById(userId);
   if (!user) {
     res.status(404).json({ error: 'User not found' });
@@ -130,6 +253,16 @@ export async function addFamilyMember(req: AuthRequest, res: Response): Promise<
       case 'child':
         user.childrenIds.push(relative._id);
         relative.fatherId = user._id;
+        break;
+      case 'son':
+      case 'daughter':
+        if (relative.gender === 'female') {
+          user.motherId = relative._id;
+        } else {
+          user.fatherId = relative._id;
+        }
+        relative.childrenIds.push(user._id);
+        user.gender = relation === 'son' ? 'male' : 'female';
         break;
     }
     await relative.save();

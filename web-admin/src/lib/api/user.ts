@@ -42,6 +42,16 @@ export async function getUser(client: AxiosInstance, id: string) {
   return res.data.user;
 }
 
+export async function blockUser(client: AxiosInstance, id: string) {
+  const res = await client.put(`/users/${id}/block`);
+  return res.data.user;
+}
+
+export async function unblockUser(client: AxiosInstance, id: string) {
+  const res = await client.put(`/users/${id}/unblock`);
+  return res.data.user;
+}
+
 export async function getUserEvents(
   client: AxiosInstance,
   communityId: string,

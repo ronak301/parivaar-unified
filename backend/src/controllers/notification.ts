@@ -1,6 +1,7 @@
 import type { Response } from 'express';
+import { registerPushTokenSchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
-import { Notification } from '../models';
+import { Notification, User } from '../models';
 
 export async function getMyNotifications(req: AuthRequest, res: Response): Promise<void> {
   const page = parseInt(req.query.page as string) || 1;
@@ -41,5 +42,35 @@ export async function markAsRead(req: AuthRequest, res: Response): Promise<void>
 
 export async function markAllAsRead(req: AuthRequest, res: Response): Promise<void> {
   await Notification.updateMany({ userId: req.user?._id, isRead: false }, { isRead: true });
+  res.json({ success: true });
+}
+
+export async function registerPushToken(req: AuthRequest, res: Response): Promise<void> {
+  const parsed = registerPushTokenSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    return;
+  }
+
+  await User.updateOne(
+    { _id: req.user?._id },
+    { $addToSet: { pushTokens: parsed.data.token } },
+  );
+
+  res.json({ success: true });
+}
+
+export async function unregisterPushToken(req: AuthRequest, res: Response): Promise<void> {
+  const { token } = req.body;
+  if (!token) {
+    res.status(400).json({ error: 'token is required' });
+    return;
+  }
+
+  await User.updateOne(
+    { _id: req.user?._id },
+    { $pull: { pushTokens: token } },
+  );
+
   res.json({ success: true });
 }

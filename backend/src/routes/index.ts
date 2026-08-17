@@ -6,6 +6,7 @@ import communityRoutes from './community';
 import businessRoutes from './business';
 import approvalRoutes from './approval';
 import notificationRoutes from './notification';
+import matrimonialRoutes from './matrimonial';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/communities', communityRoutes);
 router.use('/businesses', businessRoutes);
 router.use('/approvals', approvalRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/matrimonial', matrimonialRoutes);
 
 export default router;

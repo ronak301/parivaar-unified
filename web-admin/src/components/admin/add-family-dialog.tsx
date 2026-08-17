@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Community } from '@parivaar/shared';
 import { Gender, BloodGroups, BusinessTypes } from '@parivaar/shared';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ClickableAvatar, ClickableImage } from '@/components/ui/clickable-image';
+import { ImageUploadField } from '@/components/ui/image-upload-field';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { UserPlus, Upload, Plus, UserRound, Phone } from 'lucide-react';
-import { uploadUserPhoto } from '@/lib/firebase/storage';
+import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
 import { states, getCitiesForState, getDistrictsForState } from '@/lib/locations';
 
 interface PersonForm {
@@ -81,9 +82,19 @@ interface MemberEntry {
   relationLabel?: string;
 }
 
+interface PendingMember {
+  tempId: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  gender: string;
+  relation: string;
+  relatedTo: string;
+}
+
 const RELATIONS = [
-  { id: 'father', label: 'Father' },
-  { id: 'mother', label: 'Mother' },
+  { id: 'son', label: 'Son' },
+  { id: 'daughter', label: 'Daughter' },
   { id: 'spouse', label: 'Spouse' },
 ];
 
@@ -176,7 +187,8 @@ function PersonFieldsBlock({
   form,
   setField,
   photoPreview,
-  onPhotoSelect,
+  onPhotoFileReady,
+  uploadingPhoto,
   localities,
   phoneReadOnly,
   businessEnabled,
@@ -185,13 +197,16 @@ function PersonFieldsBlock({
   setBusinessField,
   businessLogoPrev,
   businessPhotosPrev,
-  onBusinessLogoSelect,
-  onBusinessPhotosSelect,
+  onBusinessLogoFileReady,
+  onBusinessPhotoFileReady,
+  uploadingBusiness,
+  onError,
 }: {
   form: PersonForm;
   setField: <K extends keyof PersonForm>(key: K, value: PersonForm[K]) => void;
   photoPreview: string;
-  onPhotoSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onPhotoFileReady: (file: File) => void;
+  uploadingPhoto?: boolean;
   localities: string[];
   phoneReadOnly?: boolean;
   businessEnabled: boolean;
@@ -200,10 +215,11 @@ function PersonFieldsBlock({
   setBusinessField: <K extends keyof BusinessForm>(key: K, value: BusinessForm[K]) => void;
   businessLogoPrev: string;
   businessPhotosPrev: string[];
-  onBusinessLogoSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBusinessPhotosSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBusinessLogoFileReady: (file: File) => void;
+  onBusinessPhotoFileReady: (file: File) => void;
+  uploadingBusiness?: boolean;
+  onError?: (error: string) => void;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
 
   function handleDrag(e: React.DragEvent<HTMLDivElement>) {
@@ -216,61 +232,58 @@ function PersonFieldsBlock({
     }
   }
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      // Manually handle the file like the input onChange does
-      if (photoPreview) URL.revokeObjectURL(photoPreview);
-      onPhotoSelect({
-        target: {
-          files: e.dataTransfer.files,
-          value: '',
-        },
-      } as unknown as React.ChangeEvent<HTMLInputElement>);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-5">
-      <div
-        className={`flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-8 transition-colors ${
-          dragActive ? 'border-primary bg-primary/5' : 'border-border'
-        }`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
+      <ImageUploadField
+        fieldKey="profilePhoto"
+        onFileReady={onPhotoFileReady}
+        onError={onError}
       >
-        <Avatar className="size-56">
-          <AvatarImage src={photoPreview} alt="" />
-          <AvatarFallback>
-            <UserRound className="size-24" />
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="hidden"
-            onChange={onPhotoSelect}
-          />
-          <Button type="button" variant="outline" size="lg" onClick={() => fileInputRef.current?.click()}>
-            <Upload />
-            {photoPreview ? 'Change photo' : 'Upload photo'}
-          </Button>
-          <p className="text-xs text-muted-foreground">or drag and drop your photo here</p>
-          <p className="text-xs text-muted-foreground">PNG, JPEG, WebP · Max 3MB</p>
-        </div>
-      </div>
+        {({ openFilePicker, openWithFile }) => (
+          <div
+            className={`flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-8 transition-colors ${
+              dragActive ? 'border-primary bg-primary/5' : 'border-border'
+            }`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragActive(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file) openWithFile(file);
+            }}
+            onClick={openFilePicker}
+          >
+            <ClickableAvatar
+              src={photoPreview}
+              alt="Profile photo"
+              fallback={<UserRound className="size-24" />}
+              className="size-56"
+            />
+            <div className="flex flex-col items-center gap-2 text-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={(e) => { e.stopPropagation(); openFilePicker(); }}
+                disabled={uploadingPhoto}
+              >
+                <Upload />
+                {uploadingPhoto ? 'Uploading...' : photoPreview ? 'Change photo' : 'Upload photo'}
+              </Button>
+              <p className="text-xs text-muted-foreground">or drag and drop your photo here</p>
+              <p className="text-xs text-muted-foreground">PNG, JPEG, WebP · Max 2MB</p>
+            </div>
+          </div>
+        )}
+      </ImageUploadField>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="pf-sampradaya">Sampradaya</Label>
-          <Select value={form.sampradaya || undefined} onValueChange={(v) => setField('sampradaya', String(v))}>
+          <Select value={form.sampradaya} onValueChange={(v) => setField('sampradaya', v ?? '')}>
             <SelectTrigger id="pf-sampradaya" className="w-full">
               <SelectValue placeholder="Select sampradaya" />
             </SelectTrigger>
@@ -281,11 +294,15 @@ function PersonFieldsBlock({
           </Select>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="pf-firstName">First name</Label>
+          <Label htmlFor="pf-firstName">
+            First name <span className="text-red-500">*</span>
+          </Label>
           <Input id="pf-firstName" value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="pf-lastName">Last name</Label>
+          <Label htmlFor="pf-lastName">
+            Last name <span className="text-red-500">*</span>
+          </Label>
           <Input id="pf-lastName" value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} />
         </div>
         <div className="flex flex-col gap-2">
@@ -309,8 +326,8 @@ function PersonFieldsBlock({
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="pf-gender">Gender</Label>
-          <Select value={form.gender || undefined} onValueChange={(v) => setField('gender', String(v))}>
+          <Label htmlFor="pf-gender">Gender <span className="text-red-500">*</span></Label>
+          <Select value={form.gender} onValueChange={(v) => setField('gender', v ?? '')}>
             <SelectTrigger id="pf-gender" className="w-full">
               <SelectValue placeholder="Select gender" />
             </SelectTrigger>
@@ -338,7 +355,7 @@ function PersonFieldsBlock({
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="pf-bloodGroup">Blood group</Label>
-          <Select value={form.bloodGroup || undefined} onValueChange={(v) => setField('bloodGroup', String(v))}>
+          <Select value={form.bloodGroup} onValueChange={(v) => setField('bloodGroup', v ?? '')}>
             <SelectTrigger id="pf-bloodGroup" className="w-full">
               <SelectValue placeholder="Select blood group" />
             </SelectTrigger>
@@ -425,7 +442,7 @@ function PersonFieldsBlock({
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="pf-state">State</Label>
-            <Select value={form.state || undefined} onValueChange={(v) => setField('state', String(v))}>
+            <Select value={form.state} onValueChange={(v) => setField('state', v ?? '')}>
               <SelectTrigger id="pf-state" className="w-full">
                 <SelectValue placeholder="Select state" />
               </SelectTrigger>
@@ -441,8 +458,8 @@ function PersonFieldsBlock({
           <div className="flex flex-col gap-2">
             <Label htmlFor="pf-city">City</Label>
             <Select
-              value={form.city || undefined}
-              onValueChange={(v) => setField('city', String(v))}
+              value={form.city}
+              onValueChange={(v) => setField('city', v ?? '')}
               disabled={!form.state}
             >
               <SelectTrigger id="pf-city" className="w-full">
@@ -461,8 +478,8 @@ function PersonFieldsBlock({
           <div className="flex flex-col gap-2">
             <Label htmlFor="pf-district">District</Label>
             <Select
-              value={form.district || undefined}
-              onValueChange={(v) => setField('district', String(v))}
+              value={form.district}
+              onValueChange={(v) => setField('district', v ?? '')}
               disabled={!form.state || getDistrictsForState(form.state).length === 0}
             >
               <SelectTrigger id="pf-district" className="w-full">
@@ -489,7 +506,7 @@ function PersonFieldsBlock({
           <div className="flex flex-col gap-2">
             <Label htmlFor="pf-locality">Locality</Label>
             {localities.length > 0 ? (
-              <Select value={form.locality || undefined} onValueChange={(v) => setField('locality', String(v))}>
+              <Select value={form.locality} onValueChange={(v) => setField('locality', v ?? '')}>
                 <SelectTrigger id="pf-locality" className="w-full">
                   <SelectValue placeholder="Select locality" />
                 </SelectTrigger>
@@ -530,7 +547,9 @@ function PersonFieldsBlock({
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="pf-biz-name">Business name</Label>
+                <Label htmlFor="pf-biz-name">
+                  Business name <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="pf-biz-name"
                   value={businessForm.name}
@@ -540,8 +559,8 @@ function PersonFieldsBlock({
               <div className="flex flex-col gap-2">
                 <Label htmlFor="pf-biz-category">Category</Label>
                 <Select
-                  value={businessForm.category || undefined}
-                  onValueChange={(v) => setBusinessField('category', String(v))}
+                  value={businessForm.category}
+                  onValueChange={(v) => setBusinessField('category', v ?? '')}
                 >
                   <SelectTrigger id="pf-biz-category" className="w-full">
                     <SelectValue placeholder="Select category" />
@@ -620,30 +639,53 @@ function PersonFieldsBlock({
                 <Label>Logo</Label>
                 <div className="flex items-center gap-3">
                   {businessLogoPrev && (
-                    <img src={businessLogoPrev} alt="Logo" className="size-10 rounded object-cover" />
+                    <ClickableImage src={businessLogoPrev} alt="Logo" className="size-10 rounded object-cover" />
                   )}
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    className="text-sm file:mr-4 file:rounded file:border-0 file:bg-primary file:px-3 file:py-2 file:text-primary-foreground file:cursor-pointer"
-                    onChange={onBusinessLogoSelect}
-                  />
+                  <ImageUploadField
+                    fieldKey="businessLogo"
+                    onFileReady={onBusinessLogoFileReady}
+                    onError={onError}
+                  >
+                    {({ openFilePicker }) => (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={openFilePicker}
+                        disabled={uploadingBusiness}
+                      >
+                        <Upload className="size-3.5" />
+                        {uploadingBusiness ? 'Uploading...' : businessLogoPrev ? 'Change' : 'Upload'}
+                      </Button>
+                    )}
+                  </ImageUploadField>
                 </div>
               </div>
               <div className="flex flex-col gap-2 sm:col-span-2">
                 <Label>Photos (max 2)</Label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {businessPhotosPrev.map((url, idx) => (
-                    <img key={idx} src={url} alt={`Photo ${idx + 1}`} className="size-12 rounded object-cover" />
+                    <ClickableImage key={idx} src={url} alt={`Photo ${idx + 1}`} className="size-12 rounded object-cover" />
                   ))}
                 </div>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  multiple
-                  className="text-sm file:mr-4 file:rounded file:border-0 file:bg-primary file:px-3 file:py-2 file:text-primary-foreground file:cursor-pointer"
-                  onChange={onBusinessPhotosSelect}
-                />
+                <ImageUploadField
+                  fieldKey="businessPhoto"
+                  onFileReady={onBusinessPhotoFileReady}
+                  onError={onError}
+                >
+                  {({ openFilePicker }) => (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={openFilePicker}
+                      disabled={businessPhotosPrev.length >= 2 || uploadingBusiness}
+                    >
+                      <Upload className="size-3.5" />
+                      {uploadingBusiness ? 'Uploading...' : 'Add photo'}
+                    </Button>
+                  )}
+                </ImageUploadField>
               </div>
             </div>
           </>
@@ -653,33 +695,77 @@ function PersonFieldsBlock({
   );
 }
 
+interface AddFamilyDialogProps {
+  community: Community;
+  onMemberAdded: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
 export function AddFamilyDialog({
   community,
   onMemberAdded,
-}: {
-  community: Community;
-  onMemberAdded: () => void;
-}) {
-  const [open, setOpen] = useState(false);
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: AddFamilyDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const onOpenChange = controlledOnOpenChange ?? setInternalOpen;
+  const isUncontrolled = controlledOpen === undefined;
   const [phase, setPhase] = useState<'phone' | 'head' | 'members'>('phone');
-  const [familyId, setFamilyId] = useState<string | null>(null);
-  const [members, setMembers] = useState<MemberEntry[]>([]);
-  const [addingMember, setAddingMember] = useState(false);
 
   const [form, setForm] = useState<PersonForm>(emptyPersonForm());
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>();
   const [businessEnabled, setBusinessEnabled] = useState(false);
   const [businessForm, setBusinessForm] = useState<BusinessForm>(emptyBusinessForm());
-  const [relation, setRelation] = useState('');
-  const [relatedTo, setRelatedTo] = useState('');
+
+  const [pendingMembers, setPendingMembers] = useState<PendingMember[]>([]);
+  const [memberFirstName, setMemberFirstName] = useState('');
+  const [memberLastName, setMemberLastName] = useState('');
+  const [memberPhone, setMemberPhone] = useState('');
+  const [memberGender, setMemberGender] = useState('');
+  const [memberRelation, setMemberRelation] = useState('');
+  const [memberRelatedTo, setMemberRelatedTo] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [headAddress, setHeadAddress] = useState<Partial<PersonForm> | null>(null);
-  const [businessFiles, setBusinessFiles] = useState<BusinessFiles>({ logo: null, photos: [] });
+  const [uploadingBusiness, setUploadingBusiness] = useState(false);
   const [businessLogoPrev, setBusinessLogoPrev] = useState('');
+  const [businessLogoUrl, setBusinessLogoUrl] = useState<string | undefined>();
   const [businessPhotosPrev, setBusinessPhotosPrev] = useState<string[]>([]);
+  const [businessPhotoUrls, setBusinessPhotoUrls] = useState<string[]>([]);
+
+  const headName = [form.firstName, form.lastName].filter(Boolean).join(' ');
+
+  useEffect(() => {
+    if (!open) {
+      setPhase('phone');
+      setForm(emptyPersonForm());
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+      setPhotoPreview('');
+      setPhotoUrl(undefined);
+      setUploadingPhoto(false);
+      setBusinessEnabled(false);
+      setBusinessForm(emptyBusinessForm());
+      if (businessLogoPrev) URL.revokeObjectURL(businessLogoPrev);
+      setBusinessLogoPrev('');
+      setBusinessLogoUrl(undefined);
+      businessPhotosPrev.forEach((url) => URL.revokeObjectURL(url));
+      setBusinessPhotosPrev([]);
+      setBusinessPhotoUrls([]);
+      setUploadingBusiness(false);
+      setPendingMembers([]);
+      setMemberFirstName('');
+      setMemberLastName('');
+      setMemberPhone('');
+      setMemberGender('');
+      setMemberRelation('');
+      setMemberRelatedTo('');
+      setError('');
+    }
+  }, [open]);
 
   function setField<K extends keyof PersonForm>(key: K, value: PersonForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -689,67 +775,61 @@ export function AddFamilyDialog({
     setBusinessForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function resetPersonForm() {
-    if (photoPreview) URL.revokeObjectURL(photoPreview);
-    if (businessLogoPrev) URL.revokeObjectURL(businessLogoPrev);
-    businessPhotosPrev.forEach((url) => URL.revokeObjectURL(url));
-    setForm(emptyPersonForm());
-    setPhotoFile(null);
-    setPhotoPreview('');
-    setBusinessEnabled(false);
-    setBusinessForm(emptyBusinessForm());
-    setBusinessFiles({ logo: null, photos: [] });
-    setBusinessLogoPrev('');
-    setBusinessPhotosPrev([]);
-  }
-
-  function reset() {
-    resetPersonForm();
-    setPhase('phone');
-    setFamilyId(null);
-    setMembers([]);
-    setAddingMember(false);
-    setRelation('');
-    setRelatedTo('');
-    setError('');
-    setHeadAddress(null);
-  }
-
-  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-
+  function handlePhotoFileReady(file: File) {
     setError('');
     if (photoPreview) URL.revokeObjectURL(photoPreview);
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
+    const preview = URL.createObjectURL(file);
+    setPhotoPreview(preview);
+    setUploadingPhoto(true);
+
+    uploadUserPhoto(file, `temp/${community._id}/${crypto.randomUUID()}`)
+      .then((url) => {
+        setPhotoUrl(url);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to upload photo');
+      })
+      .finally(() => setUploadingPhoto(false));
   }
 
-  function handleBusinessLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-
+  function handleBusinessLogoFileReady(file: File) {
     setError('');
     if (businessLogoPrev) URL.revokeObjectURL(businessLogoPrev);
-    setBusinessFiles((prev) => ({ ...prev, logo: file }));
-    setBusinessLogoPrev(URL.createObjectURL(file));
+    const preview = URL.createObjectURL(file);
+    setBusinessLogoPrev(preview);
+    setUploadingBusiness(true);
+
+    uploadBusinessLogo(file, `temp/${community._id}/${crypto.randomUUID()}`)
+      .then((url) => {
+        setBusinessLogoUrl(url);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to upload logo');
+      })
+      .finally(() => setUploadingBusiness(false));
   }
 
-  function handleBusinessPhotosSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []).slice(0, 2);
-    e.target.value = '';
-    if (!files.length) return;
-
+  function handleBusinessPhotoFileReady(file: File) {
     setError('');
-    businessPhotosPrev.forEach((url) => URL.revokeObjectURL(url));
-    setBusinessFiles((prev) => ({ ...prev, photos: files }));
-    setBusinessPhotosPrev(files.map((f) => URL.createObjectURL(f)));
+    if (businessPhotosPrev.length >= 2) return;
+    const preview = URL.createObjectURL(file);
+    const newPreviews = [...businessPhotosPrev, preview].slice(0, 2);
+    setBusinessPhotosPrev(newPreviews);
+    setUploadingBusiness(true);
+
+    uploadBusinessPhoto(file, `temp/${community._id}/${crypto.randomUUID()}`)
+      .then((url) => {
+        setBusinessPhotoUrls((prev) => [...prev, url].slice(0, 2));
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to upload photo');
+      })
+      .finally(() => setUploadingBusiness(false));
   }
 
   function validatePerson(): string {
     if (!form.firstName.trim() || !form.lastName.trim()) return 'First and last name are required';
+    if (!form.gender) return 'Gender is required';
     if (form.phone && !/^[0-9]{10}$/.test(form.phone)) return 'Phone number must be exactly 10 digits';
     if (form.pincode && !/^[0-9]{6}$/.test(form.pincode)) return 'Pincode must be 6 digits';
     if (form.aadharLast4 && !/^[0-9]{4}$/.test(form.aadharLast4)) return 'Aadhar must be last 4 digits';
@@ -771,202 +851,139 @@ export function AddFamilyDialog({
     setSubmitting(true);
     setError('');
     try {
-      const checkRes = await fetch(`/api/admin/users/check-phone?phone=${encodeURIComponent(phone)}`);
-      const checkData = await checkRes.json();
-      if (checkRes.ok && checkData.exists) {
-        const name = checkData.user?.fullName ?? checkData.user?.firstName ?? '';
-        const communities = (checkData.user?.communityIds as { _id: string; name: string }[] | undefined)
-          ?.map((c) => c.name)
-          .join(', ');
-        let msg = 'A member with this phone number already exists';
-        if (name) msg += ` — ${name}`;
-        if (communities) msg += ` (${communities})`;
-        setError(msg);
+      const res = await fetch(`/api/admin/users/check-phone?phone=${encodeURIComponent(phone)}`);
+      const data = await res.json();
+      if (data.exists && data.user) {
+        const name = data.user.fullName || data.user.firstName || 'Unknown';
+        const communities = data.user.communityIds?.map((c: { name: string }) => c.name).join(', ') || '';
+        setError(`User "${name}" already exists with this phone number${communities ? ` (${communities})` : ''}`);
         return;
       }
       setPhase('head');
     } catch {
-      setError('Network error. Please try again.');
+      setError('Failed to check phone number. Please try again.');
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function createPerson(): Promise<{ _id: string; firstName: string; lastName?: string } | null> {
-    let profilePicture: string | undefined;
-    if (photoFile) {
-      try {
-        profilePicture = await uploadUserPhoto(photoFile, crypto.randomUUID());
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to upload photo');
-        return null;
-      }
-    }
-
-    const userRes = await fetch('/api/admin/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildUserPayload(form, profilePicture, community._id)),
-    });
-    const userData = await userRes.json();
-    if (!userRes.ok) {
-      setError(userData.error ?? 'Failed to create member');
-      return null;
-    }
-
-    if (businessEnabled) {
-      let logoUrl: string | undefined;
-      let photoUrls: string[] = [];
-
-      if (businessFiles.logo) {
-        try {
-          logoUrl = await uploadUserPhoto(businessFiles.logo, `biz-logo-${crypto.randomUUID()}`);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to upload logo');
-          return null;
-        }
-      }
-
-      if (businessFiles.photos.length > 0) {
-        try {
-          photoUrls = await Promise.all(
-            businessFiles.photos.map((file) => uploadUserPhoto(file, `biz-photo-${crypto.randomUUID()}`))
-          );
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to upload photos');
-          return null;
-        }
-      }
-
-      const bizRes = await fetch('/api/admin/businesses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: businessForm.name.trim(),
-          category: businessForm.category || undefined,
-          phone: businessForm.phone || undefined,
-          website: businessForm.website || undefined,
-          description: businessForm.description || undefined,
-          address: businessForm.address || undefined,
-          instagramProfile: businessForm.instagramProfile || undefined,
-          linkedinProfile: businessForm.linkedinProfile || undefined,
-          googleMapsLink: businessForm.googleMapsLink || undefined,
-          logo: logoUrl || undefined,
-          photos: photoUrls.length > 0 ? photoUrls : undefined,
-          ownerId: userData.user._id,
-          communityId: community._id,
-        }),
-      });
-      const bizData = await bizRes.json();
-      if (!bizRes.ok) {
-        setError(bizData.error ?? 'Failed to create business');
-        return null;
-      }
-    }
-
-    return userData.user;
-  }
-
-  async function handleAddHead() {
+  function handleHeadContinue() {
     const validationError = validatePerson();
     if (validationError) {
       setError(validationError);
       return;
     }
+    setError('');
+    setPhase('members');
+  }
 
+  function handleAddPendingMember() {
+    if (!memberFirstName.trim()) {
+      setError('First name is required');
+      return;
+    }
+    if (!memberGender) {
+      setError('Gender is required');
+      return;
+    }
+    if (!memberRelation) {
+      setError('Relation is required');
+      return;
+    }
+    if (!memberRelatedTo) {
+      setError('Please select who this member is related to');
+      return;
+    }
+    if (memberPhone && !/^[0-9]{10}$/.test(memberPhone)) {
+      setError('Phone number must be exactly 10 digits');
+      return;
+    }
+
+    setError('');
+    setPendingMembers((prev) => [
+      ...prev,
+      {
+        tempId: crypto.randomUUID(),
+        firstName: memberFirstName.trim(),
+        lastName: memberLastName.trim(),
+        phone: memberPhone.trim(),
+        gender: memberGender,
+        relation: memberRelation,
+        relatedTo: memberRelatedTo,
+      },
+    ]);
+    setMemberFirstName('');
+    setMemberLastName('');
+    setMemberPhone('');
+    setMemberGender('');
+    setMemberRelation('');
+    setMemberRelatedTo('');
+  }
+
+  function removePendingMember(tempId: string) {
+    setPendingMembers((prev) => prev.filter((m) => m.tempId !== tempId));
+  }
+
+  async function handleSaveFamily() {
     setSubmitting(true);
     setError('');
     try {
-      const newUser = await createPerson();
-      if (!newUser) return;
+      const headPayload = buildUserPayload(form, photoUrl, community._id);
 
-      const familyRes = await fetch('/api/admin/families', {
+      const batchMembers = pendingMembers.map((m) => {
+        let relativeIndex: number | undefined;
+        if (m.relation && m.relatedTo) {
+          if (m.relatedTo === 'head') {
+            relativeIndex = -1;
+          } else {
+            relativeIndex = pendingMembers.findIndex((pm) => pm.tempId === m.relatedTo);
+          }
+        }
+        return {
+          firstName: m.firstName,
+          lastName: m.lastName || undefined,
+          phone: m.phone || undefined,
+          gender: m.gender || undefined,
+          relation: m.relation || undefined,
+          relativeIndex,
+        };
+      });
+
+      const businessPayload = businessEnabled
+        ? {
+            name: businessForm.name.trim(),
+            category: businessForm.category || undefined,
+            phone: businessForm.phone || undefined,
+            website: businessForm.website || undefined,
+            description: businessForm.description || undefined,
+            address: businessForm.address || undefined,
+            instagramProfile: businessForm.instagramProfile || undefined,
+            linkedinProfile: businessForm.linkedinProfile || undefined,
+            googleMapsLink: businessForm.googleMapsLink || undefined,
+            logo: businessLogoUrl || undefined,
+            photos: businessPhotoUrls.length > 0 ? businessPhotoUrls : undefined,
+          }
+        : undefined;
+
+      const res = await fetch('/api/admin/families/batch-create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          headId: newUser._id,
+          head: headPayload,
           communityIds: [community._id],
           sampradaya: form.sampradaya || undefined,
+          business: businessPayload,
+          members: batchMembers.length > 0 ? batchMembers : undefined,
         }),
       });
-      const familyData = await familyRes.json();
-      if (!familyRes.ok) {
-        setError(familyData.error ?? 'Failed to create family');
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? 'Failed to create family');
         return;
       }
 
-      setFamilyId(familyData.family._id);
-      setMembers([{ _id: newUser._id, name: fullName(newUser), relationLabel: 'Head' }]);
-      setHeadAddress({
-        fullAddress: form.fullAddress,
-        state: form.state,
-        city: form.city,
-        district: form.district,
-        locality: form.locality,
-        pincode: form.pincode,
-        nativePlace: form.nativePlace,
-        nativeDistrict: form.nativeDistrict,
-        sampradaya: form.sampradaya,
-      });
-      resetPersonForm();
-      setPhase('members');
       onMemberAdded();
-    } catch {
-      setError('Network error. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleAddMember() {
-    const validationError = validatePerson();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    if ((relation && !relatedTo) || (!relation && relatedTo)) {
-      setError('Select both a relation and a related member, or leave both blank');
-      return;
-    }
-    if (!familyId) return;
-
-    setSubmitting(true);
-    setError('');
-    try {
-      const newUser = await createPerson();
-      if (!newUser) return;
-
-      const addRes = await fetch(`/api/admin/families/${familyId}/add-member`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: newUser._id,
-          relation: relation || undefined,
-          relativeId: relatedTo || undefined,
-        }),
-      });
-      const addData = await addRes.json();
-      if (!addRes.ok) {
-        setError(addData.error ?? 'Failed to add family member');
-        return;
-      }
-
-      const relatedMember = members.find((m) => m._id === relatedTo);
-      const relationMeta = RELATIONS.find((r) => r.id === relation);
-      setMembers((prev) => [
-        ...prev,
-        {
-          _id: newUser._id,
-          name: fullName(newUser),
-          relationLabel:
-            relationMeta && relatedMember ? `${relationMeta.label} of ${relatedMember.name}` : undefined,
-        },
-      ]);
-      resetPersonForm();
-      setRelation('');
-      setRelatedTo('');
-      setAddingMember(false);
-      onMemberAdded();
+      onOpenChange(false);
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -975,17 +992,13 @@ export function AddFamilyDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) reset();
-      }}
-    >
-      <DialogTrigger render={<Button size="lg" />}>
-        <UserPlus />
-        Add Family
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {isUncontrolled && (
+        <DialogTrigger render={<Button variant="outline" size="sm" />}>
+          <UserPlus className="size-4" />
+          Add Family
+        </DialogTrigger>
+      )}
       <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="text-xl">
@@ -1002,7 +1015,9 @@ export function AddFamilyDialog({
                 Enter the phone number of the family head to check for existing records before proceeding.
               </p>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="phone-check">Phone number</Label>
+                <Label htmlFor="phone-check">
+                  Phone number <span className="text-red-500">*</span>
+                </Label>
                 <div className="flex items-center gap-3">
                   <Phone className="size-5 shrink-0 text-muted-foreground" />
                   <Input
@@ -1022,26 +1037,13 @@ export function AddFamilyDialog({
             </div>
           )}
 
-          {phase === 'members' && (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium">Family members</p>
-              <div className="flex flex-wrap gap-2">
-                {members.map((m) => (
-                  <Badge key={m._id} variant="secondary">
-                    {m.name}
-                    {m.relationLabel ? ` · ${m.relationLabel}` : ''}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
           {phase === 'head' && (
             <PersonFieldsBlock
               form={form}
               setField={setField}
               photoPreview={photoPreview}
-              onPhotoSelect={handlePhotoSelect}
+              onPhotoFileReady={handlePhotoFileReady}
+              uploadingPhoto={uploadingPhoto}
               localities={community.localities ?? []}
               phoneReadOnly
               businessEnabled={businessEnabled}
@@ -1050,20 +1052,104 @@ export function AddFamilyDialog({
               setBusinessField={setBusinessField}
               businessLogoPrev={businessLogoPrev}
               businessPhotosPrev={businessPhotosPrev}
-              onBusinessLogoSelect={handleBusinessLogoSelect}
-              onBusinessPhotosSelect={handleBusinessPhotosSelect}
+              onBusinessLogoFileReady={handleBusinessLogoFileReady}
+              onBusinessPhotoFileReady={handleBusinessPhotoFileReady}
+              uploadingBusiness={uploadingBusiness}
+              onError={setError}
             />
           )}
 
-          {phase === 'members' && addingMember && (
+          {phase === 'members' && (
             <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium">Head: {headName}</p>
+                {pendingMembers.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    {pendingMembers.map((m) => {
+                      const relMeta = RELATIONS.find((r) => r.id === m.relation);
+                      const relatedName = m.relatedTo === 'head'
+                        ? headName
+                        : (() => {
+                            const p = pendingMembers.find((pm) => pm.tempId === m.relatedTo);
+                            return p ? [p.firstName, p.lastName].filter(Boolean).join(' ') : '';
+                          })();
+                      return (
+                        <div key={m.tempId} className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {[m.firstName, m.lastName].filter(Boolean).join(' ')}
+                            {m.phone ? ` · ${m.phone}` : ''}
+                            {relMeta && relatedName ? ` · ${relMeta.label} of ${relatedName}` : relMeta ? ` · ${relMeta.label}` : ''}
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs text-muted-foreground"
+                            onClick={() => removePendingMember(m.tempId)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <Separator />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="pf-relation">Relation</Label>
-                  <Select value={relation || undefined} onValueChange={(v) => setRelation(String(v))}>
-                    <SelectTrigger id="pf-relation" className="w-full">
-                      <SelectValue placeholder="Optional" />
+
+              <p className="text-sm font-medium">Add a member</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="m-firstName" className="text-xs">First name <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="m-firstName"
+                    placeholder="First name"
+                    value={memberFirstName}
+                    onChange={(e) => setMemberFirstName(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="m-lastName" className="text-xs">Last name</Label>
+                  <Input
+                    id="m-lastName"
+                    placeholder="Last name"
+                    value={memberLastName}
+                    onChange={(e) => setMemberLastName(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="m-phone" className="text-xs">Phone</Label>
+                  <Input
+                    id="m-phone"
+                    placeholder="10-digit phone"
+                    value={memberPhone}
+                    onChange={(e) => setMemberPhone(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="m-gender" className="text-xs">Gender <span className="text-red-500">*</span></Label>
+                  <Select value={memberGender} onValueChange={(v) => setMemberGender(v ?? '')}>
+                    <SelectTrigger id="m-gender" className="w-full">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Gender.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>
+                          {g.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="m-relation" className="text-xs">Relation <span className="text-red-500">*</span></Label>
+                  <Select value={memberRelation} onValueChange={(v) => setMemberRelation(v ?? '')}>
+                    <SelectTrigger id="m-relation" className="w-full">
+                      {memberRelation
+                        ? <span data-slot="select-value" className="flex flex-1 text-left">{RELATIONS.find((r) => r.id === memberRelation)?.label}</span>
+                        : <SelectValue placeholder="Select relation" />
+                      }
                     </SelectTrigger>
                     <SelectContent>
                       {RELATIONS.map((r) => (
@@ -1074,38 +1160,40 @@ export function AddFamilyDialog({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="pf-relatedTo">Related to</Label>
-                  <Select value={relatedTo || undefined} onValueChange={(v) => setRelatedTo(String(v))}>
-                    <SelectTrigger id="pf-relatedTo" className="w-full">
-                      <SelectValue placeholder="Optional" />
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="m-relatedTo" className="text-xs">Related to <span className="text-red-500">*</span></Label>
+                  <Select value={memberRelatedTo} onValueChange={(v) => setMemberRelatedTo(v ?? '')}>
+                    <SelectTrigger id="m-relatedTo" className="w-full">
+                      {memberRelatedTo
+                        ? <span data-slot="select-value" className="flex flex-1 text-left">{
+                            memberRelatedTo === 'head'
+                              ? `${headName} (Head)`
+                              : (() => { const pm = pendingMembers.find((p) => p.tempId === memberRelatedTo); return pm ? [pm.firstName, pm.lastName].filter(Boolean).join(' ') : ''; })()
+                          }</span>
+                        : <SelectValue placeholder="Select person" />
+                      }
                     </SelectTrigger>
                     <SelectContent>
-                      {members.map((m) => (
-                        <SelectItem key={m._id} value={m._id}>
-                          {m.name}
+                      <SelectItem value="head">{headName} (Head)</SelectItem>
+                      {pendingMembers.map((pm) => (
+                        <SelectItem key={pm.tempId} value={pm.tempId}>
+                          {[pm.firstName, pm.lastName].filter(Boolean).join(' ')}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-
-              <PersonFieldsBlock
-                form={form}
-                setField={setField}
-                photoPreview={photoPreview}
-                onPhotoSelect={handlePhotoSelect}
-                localities={community.localities ?? []}
-                businessEnabled={businessEnabled}
-                onToggleBusiness={() => setBusinessEnabled((v) => !v)}
-                businessForm={businessForm}
-                setBusinessField={setBusinessField}
-                businessLogoPrev={businessLogoPrev}
-                businessPhotosPrev={businessPhotosPrev}
-                onBusinessLogoSelect={handleBusinessLogoSelect}
-                onBusinessPhotosSelect={handleBusinessPhotosSelect}
-              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                onClick={handleAddPendingMember}
+              >
+                <UserPlus className="size-3.5" />
+                Add Member
+              </Button>
             </div>
           )}
 
@@ -1119,54 +1207,17 @@ export function AddFamilyDialog({
             </Button>
           )}
           {phase === 'head' && (
-            <Button size="lg" onClick={handleAddHead} disabled={submitting}>
-              {submitting ? 'Adding...' : 'Continue'}
+            <Button size="lg" onClick={handleHeadContinue}>
+              Continue
             </Button>
           )}
-          {phase === 'members' && !addingMember && (
+          {phase === 'members' && (
             <>
-              <Button variant="outline" size="lg" onClick={() => setOpen(false)}>
-                Done
+              <Button variant="outline" size="lg" onClick={() => setPhase('head')}>
+                Back
               </Button>
-              <Button
-                size="lg"
-                onClick={() => {
-                  if (headAddress) {
-                    setField('fullAddress', headAddress.fullAddress || '');
-                    setField('state', headAddress.state || 'Karnataka');
-                    setField('city', headAddress.city || 'Bengaluru');
-                    setField('district', headAddress.district || '');
-                    setField('locality', headAddress.locality || '');
-                    setField('pincode', headAddress.pincode || '');
-                    setField('nativePlace', headAddress.nativePlace || '');
-                    setField('nativeDistrict', headAddress.nativeDistrict || '');
-                    setField('sampradaya', headAddress.sampradaya || '');
-                  }
-                  setAddingMember(true);
-                }}
-              >
-                <Plus />
-                Add Family Member
-              </Button>
-            </>
-          )}
-          {phase === 'members' && addingMember && (
-            <>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => {
-                  resetPersonForm();
-                  setRelation('');
-                  setRelatedTo('');
-                  setAddingMember(false);
-                  setError('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button size="lg" onClick={handleAddMember} disabled={submitting}>
-                {submitting ? 'Adding...' : 'Add Member & Continue'}
+              <Button size="lg" onClick={handleSaveFamily} disabled={submitting}>
+                {submitting ? 'Saving...' : `Save Family${pendingMembers.length > 0 ? ` (${pendingMembers.length + 1} members)` : ''}`}
               </Button>
             </>
           )}

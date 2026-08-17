@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ClickableAvatar } from '@/components/ui/clickable-image';
 import {
   Table,
   TableBody,
@@ -335,12 +336,12 @@ export function CommunityExecutivesTab({
               <TableRow key={d.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Avatar size="sm">
-                      <AvatarImage src={d.photo} alt="" />
-                      <AvatarFallback>
-                        <User className="size-3" />
-                      </AvatarFallback>
-                    </Avatar>
+                    <ClickableAvatar
+                      src={d.photo}
+                      alt={d.name}
+                      fallback={<User className="size-3" />}
+                      size="sm"
+                    />
                     {d.name}
                   </div>
                 </TableCell>

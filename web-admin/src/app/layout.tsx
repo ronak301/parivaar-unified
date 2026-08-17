@@ -1,11 +1,17 @@
 import type { Metadata } from 'next';
-import { Poppins, Geist_Mono } from 'next/font/google';
+import { Manrope, Hanken_Grotesk, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
-const poppins = Poppins({
-  variable: '--font-poppins',
+const manrope = Manrope({
+  variable: '--font-manrope',
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
+});
+
+const hankenGrotesk = Hanken_Grotesk({
+  variable: '--font-hanken',
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
 });
 
 const geistMono = Geist_Mono({
@@ -26,7 +32,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${manrope.variable} ${hankenGrotesk.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

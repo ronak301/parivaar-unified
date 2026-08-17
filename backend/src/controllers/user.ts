@@ -104,7 +104,7 @@ export async function searchUsers(req: AuthRequest, res: Response): Promise<void
   }
 
   const { query: q, communityId, filters, page = 1, limit = 20 } = parsed.data;
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = { isBlocked: { $ne: true } };
 
   if (communityId) filter.communityIds = communityId;
   if (filters?.gender) filter.gender = filters.gender;
@@ -169,7 +169,7 @@ export async function getUsersByCommunity(req: AuthRequest, res: Response): Prom
   const limit = parseInt(req.query.limit as string) || 50;
   const skip = (page - 1) * limit;
 
-  const filter: Record<string, unknown> = { communityIds: communityId };
+  const filter: Record<string, unknown> = { communityIds: communityId, isBlocked: { $ne: true } };
 
   if (req.query.gender) filter.gender = req.query.gender;
   if (req.query.bloodGroup) filter.bloodGroup = req.query.bloodGroup;
@@ -178,7 +178,7 @@ export async function getUsersByCommunity(req: AuthRequest, res: Response): Prom
 
   const [users, total] = await Promise.all([
     User.find(filter)
-      .select('enrollmentId firstName lastName fullName profilePicture phone gender address.city address.locality isFamilyHead isAlive familyId')
+      .select('enrollmentId firstName lastName fullName profilePicture phone gender address.city address.locality isFamilyHead isAlive familyId guardianName education businessName businessCategory')
       .sort({ firstName: 1 })
       .skip(skip)
       .limit(limit),
@@ -201,6 +201,7 @@ export async function getUserEvents(req: AuthRequest, res: Response): Promise<vo
   const users = await User.find({
     communityIds: communityId,
     isAlive: true,
+    isBlocked: { $ne: true },
     dob: { $exists: true },
   }).select('firstName lastName fullName profilePicture dob phone');
 
@@ -222,4 +223,117 @@ export async function getUserEvents(req: AuthRequest, res: Response): Promise<vo
     });
 
   res.json({ success: true, today: birthdays, upcoming });
+}
+
+export async function blockUser(req: AuthRequest, res: Response): Promise<void> {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  if (user.role === 'super_admin') {
+    res.status(403).json({ error: 'Cannot block a super admin' });
+    return;
+  }
+
+  user.isBlocked = true;
+  user.blockedAt = new Date();
+  user.blockedBy = req.user?._id;
+  await user.save();
+
+  res.json({ success: true, user });
+}
+
+export async function unblockUser(req: AuthRequest, res: Response): Promise<void> {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  user.isBlocked = false;
+  user.blockedAt = undefined;
+  user.blockedBy = undefined;
+  await user.save();
+
+  res.json({ success: true, user });
+}
+
+export async function markDeath(req: AuthRequest, res: Response): Promise<void> {
+  const { demiseDate, newHeadId } = req.body;
+
+  if (!demiseDate) {
+    res.status(400).json({ error: 'demiseDate is required' });
+    return;
+  }
+
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  if (!user.isAlive) {
+    res.status(400).json({ error: 'User is already marked as deceased' });
+    return;
+  }
+
+  if (user.isFamilyHead && user.familyId) {
+    if (!newHeadId) {
+      res.status(400).json({ error: 'newHeadId is required when marking a family head as deceased' });
+      return;
+    }
+
+    const newHead = await User.findOne({ _id: newHeadId, familyId: user.familyId });
+    if (!newHead) {
+      res.status(400).json({ error: 'New head must be an existing family member' });
+      return;
+    }
+
+    user.isFamilyHead = false;
+    newHead.isFamilyHead = true;
+    await newHead.save();
+    await Family.updateOne({ _id: user.familyId }, { headId: newHead._id });
+  }
+
+  user.isAlive = false;
+  user.demiseDate = new Date(demiseDate);
+  await user.save();
+
+  res.json({ success: true, user });
+}
+
+export async function getOrphanMembers(req: AuthRequest, res: Response): Promise<void> {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 50;
+  const skip = (page - 1) * limit;
+
+  const familyIdsWithHead = await Family.distinct('_id', { headId: { $exists: true, $ne: null } });
+
+  const filter = {
+    isBlocked: { $ne: true },
+    $or: [
+      { communityIds: { $size: 0 } },
+      { communityIds: { $exists: false } },
+      { familyId: { $exists: false } },
+      { familyId: null },
+      { isFamilyHead: { $ne: true }, familyId: { $nin: familyIdsWithHead } },
+    ],
+  };
+
+  const [users, total] = await Promise.all([
+    User.find(filter)
+      .select('enrollmentId firstName lastName fullName profilePicture phone communityIds familyId isFamilyHead')
+      .sort({ firstName: 1 })
+      .skip(skip)
+      .limit(limit),
+    User.countDocuments(filter),
+  ]);
+
+  res.json({
+    success: true,
+    users,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
 }

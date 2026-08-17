@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { Community } from '@parivaar/shared';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ClickableAvatar } from '@/components/ui/clickable-image';
 import {
   Table,
   TableBody,
@@ -71,12 +71,12 @@ export function CommunitiesListView({
                       href={`/admin/communities/${community._id}`}
                       className="flex items-center gap-3 px-2 py-2.5"
                     >
-                      <Avatar size="sm">
-                        <AvatarImage src={community.logo} alt="" />
-                        <AvatarFallback>
-                          <Building2 className="size-3.5" />
-                        </AvatarFallback>
-                      </Avatar>
+                      <ClickableAvatar
+                        src={community.logo}
+                        alt={community.name}
+                        fallback={<Building2 className="size-3.5" />}
+                        size="sm"
+                      />
                       <span className="font-medium text-foreground">{community.name}</span>
                     </Link>
                   </TableCell>

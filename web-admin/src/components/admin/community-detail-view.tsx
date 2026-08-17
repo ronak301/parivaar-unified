@@ -10,7 +10,7 @@ import { CommunityDetailTabs } from '@/components/admin/community-detail-tabs';
 import { DeleteCommunityButton } from '@/components/admin/delete-community-button';
 import { EditCommunityDialog } from '@/components/admin/edit-community-dialog';
 import { AddFamilyDialog } from '@/components/admin/add-family-dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ClickableAvatar } from '@/components/ui/clickable-image';
 
 export function CommunityDetailView({ community }: { community: Community }) {
   const [current, setCurrent] = useState(community);
@@ -25,12 +25,13 @@ export function CommunityDetailView({ community }: { community: Community }) {
         </Link>
 
         <div className="flex items-start gap-3">
-          <Avatar className="size-10" size="lg">
-            <AvatarImage src={current.logo} alt="" />
-            <AvatarFallback>
-              <Building2 className="size-5 text-primary" />
-            </AvatarFallback>
-          </Avatar>
+          <ClickableAvatar
+            src={current.logo}
+            alt={current.name}
+            fallback={<Building2 className="size-5 text-primary" />}
+            size="lg"
+            className="size-10"
+          />
           <div className="flex-1">
             <h1 className="text-2xl font-bold">{current.name}</h1>
             <div className="mt-1 flex flex-wrap gap-2">

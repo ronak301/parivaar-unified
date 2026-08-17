@@ -49,6 +49,9 @@ export interface User {
   isAlive?: boolean;
   demiseDate?: string;
 
+  showPhoneInCommunity?: boolean;
+  showBusinessInCommunity?: boolean;
+
   role: UserRole;
   communityIds?: string[];
 

@@ -1,13 +1,14 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { Community } from '@parivaar/shared';
 import { CommunityStatus } from '@parivaar/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ClickableAvatar } from '@/components/ui/clickable-image';
+import { ImageUploadField } from '@/components/ui/image-upload-field';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Building2, Pencil, Upload } from 'lucide-react';
+import { Building2, Pencil } from 'lucide-react';
 import { uploadCommunityLogo } from '@/lib/firebase/storage';
 
 export function EditCommunityDialog({
@@ -48,7 +49,6 @@ export function EditCommunityDialog({
   const [logoPreview, setLogoPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -71,11 +71,7 @@ export function EditCommunityDialog({
     setError('');
   }
 
-  function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-
+  function handleFileReady(file: File) {
     setError('');
     if (logoPreview) URL.revokeObjectURL(logoPreview);
     setLogoFile(file);
@@ -149,33 +145,29 @@ export function EditCommunityDialog({
 
         <div className="flex flex-col gap-6">
           <div className="flex items-center gap-6">
-            <Avatar className="size-28 ring-4 ring-muted" size="lg">
-              <AvatarImage src={logoPreview || form.logo} alt="" />
-              <AvatarFallback>
-                <Building2 className="size-12" />
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={handleLogoSelect}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload />
-                {logoFile ? 'Change logo' : 'Upload logo'}
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                PNG, JPEG or WEBP, up to 5MB. Uploaded when you save.
-              </span>
-            </div>
+            <ClickableAvatar
+              src={logoPreview || form.logo}
+              alt="Community logo"
+              fallback={<Building2 className="size-12" />}
+              size="lg"
+              className="size-28 ring-4 ring-muted"
+            />
+            <ImageUploadField
+              fieldKey="communityLogo"
+              onFileReady={handleFileReady}
+              onError={setError}
+            >
+              {({ openFilePicker }) => (
+                <div className="flex flex-col gap-2">
+                  <Button type="button" variant="outline" size="lg" onClick={openFilePicker}>
+                    {logoFile ? 'Change logo' : 'Upload logo'}
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    PNG, JPEG or WEBP, up to 1MB. Uploaded when you save.
+                  </span>
+                </div>
+              )}
+            </ImageUploadField>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">

@@ -8,6 +8,7 @@ export interface IApprovalRequest extends Document {
   reviewedBy?: mongoose.Types.ObjectId;
   status: 'pending' | 'approved' | 'rejected';
   payload?: Record<string, unknown>;
+  remarks?: string;
 }
 
 const approvalRequestSchema = new Schema<IApprovalRequest>(
@@ -35,6 +36,7 @@ const approvalRequestSchema = new Schema<IApprovalRequest>(
       default: 'pending',
     },
     payload: Schema.Types.Mixed,
+    remarks: String,
   },
   { timestamps: true },
 );

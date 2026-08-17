@@ -54,6 +54,11 @@ export interface IUser extends Document {
   demiseDate?: Date;
   role: 'super_admin' | 'community_admin' | 'member';
   communityIds: mongoose.Types.ObjectId[];
+  showPhoneInCommunity: boolean;
+  showBusinessInCommunity: boolean;
+  isBlocked: boolean;
+  blockedAt?: Date;
+  blockedBy?: mongoose.Types.ObjectId;
   pushTokens: string[];
   lastSeen?: Date;
 }
@@ -111,6 +116,11 @@ const userSchema = new Schema<IUser>(
       default: 'member',
     },
     communityIds: [{ type: Schema.Types.ObjectId, ref: 'Community' }],
+    showPhoneInCommunity: { type: Boolean, default: true },
+    showBusinessInCommunity: { type: Boolean, default: true },
+    isBlocked: { type: Boolean, default: false },
+    blockedAt: Date,
+    blockedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     pushTokens: [String],
     lastSeen: Date,
   },

@@ -42,6 +42,8 @@ export const createUserSchema = z.object({
   isFamilyHead: z.boolean().optional(),
   familyId: z.string().optional(),
   communityIds: z.array(z.string()).optional(),
+  showPhoneInCommunity: z.boolean().optional(),
+  showBusinessInCommunity: z.boolean().optional(),
 });
 
 export const updateUserSchema = createUserSchema.partial();

@@ -1,7 +1,8 @@
 import type { Response } from 'express';
 import { createBusinessSchema, updateBusinessSchema, createEnquirySchema, createPromotionSchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
-import { User, Business, BusinessEnquiry, BusinessPromotion } from '../models';
+import { User, Business, BusinessEnquiry, BusinessPromotion, ApprovalRequest } from '../models';
+import { notifyCommunityAdmins } from '../services/notification';
 
 export async function createBusiness(req: AuthRequest, res: Response): Promise<void> {
   const parsed = createBusinessSchema.safeParse(req.body);
@@ -83,6 +84,11 @@ export async function deleteBusiness(req: AuthRequest, res: Response): Promise<v
   res.json({ success: true, message: 'Business deleted' });
 }
 
+export async function getBusinessByOwner(req: AuthRequest, res: Response): Promise<void> {
+  const business = await Business.findOne({ ownerId: req.params.userId });
+  res.json({ success: true, business: business || null });
+}
+
 export async function getBusinessesByCommunity(req: AuthRequest, res: Response): Promise<void> {
   const { communityId } = req.params;
   const page = parseInt(req.query.page as string) || 1;
@@ -121,6 +127,24 @@ export async function createEnquiry(req: AuthRequest, res: Response): Promise<vo
     userId: req.user?._id,
   });
 
+  const approval = await ApprovalRequest.create({
+    entityType: 'business_enquiry',
+    entityId: enquiry._id.toString(),
+    communityId: parsed.data.communityId,
+    requestedBy: req.user?._id,
+    payload: parsed.data,
+  });
+
+  const requesterName = req.user?.fullName ?? req.user?.firstName ?? 'A member';
+  await notifyCommunityAdmins(
+    parsed.data.communityId,
+    'approval_request',
+    'New business enquiry',
+    `${requesterName} submitted a business enquiry for review`,
+    { approvalRequestId: approval._id.toString(), entityType: 'business_enquiry' },
+    approval._id.toString(),
+  );
+
   res.status(201).json({ success: true, enquiry });
 }
 
@@ -136,5 +160,74 @@ export async function createPromotion(req: AuthRequest, res: Response): Promise<
     userId: req.user?._id,
   });
 
+  const approval = await ApprovalRequest.create({
+    entityType: 'business_promotion',
+    entityId: promotion._id.toString(),
+    communityId: parsed.data.communityId,
+    requestedBy: req.user?._id,
+    payload: parsed.data,
+  });
+
+  const requesterName = req.user?.fullName ?? req.user?.firstName ?? 'A member';
+  await notifyCommunityAdmins(
+    parsed.data.communityId,
+    'approval_request',
+    'New business promotion',
+    `${requesterName} submitted a business promotion for review`,
+    { approvalRequestId: approval._id.toString(), entityType: 'business_promotion' },
+    approval._id.toString(),
+  );
+
   res.status(201).json({ success: true, promotion });
+}
+
+export async function getEnquiries(req: AuthRequest, res: Response): Promise<void> {
+  const { communityId } = req.params;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const skip = (page - 1) * limit;
+
+  const filter: Record<string, unknown> = { communityId };
+  if (req.query.status) filter.status = req.query.status;
+
+  const [enquiries, total] = await Promise.all([
+    BusinessEnquiry.find(filter)
+      .populate('userId', 'firstName lastName fullName profilePicture phone')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    BusinessEnquiry.countDocuments(filter),
+  ]);
+
+  res.json({
+    success: true,
+    enquiries,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
+}
+
+export async function getPromotions(req: AuthRequest, res: Response): Promise<void> {
+  const { communityId } = req.params;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const skip = (page - 1) * limit;
+
+  const filter: Record<string, unknown> = { communityId };
+  if (req.query.status) filter.status = req.query.status;
+
+  const [promotions, total] = await Promise.all([
+    BusinessPromotion.find(filter)
+      .populate('userId', 'firstName lastName fullName')
+      .populate('businessId', 'name category')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    BusinessPromotion.countDocuments(filter),
+  ]);
+
+  res.json({
+    success: true,
+    promotions,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
 }
