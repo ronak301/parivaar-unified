@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 
-const SESSION_COOKIE_NAME = 'parivaar_admin_session';
+const SESSION_COOKIE_NAME = 'auth_token';
 
 export async function setSessionCookie(token: string) {
   const store = await cookies();
