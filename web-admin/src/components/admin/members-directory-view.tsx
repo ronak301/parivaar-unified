@@ -16,6 +16,7 @@ import {
   SortAsc,
   Store,
   BookOpen,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserPlus } from 'lucide-react';
@@ -154,6 +155,15 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
               <Download className="size-5" />
               Export CSV
             </button>
+            {currentCommunity && (
+              <button
+                onClick={() => window.open(`/community/${currentCommunity._id}/form`, '_blank')}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#e5eeff] hover:bg-[#dce9ff] text-[#0b1c30] rounded-lg text-sm transition-colors whitespace-nowrap"
+              >
+                <ExternalLink className="size-5" />
+                Open Form
+              </button>
+            )}
             <Button
               size="lg"
               onClick={() => setDialogOpen(true)}

@@ -167,7 +167,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">Nanihaal Gotra</Label>
-                  <Input placeholder="Location" />
+                  <Input placeholder="Gotra" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">Hobbies</Label>
@@ -467,7 +467,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                           </div>
                           <div className="flex flex-col gap-2">
                             <Label className="text-xs">Nanihaal Gotra</Label>
-                            <Input placeholder="Location" />
+                            <Input placeholder="Gotra" />
                           </div>
                           <div className="flex flex-col gap-2">
                             <Label className="text-xs">Hobbies</Label>

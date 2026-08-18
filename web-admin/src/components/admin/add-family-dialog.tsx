@@ -355,6 +355,14 @@ function PersonFieldsBlock({
           <Input id="pf-education" value={form.education} onChange={(e) => setField('education', e.target.value)} />
         </div>
         <div className="flex flex-col gap-2">
+          <Label htmlFor="pf-specialEducation">Special education</Label>
+          <Input
+            id="pf-specialEducation"
+            value={form.specialEducation}
+            onChange={(e) => setField('specialEducation', e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
           <Label htmlFor="pf-bloodGroup">Blood group</Label>
           <Select value={form.bloodGroup} onValueChange={(v) => setField('bloodGroup', v ?? '')}>
             <SelectTrigger id="pf-bloodGroup" className="w-full">
@@ -389,16 +397,9 @@ function PersonFieldsBlock({
           <Label htmlFor="pf-nanihaal">Nanihaal Gotra</Label>
           <Input
             id="pf-nanihaal"
+            placeholder="Gotra"
             value={form.nanihaal}
             onChange={(e) => setField('nanihaal', e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="pf-specialEducation">Special education</Label>
-          <Input
-            id="pf-specialEducation"
-            value={form.specialEducation}
-            onChange={(e) => setField('specialEducation', e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-2">
