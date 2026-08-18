@@ -323,6 +323,7 @@ export default function MemberDetailPage() {
         onOpenChange={setAddMemberOpen}
         communityId={communityId}
         member={user}
+        familyMembers={familyMembers}
         onAdded={() => {
           fetchUser();
           if (user.familyId?._id) fetchFamilyMembers(user.familyId._id);

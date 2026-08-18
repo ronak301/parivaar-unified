@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
-import type { UserData } from './member-detail-types';
+import type { UserData, FamilyTreeMember } from './member-detail-types';
 import {
   PersonFieldsBlock,
   emptyPersonForm,
@@ -34,6 +34,7 @@ interface AddFamilyMemberDialogProps {
   onOpenChange: (open: boolean) => void;
   communityId: string;
   member: UserData;
+  familyMembers: FamilyTreeMember[];
   onAdded: () => void;
 }
 
@@ -41,10 +42,19 @@ const RELATIONS = [
   { id: 'son', label: 'Son' },
   { id: 'daughter', label: 'Daughter' },
   { id: 'spouse', label: 'Spouse' },
+  { id: 'father', label: 'Father' },
+  { id: 'mother', label: 'Mother' },
+  { id: 'child', label: 'Child' },
 ];
 
-export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member, onAdded }: AddFamilyMemberDialogProps) {
+export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member, familyMembers, onAdded }: AddFamilyMemberDialogProps) {
   const [relation, setRelation] = useState('');
+  const [relativeId, setRelativeId] = useState(member._id);
+
+  const relativeOptions = [
+    { _id: member._id, firstName: member.firstName, lastName: member.lastName, fullName: member.fullName },
+    ...familyMembers.filter((m) => m._id !== member._id),
+  ];
 
   const [form, setForm] = useState<PersonForm>(emptyPersonForm());
   const [photoPreview, setPhotoPreview] = useState('');
@@ -63,6 +73,7 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
 
   function resetForm() {
     setRelation('');
+    setRelativeId(member._id);
     setForm(emptyPersonForm());
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setPhotoPreview('');
@@ -135,6 +146,10 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
   async function handleSubmit() {
     if (!relation) {
       setError('Please select a relation');
+      return;
+    }
+    if (!relativeId) {
+      setError('Please select who this member is related to');
       return;
     }
     if (!form.firstName.trim()) {
@@ -218,7 +233,7 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
       const addRes = await fetch(`/api/admin/families/${familyId}/add-member`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, relation, relativeId: member._id }),
+        body: JSON.stringify({ userId, relation, relativeId }),
       });
       const addData = await addRes.json();
       if (!addRes.ok) {
@@ -243,22 +258,54 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs">Relation to {member.firstName} <span className="text-red-500">*</span></Label>
-            <Select value={relation} onValueChange={(v) => setRelation(v ?? '')}>
-              <SelectTrigger className="w-full">
-                {relation
-                  ? <span data-slot="select-value" className="flex flex-1 text-left">{RELATIONS.find((r) => r.id === relation)?.label}</span>
-                  : <SelectValue placeholder="Select relation" />
-                }
-              </SelectTrigger>
-              <SelectContent>
-                {RELATIONS.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs">Relation <span className="text-red-500">*</span></Label>
+              <Select value={relation} onValueChange={(v) => setRelation(v ?? '')}>
+                <SelectTrigger className="w-full">
+                  {relation
+                    ? <span data-slot="select-value" className="flex flex-1 text-left">{RELATIONS.find((r) => r.id === relation)?.label}</span>
+                    : <SelectValue placeholder="Select relation" />
+                  }
+                </SelectTrigger>
+                <SelectContent>
+                  {RELATIONS.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs">Related to <span className="text-red-500">*</span></Label>
+              <Select value={relativeId} onValueChange={(v) => setRelativeId(v ?? '')}>
+                <SelectTrigger className="w-full">
+                  {relativeId
+                    ? (
+                      <span data-slot="select-value" className="flex flex-1 text-left">
+                        {(() => {
+                          const r = relativeOptions.find((o) => o._id === relativeId);
+                          return r?.fullName || `${r?.firstName ?? ''} ${r?.lastName ?? ''}`.trim();
+                        })()}
+                      </span>
+                    )
+                    : <SelectValue placeholder="Select family member" />
+                  }
+                </SelectTrigger>
+                <SelectContent>
+                  {relativeOptions.map((o) => (
+                    <SelectItem key={o._id} value={o._id}>
+                      {o.fullName || `${o.firstName} ${o.lastName ?? ''}`.trim()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          <p className="text-xs text-muted-foreground -mt-3">
+            e.g. &quot;Son&quot; + &quot;Related to: {member.firstName}&quot; adds a son of {member.firstName} to the family tree.
+          </p>
 
           <PersonFieldsBlock
             form={form}
