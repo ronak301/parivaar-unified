@@ -1,11 +1,8 @@
 'use client';
 
-import { startTransition, useEffect, useRef, useState } from 'react';
-import type { UserListItem } from '@parivaar/shared';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -20,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { User, X } from 'lucide-react';
 import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
 import type { UserData } from './member-detail-types';
 import {
@@ -49,12 +45,6 @@ const RELATIONS = [
 
 export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member, onAdded }: AddFamilyMemberDialogProps) {
   const [relation, setRelation] = useState('');
-  const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<UserListItem[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const searchBoxRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<PersonForm>(emptyPersonForm());
   const [photoPreview, setPhotoPreview] = useState('');
@@ -73,10 +63,6 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
 
   function resetForm() {
     setRelation('');
-    setSelectedUser(null);
-    setQuery('');
-    setResults([]);
-    setShowResults(false);
     setForm(emptyPersonForm());
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setPhotoPreview('');
@@ -98,44 +84,6 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
     if (!open) resetForm();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
-  useEffect(() => {
-    if (!showResults) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
-        setShowResults(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showResults]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const q = query.trim();
-    if (!q) {
-      startTransition(() => setResults([]));
-      return;
-    }
-    startTransition(() => setSearching(true));
-    const timer = setTimeout(() => {
-      fetch(`/api/admin/communities/${communityId}/member-search?query=${encodeURIComponent(q)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (!cancelled) setResults((data.users ?? []).filter((u: UserListItem) => u._id !== member._id));
-        })
-        .catch(() => {
-          if (!cancelled) setResults([]);
-        })
-        .finally(() => {
-          if (!cancelled) setSearching(false);
-        });
-    }, 350);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [query, communityId, member._id]);
 
   function setField<K extends keyof PersonForm>(key: K, value: PersonForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -184,47 +132,34 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
       .finally(() => setUploadingBusiness(false));
   }
 
-  function selectMember(u: UserListItem) {
-    setSelectedUser(u);
-    setQuery('');
-    setResults([]);
-    setShowResults(false);
-  }
-
-  function clearSelectedMember() {
-    setSelectedUser(null);
-  }
-
   async function handleSubmit() {
     if (!relation) {
       setError('Please select a relation');
       return;
     }
-    if (!selectedUser && !form.firstName.trim()) {
-      setError('Enter a first name or select an existing member');
+    if (!form.firstName.trim()) {
+      setError('Enter a first name');
       return;
     }
-    if (!selectedUser) {
-      if (!form.gender) {
-        setError('Gender is required');
-        return;
-      }
-      if (form.phone && !/^[0-9]{10}$/.test(form.phone)) {
-        setError('Phone number must be exactly 10 digits');
-        return;
-      }
-      if (form.pincode && !/^[0-9]{6}$/.test(form.pincode)) {
-        setError('Pincode must be 6 digits');
-        return;
-      }
-      if (form.aadharLast4 && !/^[0-9]{4}$/.test(form.aadharLast4)) {
-        setError('Aadhar must be last 4 digits');
-        return;
-      }
-      if (businessEnabled && !businessForm.name.trim()) {
-        setError('Business name is required');
-        return;
-      }
+    if (!form.gender) {
+      setError('Gender is required');
+      return;
+    }
+    if (form.phone && !/^[0-9]{10}$/.test(form.phone)) {
+      setError('Phone number must be exactly 10 digits');
+      return;
+    }
+    if (form.pincode && !/^[0-9]{6}$/.test(form.pincode)) {
+      setError('Pincode must be 6 digits');
+      return;
+    }
+    if (form.aadharLast4 && !/^[0-9]{4}$/.test(form.aadharLast4)) {
+      setError('Aadhar must be last 4 digits');
+      return;
+    }
+    if (businessEnabled && !businessForm.name.trim()) {
+      setError('Business name is required');
+      return;
     }
 
     setSaving(true);
@@ -249,38 +184,34 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
         familyId = famData.family._id;
       }
 
-      let userId = selectedUser?._id;
+      const payload = buildUserPayload(form, photoUrl, communityId);
+      const userRes = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const userData = await userRes.json();
+      if (!userRes.ok) {
+        setError(userData.error || 'Failed to create member');
+        return;
+      }
+      const userId = userData.user._id;
 
-      if (!userId) {
-        const payload = buildUserPayload(form, photoUrl, communityId);
-        const userRes = await fetch('/api/admin/users', {
+      if (businessEnabled && businessForm.name.trim()) {
+        const businessPayload = {
+          ...buildBusinessPayload(businessForm, businessLogoUrl, businessPhotoUrls),
+          ownerId: userId,
+          communityId,
+        };
+        const bizRes = await fetch('/api/admin/businesses', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(businessPayload),
         });
-        const userData = await userRes.json();
-        if (!userRes.ok) {
-          setError(userData.error || 'Failed to create member');
+        const bizData = await bizRes.json();
+        if (!bizRes.ok) {
+          setError(bizData.error || 'Member created, but failed to save business');
           return;
-        }
-        userId = userData.user._id;
-
-        if (businessEnabled && businessForm.name.trim()) {
-          const businessPayload = {
-            ...buildBusinessPayload(businessForm, businessLogoUrl, businessPhotoUrls),
-            ownerId: userId,
-            communityId,
-          };
-          const bizRes = await fetch('/api/admin/businesses', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(businessPayload),
-          });
-          const bizData = await bizRes.json();
-          if (!bizRes.ok) {
-            setError(bizData.error || 'Member created, but failed to save business');
-            return;
-          }
         }
       }
 
@@ -329,87 +260,24 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
             </Select>
           </div>
 
-          <div className="flex flex-col gap-2" ref={searchBoxRef}>
-            <Label>Find existing member (optional)</Label>
-            {selectedUser ? (
-              <div className="flex items-center gap-2 rounded-md border p-2">
-                <Avatar>
-                  <AvatarImage src={selectedUser.profilePicture} alt="" />
-                  <AvatarFallback>
-                    <User className="size-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <span className="flex-1 text-sm font-medium">
-                  {selectedUser.firstName} {selectedUser.lastName ?? ''}
-                </span>
-                <Button variant="ghost" size="icon-sm" onClick={clearSelectedMember} type="button">
-                  <X />
-                </Button>
-              </div>
-            ) : (
-              <div className="relative">
-                <Input
-                  placeholder="Search member by name..."
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setShowResults(true);
-                  }}
-                  onFocus={() => setShowResults(true)}
-                  autoComplete="off"
-                />
-                {showResults && query.trim() && (
-                  <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md">
-                    {searching && <p className="p-2 text-sm text-muted-foreground">Searching...</p>}
-                    {!searching && results.length === 0 && (
-                      <p className="p-2 text-sm text-muted-foreground">No members found.</p>
-                    )}
-                    {!searching &&
-                      results.map((u) => (
-                        <button
-                          key={u._id}
-                          type="button"
-                          onClick={() => selectMember(u)}
-                          className="flex w-full items-center gap-2 p-2 text-left hover:bg-accent"
-                        >
-                          <Avatar size="sm">
-                            <AvatarImage src={u.profilePicture} alt="" />
-                            <AvatarFallback>
-                              <User className="size-3" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm">{u.firstName} {u.lastName ?? ''}</span>
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
-            )}
-            <span className="text-xs text-muted-foreground">
-              Selecting a member links them to this family. Otherwise, fill the details below to create a new member.
-            </span>
-          </div>
-
-          {!selectedUser && (
-            <PersonFieldsBlock
-              form={form}
-              setField={setField}
-              photoPreview={photoPreview}
-              onPhotoFileReady={handlePhotoFileReady}
-              uploadingPhoto={uploadingPhoto}
-              businessEnabled={businessEnabled}
-              onToggleBusiness={() => setBusinessEnabled((v) => !v)}
-              businessForm={businessForm}
-              setBusinessField={setBusinessField}
-              businessLogoPrev={businessLogoPrev}
-              businessPhotosPrev={businessPhotosPrev}
-              onBusinessLogoFileReady={handleBusinessLogoFileReady}
-              onBusinessPhotoFileReady={handleBusinessPhotoFileReady}
-              uploadingBusiness={uploadingBusiness}
-              onError={setError}
-              showSampradaya={false}
-            />
-          )}
+          <PersonFieldsBlock
+            form={form}
+            setField={setField}
+            photoPreview={photoPreview}
+            onPhotoFileReady={handlePhotoFileReady}
+            uploadingPhoto={uploadingPhoto}
+            businessEnabled={businessEnabled}
+            onToggleBusiness={() => setBusinessEnabled((v) => !v)}
+            businessForm={businessForm}
+            setBusinessField={setBusinessField}
+            businessLogoPrev={businessLogoPrev}
+            businessPhotosPrev={businessPhotosPrev}
+            onBusinessLogoFileReady={handleBusinessLogoFileReady}
+            onBusinessPhotoFileReady={handleBusinessPhotoFileReady}
+            uploadingBusiness={uploadingBusiness}
+            onError={setError}
+            showSampradaya={false}
+          />
 
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
