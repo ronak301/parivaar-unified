@@ -42,9 +42,6 @@ const RELATIONS = [
   { id: 'son', label: 'Son' },
   { id: 'daughter', label: 'Daughter' },
   { id: 'spouse', label: 'Spouse' },
-  { id: 'father', label: 'Father' },
-  { id: 'mother', label: 'Mother' },
-  { id: 'child', label: 'Child' },
 ];
 
 export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member, familyMembers, onAdded }: AddFamilyMemberDialogProps) {
@@ -303,9 +300,15 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground -mt-3">
-            e.g. &quot;Son&quot; + &quot;Related to: {member.firstName}&quot; adds a son of {member.firstName} to the family tree.
-          </p>
+          {relation && relativeId && form.firstName.trim() && (
+            <p className="text-xs text-muted-foreground -mt-3">
+              ({form.firstName.trim()} is {RELATIONS.find((r) => r.id === relation)?.label.toLowerCase()} of{' '}
+              {(() => {
+                const r = relativeOptions.find((o) => o._id === relativeId);
+                return r?.fullName || `${r?.firstName ?? ''} ${r?.lastName ?? ''}`.trim();
+              })()})
+            </p>
+          )}
 
           <PersonFieldsBlock
             form={form}
