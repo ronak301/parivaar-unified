@@ -79,24 +79,25 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
               <p className="text-sm font-semibold text-foreground">Personal Information</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Sampradaya</Label>
-                  <Select onValueChange={() => {}}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select sampradaya" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Terapanthi">Terapanthi</SelectItem>
-                      <SelectItem value="Sthanakvasi">Sthanakvasi</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">First name *</Label>
                   <Input placeholder="John" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">Last name *</Label>
                   <Input placeholder="Doe" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs sm:text-sm">Sampradaya</Label>
+                  <Select onValueChange={() => {}}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select sampradaya" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Sthanak">Sthanak</SelectItem>
+                      <SelectItem value="Mandrimargi">Mandrimargi</SelectItem>
+                      <SelectItem value="Terapanthi">Terapanthi</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label className="text-xs sm:text-sm">Phone (10 digits) *</Label>
@@ -165,7 +166,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                   <Input placeholder="District name" />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Nanihaal</Label>
+                  <Label className="text-xs sm:text-sm">Nanihaal Gotra</Label>
                   <Input placeholder="Location" />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -465,7 +466,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                             </Select>
                           </div>
                           <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Nanihaal</Label>
+                            <Label className="text-xs">Nanihaal Gotra</Label>
                             <Input placeholder="Location" />
                           </div>
                           <div className="flex flex-col gap-2">

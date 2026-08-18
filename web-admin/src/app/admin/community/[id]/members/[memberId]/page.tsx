@@ -228,7 +228,7 @@ export default function MemberDetailPage() {
           <InfoField label="Special Education" value={user.specialEducation} />
           <InfoField label="Native Place" value={user.nativePlace} />
           <InfoField label="Native District" value={user.nativeDistrict} />
-          <InfoField label="Nanihaal" value={user.nanihaal} />
+          <InfoField label="Nanihaal Gotra" value={user.nanihaal} />
         </div>
       </div>
 

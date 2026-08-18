@@ -9,7 +9,7 @@ export interface Address {
 
 export type UserRole = 'super_admin' | 'community_admin' | 'member';
 
-export type Sampradaya = 'Terapanthi' | 'Sthanakvasi';
+export type Sampradaya = 'Sthanak' | 'Mandrimargi' | 'Terapanthi';
 
 export interface User {
   _id: string;

@@ -12,6 +12,13 @@
     "backend:dev": "npm run dev --workspace=backend",
     "admin:dev": "npm run dev --workspace=web-admin",
     "shared:build": "npm run build --workspace=@parivaar/shared",
-    "admin:build": "npm run build --workspace=web-admin"
+    "admin:build": "npm run build --workspace=web-admin",
+    "kill-ports": "lsof -ti:3000,3001 | xargs kill -9 2>/dev/null || true",
+    "prestart": "npm run kill-ports",
+    "deploy": "bash scripts/deploy.sh",
+    "start": "concurrently -n backend,admin -c blue,green \"npm run backend:dev\" \"npm run admin:dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
   }
 }

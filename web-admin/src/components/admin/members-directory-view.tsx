@@ -17,7 +17,6 @@ import {
   Store,
   BookOpen,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { UserPlus } from 'lucide-react';
 
@@ -104,7 +103,6 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
         setMembers(data.users);
         setPagination(data.pagination);
         setPage(pageNum);
-        setSelectedIds(new Set());
       }
     } catch (error) {
       console.error('Failed to fetch members:', error);
@@ -118,7 +116,7 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
   };
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+    <>
       <div className="flex flex-col w-full h-full gap-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -313,6 +311,6 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
             onOpenChange={setDialogOpen}
           />
         )}
-    </Dialog>
+    </>
   );
 }

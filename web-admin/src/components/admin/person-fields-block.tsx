@@ -257,6 +257,16 @@ export function PersonFieldsBlock({
       </ImageUploadField>
 
       <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="pf-firstName">
+            First name <span className="text-red-500">*</span>
+          </Label>
+          <Input id="pf-firstName" value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="pf-lastName">Last name</Label>
+          <Input id="pf-lastName" value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} />
+        </div>
         {showSampradaya && (
           <div className="flex flex-col gap-2">
             <Label htmlFor="pf-sampradaya">Sampradaya</Label>
@@ -268,22 +278,13 @@ export function PersonFieldsBlock({
                 }
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="Sthanak">Sthanak</SelectItem>
+                <SelectItem value="Mandrimargi">Mandrimargi</SelectItem>
                 <SelectItem value="Terapanthi">Terapanthi</SelectItem>
-                <SelectItem value="Sthanakvasi">Sthanakvasi</SelectItem>
               </SelectContent>
             </Select>
           </div>
         )}
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="pf-firstName">
-            First name <span className="text-red-500">*</span>
-          </Label>
-          <Input id="pf-firstName" value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="pf-lastName">Last name</Label>
-          <Input id="pf-lastName" value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} />
-        </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="pf-phone">Phone</Label>
           <Input id="pf-phone" value={form.phone} disabled={phoneReadOnly} onChange={(e) => setField('phone', e.target.value)} />
@@ -370,7 +371,7 @@ export function PersonFieldsBlock({
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="pf-nanihaal">Nanihaal</Label>
+          <Label htmlFor="pf-nanihaal">Nanihaal Gotra</Label>
           <Input
             id="pf-nanihaal"
             value={form.nanihaal}

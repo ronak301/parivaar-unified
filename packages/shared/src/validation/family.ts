@@ -3,7 +3,7 @@ import { createUserSchema } from './user';
 
 export const createFamilySchema = z.object({
   headId: z.string().min(1, 'Head member ID is required'),
-  sampradaya: z.enum(['Terapanthi', 'Sthanakvasi']).optional(),
+  sampradaya: z.enum(['Sthanak', 'Mandrimargi', 'Terapanthi']).optional(),
   communityIds: z.array(z.string()).min(1, 'At least one community is required'),
 });
 
@@ -29,7 +29,7 @@ const batchMemberSchema = z.object({
 export const batchCreateFamilySchema = z.object({
   head: createUserSchema,
   communityIds: z.array(z.string()).min(1, 'At least one community is required'),
-  sampradaya: z.enum(['Terapanthi', 'Sthanakvasi']).optional(),
+  sampradaya: z.enum(['Sthanak', 'Mandrimargi', 'Terapanthi']).optional(),
   business: z.object({
     name: z.string().min(1),
     category: z.string().optional(),

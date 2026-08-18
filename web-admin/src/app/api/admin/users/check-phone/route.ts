@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      return NextResponse.json({ error: 'Check failed', exists: false }, { status: 200 });
+      return NextResponse.json({ error: 'Check failed', exists: false }, { status: 502 });
     }
 
     const data = await res.json();
@@ -25,6 +25,6 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     const error = err instanceof Error ? err.message : 'Failed to check phone';
     console.error('[check-phone]', error, { phone });
-    return NextResponse.json({ error, exists: false }, { status: 200 });
+    return NextResponse.json({ error, exists: false }, { status: 502 });
   }
 }
