@@ -38,6 +38,24 @@ export async function addFamilyMember(
   return res.data.user;
 }
 
+export async function addFamilyMembers(
+  client: AxiosInstance,
+  familyId: string,
+  data: {
+    members: Array<{
+      firstName: string;
+      lastName?: string;
+      phone?: string;
+      relation: string;
+      relativeId?: string;
+      relativeIndex?: number;
+    }>;
+  },
+) {
+  const res = await client.post(`/families/${familyId}/add-members`, data);
+  return res.data;
+}
+
 export async function getFamilyTree(client: AxiosInstance, familyId: string) {
   const res = await client.get(`/families/${familyId}/tree`);
   return res.data;

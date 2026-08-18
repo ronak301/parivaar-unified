@@ -13,5 +13,6 @@ router.get('/:id/tree', asyncHandler(ctrl.getFamilyTree));
 router.put('/:id', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.updateFamily));
 router.post('/:id/change-head', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.changeFamilyHead));
 router.post('/:id/add-member', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.addFamilyMember));
+router.post('/:id/add-members', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.addFamilyMembers));
 
 export default router;

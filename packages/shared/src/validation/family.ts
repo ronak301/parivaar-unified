@@ -17,6 +17,21 @@ export const changeFamilyHeadSchema = z.object({
   newHeadId: z.string().min(1, 'New head member ID is required'),
 });
 
+const batchAddMemberSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().max(100).optional(),
+  phone: z.string().regex(/^[0-9]{10}$/).optional(),
+  relation: z.enum(['son', 'daughter', 'spouse']),
+  relativeId: z.string().optional(),
+  relativeIndex: z.number().int().min(0).optional(),
+}).refine((m) => Boolean(m.relativeId) !== (m.relativeIndex !== undefined), {
+  message: 'Provide exactly one of relativeId or relativeIndex',
+});
+
+export const addFamilyMembersSchema = z.object({
+  members: z.array(batchAddMemberSchema).min(1).max(20),
+});
+
 const batchMemberSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().max(100).optional(),

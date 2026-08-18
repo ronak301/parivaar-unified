@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -17,17 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
+import { Plus, X } from 'lucide-react';
 import type { UserData, FamilyTreeMember } from './member-detail-types';
-import {
-  PersonFieldsBlock,
-  emptyPersonForm,
-  emptyBusinessForm,
-  buildUserPayload,
-  buildBusinessPayload,
-  type PersonForm,
-  type BusinessForm,
-} from './person-fields-block';
 
 interface AddFamilyMemberDialogProps {
   open: boolean;
@@ -44,134 +36,81 @@ const RELATIONS = [
   { id: 'spouse', label: 'Spouse' },
 ];
 
-export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member, familyMembers, onAdded }: AddFamilyMemberDialogProps) {
-  const [relation, setRelation] = useState('');
-  const [relativeId, setRelativeId] = useState(member._id);
+interface MemberRow {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  relation: string;
+  relativeKey: string;
+}
 
-  const relativeOptions = [
-    { _id: member._id, firstName: member.firstName, lastName: member.lastName, fullName: member.fullName },
-    ...familyMembers.filter((m) => m._id !== member._id),
-  ];
+function emptyRow(): MemberRow {
+  return { firstName: '', lastName: '', phone: '', relation: '', relativeKey: '' };
+}
 
-  const [form, setForm] = useState<PersonForm>(emptyPersonForm());
-  const [photoPreview, setPhotoPreview] = useState('');
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState<string | undefined>();
-  const [businessEnabled, setBusinessEnabled] = useState(false);
-  const [businessForm, setBusinessForm] = useState<BusinessForm>(emptyBusinessForm());
-  const [uploadingBusiness, setUploadingBusiness] = useState(false);
-  const [businessLogoPrev, setBusinessLogoPrev] = useState('');
-  const [businessLogoUrl, setBusinessLogoUrl] = useState<string | undefined>();
-  const [businessPhotosPrev, setBusinessPhotosPrev] = useState<string[]>([]);
-  const [businessPhotoUrls, setBusinessPhotoUrls] = useState<string[]>([]);
-
+export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMembers, onAdded }: AddFamilyMemberDialogProps) {
+  const [rows, setRows] = useState<MemberRow[]>([emptyRow()]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  function resetForm() {
-    setRelation('');
-    setRelativeId(member._id);
-    setForm(emptyPersonForm());
-    if (photoPreview) URL.revokeObjectURL(photoPreview);
-    setPhotoPreview('');
-    setPhotoUrl(undefined);
-    setUploadingPhoto(false);
-    setBusinessEnabled(false);
-    setBusinessForm(emptyBusinessForm());
-    if (businessLogoPrev) URL.revokeObjectURL(businessLogoPrev);
-    setBusinessLogoPrev('');
-    setBusinessLogoUrl(undefined);
-    businessPhotosPrev.forEach((url) => URL.revokeObjectURL(url));
-    setBusinessPhotosPrev([]);
-    setBusinessPhotoUrls([]);
-    setUploadingBusiness(false);
-    setError('');
+  const existingOptions = [
+    { key: `existing:${member._id}`, label: member.fullName || `${member.firstName} ${member.lastName ?? ''}`.trim() },
+    ...familyMembers
+      .filter((m) => m._id !== member._id)
+      .map((m) => ({ key: `existing:${m._id}`, label: m.fullName || `${m.firstName} ${m.lastName ?? ''}`.trim() })),
+  ];
+
+  function relativeOptionsFor(rowIndex: number) {
+    const priorRowOptions = rows
+      .slice(0, rowIndex)
+      .map((r, i) => ({ key: `row:${i}`, label: r.firstName.trim() ? `${r.firstName.trim()} (new)` : '' }))
+      .filter((o) => o.label);
+    return [...existingOptions, ...priorRowOptions];
   }
 
-  useEffect(() => {
-    if (!open) resetForm();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  function setField<K extends keyof PersonForm>(key: K, value: PersonForm[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  function relativeLabel(rowIndex: number, relativeKey: string): string {
+    return relativeOptionsFor(rowIndex).find((o) => o.key === relativeKey)?.label.replace(' (new)', '') ?? '';
   }
 
-  function setBusinessField<K extends keyof BusinessForm>(key: K, value: BusinessForm[K]) {
-    setBusinessForm((prev) => ({ ...prev, [key]: value }));
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      setRows([emptyRow()]);
+      setError('');
+    }
+    onOpenChange(next);
   }
 
-  function handlePhotoFileReady(file: File) {
-    setError('');
-    if (photoPreview) URL.revokeObjectURL(photoPreview);
-    const preview = URL.createObjectURL(file);
-    setPhotoPreview(preview);
-    setUploadingPhoto(true);
-
-    uploadUserPhoto(file, `temp/${communityId}/${crypto.randomUUID()}`)
-      .then((url) => setPhotoUrl(url))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to upload photo'))
-      .finally(() => setUploadingPhoto(false));
+  function updateRow(index: number, patch: Partial<MemberRow>) {
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
   }
 
-  function handleBusinessLogoFileReady(file: File) {
-    setError('');
-    if (businessLogoPrev) URL.revokeObjectURL(businessLogoPrev);
-    const preview = URL.createObjectURL(file);
-    setBusinessLogoPrev(preview);
-    setUploadingBusiness(true);
-
-    uploadBusinessLogo(file, `temp/${communityId}/${crypto.randomUUID()}`)
-      .then((url) => setBusinessLogoUrl(url))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to upload logo'))
-      .finally(() => setUploadingBusiness(false));
+  function addRow() {
+    setRows((prev) => [...prev, emptyRow()]);
   }
 
-  function handleBusinessPhotoFileReady(file: File) {
-    setError('');
-    if (businessPhotosPrev.length >= 2) return;
-    const preview = URL.createObjectURL(file);
-    setBusinessPhotosPrev((prev) => [...prev, preview].slice(0, 2));
-    setUploadingBusiness(true);
-
-    uploadBusinessPhoto(file, `temp/${communityId}/${crypto.randomUUID()}`)
-      .then((url) => setBusinessPhotoUrls((prev) => [...prev, url].slice(0, 2)))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to upload photo'))
-      .finally(() => setUploadingBusiness(false));
+  function removeRow(index: number) {
+    setRows((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit() {
-    if (!relation) {
-      setError('Please select a relation');
-      return;
-    }
-    if (!relativeId) {
-      setError('Please select who this member is related to');
-      return;
-    }
-    if (!form.firstName.trim()) {
-      setError('Enter a first name');
-      return;
-    }
-    if (!form.gender) {
-      setError('Gender is required');
-      return;
-    }
-    if (form.phone && !/^[0-9]{10}$/.test(form.phone)) {
-      setError('Phone number must be exactly 10 digits');
-      return;
-    }
-    if (form.pincode && !/^[0-9]{6}$/.test(form.pincode)) {
-      setError('Pincode must be 6 digits');
-      return;
-    }
-    if (form.aadharLast4 && !/^[0-9]{4}$/.test(form.aadharLast4)) {
-      setError('Aadhar must be last 4 digits');
-      return;
-    }
-    if (businessEnabled && !businessForm.name.trim()) {
-      setError('Business name is required');
-      return;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r.firstName.trim()) {
+        setError(`Row ${i + 1}: enter a first name`);
+        return;
+      }
+      if (!r.relation) {
+        setError(`Row ${i + 1}: select a relation`);
+        return;
+      }
+      if (!r.relativeKey) {
+        setError(`Row ${i + 1}: select who this member is related to`);
+        return;
+      }
+      if (r.phone && !/^[0-9]{10}$/.test(r.phone)) {
+        setError(`Row ${i + 1}: phone number must be exactly 10 digits`);
+        return;
+      }
     }
 
     setSaving(true);
@@ -196,49 +135,31 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
         familyId = famData.family._id;
       }
 
-      const payload = buildUserPayload(form, photoUrl, communityId);
-      const userRes = await fetch('/api/admin/users', {
+      const payload = {
+        members: rows.map((r) => {
+          const [kind, value] = r.relativeKey.split(':');
+          return {
+            firstName: r.firstName.trim(),
+            lastName: r.lastName.trim() || undefined,
+            phone: r.phone.trim() || undefined,
+            relation: r.relation,
+            ...(kind === 'existing' ? { relativeId: value } : { relativeIndex: Number(value) }),
+          };
+        }),
+      };
+
+      const addRes = await fetch(`/api/admin/families/${familyId}/add-members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const userData = await userRes.json();
-      if (!userRes.ok) {
-        setError(userData.error || 'Failed to create member');
-        return;
-      }
-      const userId = userData.user._id;
-
-      if (businessEnabled && businessForm.name.trim()) {
-        const businessPayload = {
-          ...buildBusinessPayload(businessForm, businessLogoUrl, businessPhotoUrls),
-          ownerId: userId,
-          communityId,
-        };
-        const bizRes = await fetch('/api/admin/businesses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(businessPayload),
-        });
-        const bizData = await bizRes.json();
-        if (!bizRes.ok) {
-          setError(bizData.error || 'Member created, but failed to save business');
-          return;
-        }
-      }
-
-      const addRes = await fetch(`/api/admin/families/${familyId}/add-member`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, relation, relativeId }),
-      });
       const addData = await addRes.json();
       if (!addRes.ok) {
-        setError(addData.error || 'Failed to add family member');
+        setError(addData.error || 'Failed to add family members');
         return;
       }
 
-      onOpenChange(false);
+      handleOpenChange(false);
       onAdded();
     } catch {
       setError('Network error');
@@ -248,93 +169,102 @@ export function AddFamilyMemberDialog({ open, onOpenChange, communityId, member,
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Add Family Member</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">Relation <span className="text-red-500">*</span></Label>
-              <Select value={relation} onValueChange={(v) => setRelation(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  {relation
-                    ? <span data-slot="select-value" className="flex flex-1 text-left">{RELATIONS.find((r) => r.id === relation)?.label}</span>
-                    : <SelectValue placeholder="Select relation" />
-                  }
-                </SelectTrigger>
-                <SelectContent>
-                  {RELATIONS.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {rows.map((row, index) => {
+            const options = relativeOptionsFor(index);
+            return (
+              <div key={index} className="flex flex-col gap-3 rounded-lg border p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Member {index + 1}</span>
+                  {rows.length > 1 && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeRow(index)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
 
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">Related to <span className="text-red-500">*</span></Label>
-              <Select value={relativeId} onValueChange={(v) => setRelativeId(v ?? '')}>
-                <SelectTrigger className="w-full">
-                  {relativeId
-                    ? (
-                      <span data-slot="select-value" className="flex flex-1 text-left">
-                        {(() => {
-                          const r = relativeOptions.find((o) => o._id === relativeId);
-                          return r?.fullName || `${r?.firstName ?? ''} ${r?.lastName ?? ''}`.trim();
-                        })()}
-                      </span>
-                    )
-                    : <SelectValue placeholder="Select family member" />
-                  }
-                </SelectTrigger>
-                <SelectContent>
-                  {relativeOptions.map((o) => (
-                    <SelectItem key={o._id} value={o._id}>
-                      {o.fullName || `${o.firstName} ${o.lastName ?? ''}`.trim()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">First Name <span className="text-red-500">*</span></Label>
+                    <Input value={row.firstName} onChange={(e) => updateRow(index, { firstName: e.target.value })} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Last Name</Label>
+                    <Input value={row.lastName} onChange={(e) => updateRow(index, { lastName: e.target.value })} />
+                  </div>
+                </div>
 
-          {relation && relativeId && form.firstName.trim() && (
-            <p className="text-xs text-muted-foreground -mt-3">
-              ({form.firstName.trim()} is {RELATIONS.find((r) => r.id === relation)?.label.toLowerCase()} of{' '}
-              {(() => {
-                const r = relativeOptions.find((o) => o._id === relativeId);
-                return r?.fullName || `${r?.firstName ?? ''} ${r?.lastName ?? ''}`.trim();
-              })()})
-            </p>
-          )}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Relation <span className="text-red-500">*</span></Label>
+                    <Select value={row.relation} onValueChange={(v) => updateRow(index, { relation: v ?? '' })}>
+                      <SelectTrigger className="w-full">
+                        {row.relation
+                          ? <span data-slot="select-value" className="flex flex-1 text-left">{RELATIONS.find((r) => r.id === row.relation)?.label}</span>
+                          : <SelectValue placeholder="Select relation" />
+                        }
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RELATIONS.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-          <PersonFieldsBlock
-            form={form}
-            setField={setField}
-            photoPreview={photoPreview}
-            onPhotoFileReady={handlePhotoFileReady}
-            uploadingPhoto={uploadingPhoto}
-            businessEnabled={businessEnabled}
-            onToggleBusiness={() => setBusinessEnabled((v) => !v)}
-            businessForm={businessForm}
-            setBusinessField={setBusinessField}
-            businessLogoPrev={businessLogoPrev}
-            businessPhotosPrev={businessPhotosPrev}
-            onBusinessLogoFileReady={handleBusinessLogoFileReady}
-            onBusinessPhotoFileReady={handleBusinessPhotoFileReady}
-            uploadingBusiness={uploadingBusiness}
-            onError={setError}
-            showSampradaya={false}
-          />
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Related to <span className="text-red-500">*</span></Label>
+                    <Select value={row.relativeKey} onValueChange={(v) => updateRow(index, { relativeKey: v ?? '' })}>
+                      <SelectTrigger className="w-full">
+                        {row.relativeKey
+                          ? <span data-slot="select-value" className="flex flex-1 text-left">{options.find((o) => o.key === row.relativeKey)?.label}</span>
+                          : <SelectValue placeholder="Select family member" />
+                        }
+                      </SelectTrigger>
+                      <SelectContent>
+                        {options.map((o) => (
+                          <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs">Phone (optional)</Label>
+                  <Input value={row.phone} onChange={(e) => updateRow(index, { phone: e.target.value })} placeholder="10-digit number" />
+                </div>
+
+                {row.relation && row.relativeKey && row.firstName.trim() && (
+                  <p className="text-xs text-muted-foreground">
+                    ({row.firstName.trim()} is {RELATIONS.find((r) => r.id === row.relation)?.label.toLowerCase()} of{' '}
+                    {relativeLabel(index, row.relativeKey)})
+                  </p>
+                )}
+              </div>
+            );
+          })}
+
+          <Button variant="outline" size="sm" onClick={addRow} className="w-fit gap-1">
+            <Plus className="h-3.5 w-3.5" /> Add another member
+          </Button>
+
+          <p className="text-xs text-muted-foreground -mt-2">
+            &quot;Related to&quot; only lists existing family members and members added earlier in this form.
+          </p>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>
           <Button onClick={handleSubmit} disabled={saving} className="bg-[#3230c4] hover:bg-[#494ad9]">
-            {saving ? 'Adding...' : 'Add Member'}
+            {saving ? 'Adding...' : 'Add Member(s)'}
           </Button>
         </DialogFooter>
       </DialogContent>

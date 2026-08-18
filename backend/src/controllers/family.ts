@@ -1,8 +1,15 @@
 import type { Response } from 'express';
 import mongoose from 'mongoose';
-import { createFamilySchema, addFamilyMemberSchema, changeFamilyHeadSchema, batchCreateFamilySchema } from '@parivaar/shared';
+import {
+  createFamilySchema,
+  addFamilyMemberSchema,
+  addFamilyMembersSchema,
+  changeFamilyHeadSchema,
+  batchCreateFamilySchema,
+} from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
 import { User, Family, Business } from '../models';
+import type { IUser } from '../models';
 
 export async function createFamily(req: AuthRequest, res: Response): Promise<void> {
   const parsed = createFamilySchema.safeParse(req.body);
@@ -274,4 +281,85 @@ export async function addFamilyMember(req: AuthRequest, res: Response): Promise<
   await user.save();
 
   res.json({ success: true, user });
+}
+
+export async function addFamilyMembers(req: AuthRequest, res: Response): Promise<void> {
+  const parsed = addFamilyMembersSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    return;
+  }
+
+  const family = await Family.findById(req.params.id);
+  if (!family) {
+    res.status(404).json({ error: 'Family not found' });
+    return;
+  }
+
+  try {
+    const createdInThisBatch: IUser[] = [];
+
+    for (const memberData of parsed.data.members) {
+      const { firstName, lastName, phone, relation, relativeId, relativeIndex } = memberData;
+
+      const relative = relativeId
+        ? await User.findById(relativeId)
+        : createdInThisBatch[relativeIndex as number];
+
+      if (!relative) {
+        res.status(400).json({ error: 'Related-to member not found' });
+        return;
+      }
+
+      let gender: string | undefined;
+      if (relation === 'son') gender = 'male';
+      else if (relation === 'daughter') gender = 'female';
+      else if (relation === 'spouse') {
+        gender = relative.gender === 'female' ? 'male' : relative.gender === 'male' ? 'female' : undefined;
+      }
+
+      const memberUser = await User.create({
+        firstName,
+        lastName,
+        phone,
+        gender,
+        familyId: family._id,
+        communityIds: family.communityIds,
+      });
+
+      switch (relation) {
+        case 'spouse':
+          memberUser.spouseId = relative._id;
+          relative.spouseId = memberUser._id;
+          break;
+        case 'son':
+        case 'daughter':
+          if (relative.gender === 'female') {
+            memberUser.motherId = relative._id;
+          } else {
+            memberUser.fatherId = relative._id;
+          }
+          relative.childrenIds.push(memberUser._id);
+          break;
+      }
+
+      await relative.save();
+      await memberUser.save();
+      createdInThisBatch.push(memberUser);
+    }
+
+    res.status(201).json({
+      success: true,
+      members: createdInThisBatch.map((m) => ({
+        _id: m._id.toString(),
+        firstName: m.firstName,
+        lastName: m.lastName,
+        enrollmentId: m.enrollmentId,
+      })),
+    });
+  } catch (err) {
+    console.error('addFamilyMembers error:', err);
+    const message = err instanceof Error ? err.message : 'Failed to add family members';
+    res.status(500).json({ error: message });
+  }
 }
