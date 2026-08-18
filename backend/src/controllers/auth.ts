@@ -1,10 +1,52 @@
 import type { Request, Response } from 'express';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
-import { sendOtpSchema, verifyOtpSchema } from '@parivaar/shared';
+import crypto from 'crypto';
+import { z } from 'zod';
+import { sendOtpSchema, verifyOtpSchema, phoneSchema } from '@parivaar/shared';
 import { env } from '../config/env';
 import { setOTP, getOTP, deleteOTP } from '../config/redis';
 import { User } from '../models';
+
+const adminLoginSchema = z.object({
+  phone: phoneSchema,
+  password: z.string().min(1),
+});
+
+function verifyPassword(password: string, stored: string): boolean {
+  const [salt, hash] = stored.split(':');
+  if (!salt || !hash) return false;
+  const candidate = crypto.scryptSync(password, salt, 64);
+  const expected = Buffer.from(hash, 'hex');
+  if (candidate.length !== expected.length) return false;
+  return crypto.timingSafeEqual(candidate, expected);
+}
+
+export async function adminLogin(req: Request, res: Response): Promise<void> {
+  const parsed = adminLoginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    return;
+  }
+
+  const { phone, password } = parsed.data;
+
+  if (!env.SUPER_ADMIN_PHONE || !env.ADMIN_PASSWORD_HASH) {
+    res.status(503).json({ error: 'Admin login not configured' });
+    return;
+  }
+
+  if (phone !== env.SUPER_ADMIN_PHONE || !verifyPassword(password, env.ADMIN_PASSWORD_HASH)) {
+    res.status(401).json({ error: 'Invalid credentials' });
+    return;
+  }
+
+  try {
+    await issueSessionAndRespond(phone, res, 'super_admin');
+  } catch {
+    res.status(500).json({ error: 'Failed to create session' });
+  }
+}
 
 const MESSAGE_CENTRAL_BASE = 'https://cpaas.messagecentral.com';
 const OTP_TTL_SECONDS = 300;
@@ -158,12 +200,20 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   }
 }
 
-async function issueSessionAndRespond(phone: string, res: Response): Promise<void> {
+async function issueSessionAndRespond(
+  phone: string,
+  res: Response,
+  roleOverride?: 'super_admin' | 'community_admin' | 'member',
+): Promise<void> {
   let user = await User.findOne({ phone });
   const isNewUser = !user;
 
   if (!user) {
-    user = await User.create({ phone, firstName: 'New User' });
+    user = await User.create({ phone, firstName: 'Admin' });
+  }
+
+  if (roleOverride && user.role !== roleOverride) {
+    user.role = roleOverride;
   }
 
   user.lastSeen = new Date();

@@ -24,6 +24,7 @@ const envSchema = z.object({
     .default('3001'),
   CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:8081'),
   SUPER_ADMIN_PHONE: z.string().optional(),
+  ADMIN_PASSWORD_HASH: z.string().optional(),
   NODE_ENV: z.string().default('development'),
   DEV_OTP_BYPASS: z
     .string()

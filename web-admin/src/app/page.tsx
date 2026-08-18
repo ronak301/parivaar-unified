@@ -33,27 +33,27 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    if (phone === '9999999999' && password === '123456') {
-      const token = 'dummy_token_' + Date.now();
-      localStorage.setItem('auth_token', token);
-
+    try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ phone, password }),
       });
 
-      if (res.ok) {
-        router.push('/admin');
-      } else {
-        setError('Login failed');
-        setLoading(false);
-      }
-      return;
-    }
+      const data = await res.json();
 
-    setError('Invalid credentials');
-    setLoading(false);
+      if (res.ok && data.token) {
+        localStorage.setItem('auth_token', data.token);
+        router.push('/admin');
+        return;
+      }
+
+      setError(data.error || 'Invalid credentials');
+    } catch {
+      setError('Login failed');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -71,7 +71,6 @@ export default function LoginPage() {
             <Input
               id="phone"
               type="tel"
-              placeholder="9999999999"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               disabled={loading}
@@ -83,7 +82,6 @@ export default function LoginPage() {
             <Input
               id="password"
               type="password"
-              placeholder="123456"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
@@ -96,10 +94,6 @@ export default function LoginPage() {
             {loading ? 'Logging in...' : 'Login'}
           </Button>
         </form>
-
-        <p className="text-xs text-muted-foreground text-center mt-6">
-          Demo credentials: 9999999999 / 123456
-        </p>
       </div>
     </div>
   );
