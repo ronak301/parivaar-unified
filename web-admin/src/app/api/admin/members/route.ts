@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/api/backend-url';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = getBackendUrl();
     const url = new URL(`${backendUrl}/api/users/community/${communityId}`);
     url.searchParams.set('page', page);
     url.searchParams.set('limit', limit);

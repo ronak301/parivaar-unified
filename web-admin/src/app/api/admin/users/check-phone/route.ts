@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/api/backend-url';
 
 export async function GET(request: NextRequest) {
   const phone = request.nextUrl.searchParams.get('phone');
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/check-phone?phone=${encodeURIComponent(phone)}`,
+      `${getBackendUrl()}/api/users/check-phone?phone=${encodeURIComponent(phone)}`,
       { signal: controller.signal }
     );
     clearTimeout(timeoutId);

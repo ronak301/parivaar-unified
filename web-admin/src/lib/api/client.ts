@@ -1,9 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
+import { getBackendUrl } from '@/lib/api/backend-url';
 
-export const API_BASE_URL =
-  (process.env.NEXT_PUBLIC_BACKEND_URL ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api` : null) ??
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  'http://localhost:3001/api';
+export const API_BASE_URL = `${getBackendUrl()}/api`;
 
 function createClient(token?: string): AxiosInstance {
   const instance = axios.create({

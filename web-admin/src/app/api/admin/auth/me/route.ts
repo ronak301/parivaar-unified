@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/api/backend-url';
 
 export async function GET() {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = getBackendUrl();
     const res = await fetch(`${backendUrl}/api/communities`);
 
     if (!res.ok) {
