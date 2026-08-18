@@ -8,6 +8,7 @@ async function start() {
   startBirthdayCron();
   app.listen(env.PORT, () => {
     console.log(`Server running on port ${env.PORT}`);
+    console.log(`Deploy check: ${new Date().toISOString()}`);
   });
 }
 
