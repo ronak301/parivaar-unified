@@ -154,6 +154,9 @@ export async function batchCreateFamily(req: AuthRequest, res: Response): Promis
           ...userData,
           communityIds: communityObjectIds,
           familyId: family._id,
+          address: headUser.address,
+          nativePlace: headUser.nativePlace,
+          nativeDistrict: headUser.nativeDistrict,
         });
 
         if (relation && relativeIndex !== undefined) {
@@ -296,6 +299,8 @@ export async function addFamilyMembers(req: AuthRequest, res: Response): Promise
     return;
   }
 
+  const headUser = await User.findById(family.headId);
+
   try {
     const createdInThisBatch: IUser[] = [];
 
@@ -325,6 +330,9 @@ export async function addFamilyMembers(req: AuthRequest, res: Response): Promise
         gender,
         familyId: family._id,
         communityIds: family.communityIds,
+        address: headUser?.address,
+        nativePlace: headUser?.nativePlace,
+        nativeDistrict: headUser?.nativeDistrict,
       });
 
       switch (relation) {
