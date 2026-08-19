@@ -11,6 +11,7 @@ import { Gender, BloodGroups, BusinessTypes } from '@parivaar/shared';
 import { states, getCitiesForState, getDistrictsForState } from '@/lib/locations';
 import { Plus, X } from 'lucide-react';
 import type { Community } from '@parivaar/shared';
+import { readCache, writeCache } from '@/lib/cache/local-cache';
 
 export default function CommunityFormPage({ params }: { params: Promise<{ id: string }> }) {
   const [community, setCommunity] = useState<Community | null>(null);
@@ -24,11 +25,18 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
     async function fetchCommunity() {
       try {
         const { id } = await params;
+        const cacheKey = `community_detail_${id}`;
+        const cached = readCache<Community>(cacheKey);
+        if (cached) {
+          setCommunity(cached);
+          setLoading(false);
+        }
+
         const res = await fetch(`/api/admin/communities/${id}`);
         if (res.ok) {
           const data = await res.json();
-          console.log('Fetched community:', data.community);
           setCommunity(data.community);
+          writeCache(cacheKey, data.community);
         }
       } catch (err) {
         console.error('Failed to fetch community:', err);

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { readCache, writeCache } from '@/lib/cache/local-cache';
 
 interface MembersResponse {
   users: UserListItem[];
@@ -35,8 +36,17 @@ export function CommunityMembersTab({
 
   useEffect(() => {
     let cancelled = false;
+    const cacheable = page === 1 && !search;
+    const cacheKey = `community_members_${communityId}`;
+    const cached = cacheable ? readCache<MembersResponse>(cacheKey) : null;
+
     startTransition(() => {
-      setLoading(true);
+      if (cached) {
+        setData(cached);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
       setError('');
     });
 
@@ -50,10 +60,13 @@ export function CommunityMembersTab({
         return json as MembersResponse;
       })
       .then((json) => {
-        if (!cancelled) setData(json);
+        if (!cancelled) {
+          setData(json);
+          if (cacheable) writeCache(cacheKey, json);
+        }
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load members');
+        if (!cancelled && !cached) setError(e instanceof Error ? e.message : 'Failed to load members');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

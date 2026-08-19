@@ -4,16 +4,20 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import type { Community } from '@parivaar/shared';
 import { CommunityDetailView } from '@/components/admin/community-detail-view';
+import { readCache, writeCache } from '@/lib/cache/local-cache';
 
 export default function CommunityDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [community, setCommunity] = useState<Community | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [community, setCommunity] = useState<Community | null>(() => readCache<Community>(`community_detail_${id}`));
+  const [loading, setLoading] = useState(() => readCache<Community>(`community_detail_${id}`) === null);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const cacheKey = `community_detail_${id}`;
+    const cached = readCache<Community>(cacheKey);
+
     async function loadCommunity() {
       try {
         const res = await fetch(`/api/admin/communities/${id}`, {
@@ -21,18 +25,21 @@ export default function CommunityDetailPage() {
         });
 
         if (!res.ok) {
-          if (res.status === 404) {
-            setError('Community not found');
-          } else {
-            throw new Error('Failed to fetch');
+          if (!cached) {
+            if (res.status === 404) {
+              setError('Community not found');
+            } else {
+              throw new Error('Failed to fetch');
+            }
           }
           return;
         }
 
         const data = await res.json();
         setCommunity(data.community);
+        writeCache(cacheKey, data.community);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load community');
+        if (!cached) setError(e instanceof Error ? e.message : 'Failed to load community');
       } finally {
         setLoading(false);
       }

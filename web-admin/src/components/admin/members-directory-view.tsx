@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useDebounce } from '@/hooks/use-debounce';
+import { readCache, writeCache } from '@/lib/cache/local-cache';
 import { ClickableImage } from '@/components/ui/clickable-image';
 import { AddFamilyDialog } from '@/components/admin/add-family-dialog';
 import type { Community } from '@parivaar/shared';
@@ -82,7 +83,23 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
 
   async function fetchMembers(pageNum: number) {
     if (!communityId) return;
-    setLoading(true);
+
+    const cacheable = pageNum === 1 && !debouncedSearch;
+    const cacheKey = `members_list_${communityId}`;
+
+    if (cacheable) {
+      const cached = readCache<MembersResponse>(cacheKey);
+      if (cached) {
+        setMembers(cached.users);
+        setPagination(cached.pagination);
+        setPage(pageNum);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    } else {
+      setLoading(true);
+    }
 
     try {
       const params = new URLSearchParams({
@@ -104,6 +121,7 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
         setMembers(data.users);
         setPagination(data.pagination);
         setPage(pageNum);
+        if (cacheable) writeCache(cacheKey, data);
       }
     } catch (error) {
       console.error('Failed to fetch members:', error);

@@ -3,13 +3,18 @@
 import { useEffect, useState } from 'react';
 import type { Community } from '@parivaar/shared';
 import { CommunitiesListView } from '@/components/admin/communities-list-view';
+import { readCache, writeCache } from '@/lib/cache/local-cache';
+
+const CACHE_KEY = 'communities_full_list';
 
 export default function CommunitiesPage() {
-  const [communities, setCommunities] = useState<Community[]>([]);
+  const [communities, setCommunities] = useState<Community[]>(() => readCache<Community[]>(CACHE_KEY) ?? []);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => readCache<Community[]>(CACHE_KEY) === null);
 
   useEffect(() => {
+    const hadCache = readCache<Community[]>(CACHE_KEY) !== null;
+
     async function loadCommunities() {
       try {
         const res = await fetch('/api/admin/communities', {
@@ -20,8 +25,9 @@ export default function CommunitiesPage() {
 
         const data = await res.json();
         setCommunities(data.communities || []);
+        writeCache(CACHE_KEY, data.communities || []);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load communities');
+        if (!hadCache) setError(e instanceof Error ? e.message : 'Failed to load communities');
       } finally {
         setLoading(false);
       }

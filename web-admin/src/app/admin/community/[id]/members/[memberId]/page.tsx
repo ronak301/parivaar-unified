@@ -22,6 +22,7 @@ import { ArrowLeft, Pencil, ShieldOff, ShieldCheck, UserPlus, UserRound } from '
 import { EditMemberSheet } from '@/components/admin/edit-member-sheet';
 import { AddFamilyMemberDialog } from '@/components/admin/add-family-member-dialog';
 import type { UserData, FamilyTreeMember } from '@/components/admin/member-detail-types';
+import { readCache, writeCache } from '@/lib/cache/local-cache';
 
 function InfoField({ label, value }: { label: string; value?: string }) {
   return (
@@ -63,17 +64,26 @@ export default function MemberDetailPage() {
   const [blockError, setBlockError] = useState('');
 
   const fetchUser = useCallback(async () => {
-    setLoading(true);
+    const cacheKey = `member_${memberId}`;
+    const cached = readCache<UserData>(cacheKey);
+    if (cached) {
+      setUser(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const res = await fetch(`/api/admin/users/${memberId}`);
       if (!res.ok) {
-        setError('Failed to load member');
+        if (!cached) setError('Failed to load member');
         return;
       }
       const data = await res.json();
       setUser(data.user as UserData);
+      writeCache(cacheKey, data.user as UserData);
     } catch {
-      setError('Network error');
+      if (!cached) setError('Network error');
     } finally {
       setLoading(false);
     }
@@ -84,12 +94,22 @@ export default function MemberDetailPage() {
   }, [fetchUser]);
 
   const fetchFamilyMembers = useCallback(async (familyId: string) => {
-    setFamilyLoading(true);
+    const cacheKey = `family_tree_${familyId}`;
+    const cached = readCache<FamilyTreeMember[]>(cacheKey);
+    if (cached) {
+      setFamilyMembers(cached);
+      setFamilyLoading(false);
+    } else {
+      setFamilyLoading(true);
+    }
+
     try {
       const res = await fetch(`/api/admin/families/${familyId}/tree`);
       if (!res.ok) return;
       const data = await res.json();
-      setFamilyMembers((data.members ?? []) as FamilyTreeMember[]);
+      const members = (data.members ?? []) as FamilyTreeMember[];
+      setFamilyMembers(members);
+      writeCache(cacheKey, members);
     } finally {
       setFamilyLoading(false);
     }
