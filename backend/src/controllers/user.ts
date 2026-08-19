@@ -2,6 +2,9 @@ import type { Response } from 'express';
 import { createUserSchema, updateUserSchema, searchUsersSchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
 import { User, Family, Business } from '../models';
+import { fuzzyFilterAndPaginate, CANDIDATE_CAP } from '../utils/fuzzy-search';
+
+const SEARCH_SELECT = 'enrollmentId firstName lastName fullName profilePicture phone gender address.city address.locality communityIds familyId isFamilyHead isAlive';
 
 export async function checkPhone(req: AuthRequest, res: Response): Promise<void> {
   const phone = req.query.phone as string;
@@ -141,16 +144,27 @@ export async function searchUsers(req: AuthRequest, res: Response): Promise<void
     filter._id = { $in: ownerIds };
   }
 
-  if (q) {
-    filter.$text = { $search: q };
-  }
-
   const skip = (page - 1) * limit;
+
+  if (q) {
+    const candidates = await User.find(filter)
+      .select(SEARCH_SELECT)
+      .limit(CANDIDATE_CAP);
+
+    const { items, total } = fuzzyFilterAndPaginate(candidates, q, page, limit);
+
+    res.json({
+      success: true,
+      users: items,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+    return;
+  }
 
   const [users, total] = await Promise.all([
     User.find(filter)
-      .select('enrollmentId firstName lastName fullName profilePicture phone gender address.city address.locality communityIds familyId isFamilyHead isAlive')
-      .sort(q ? { score: { $meta: 'textScore' } } : { firstName: 1 })
+      .select(SEARCH_SELECT)
+      .sort({ firstName: 1 })
       .skip(skip)
       .limit(limit),
     User.countDocuments(filter),
@@ -163,11 +177,14 @@ export async function searchUsers(req: AuthRequest, res: Response): Promise<void
   });
 }
 
+const COMMUNITY_MEMBERS_SELECT = 'enrollmentId firstName lastName fullName profilePicture phone gender address.city address.locality isFamilyHead isAlive familyId guardianName education businessName businessCategory';
+
 export async function getUsersByCommunity(req: AuthRequest, res: Response): Promise<void> {
   const { communityId } = req.params;
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 50;
   const skip = (page - 1) * limit;
+  const search = (req.query.search as string) || '';
 
   const filter: Record<string, unknown> = { communityIds: communityId, isBlocked: { $ne: true } };
 
@@ -176,9 +193,24 @@ export async function getUsersByCommunity(req: AuthRequest, res: Response): Prom
   if (req.query.locality) filter['address.locality'] = req.query.locality;
   if (req.query.isAlive !== undefined) filter.isAlive = req.query.isAlive === 'true';
 
+  if (search.trim()) {
+    const candidates = await User.find(filter)
+      .select(COMMUNITY_MEMBERS_SELECT)
+      .limit(CANDIDATE_CAP);
+
+    const { items, total } = fuzzyFilterAndPaginate(candidates, search, page, limit);
+
+    res.json({
+      success: true,
+      users: items,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+    return;
+  }
+
   const [users, total] = await Promise.all([
     User.find(filter)
-      .select('enrollmentId firstName lastName fullName profilePicture phone gender address.city address.locality isFamilyHead isAlive familyId guardianName education businessName businessCategory')
+      .select(COMMUNITY_MEMBERS_SELECT)
       .sort({ firstName: 1 })
       .skip(skip)
       .limit(limit),
