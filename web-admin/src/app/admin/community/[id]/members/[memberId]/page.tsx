@@ -18,11 +18,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Pencil, ShieldOff, ShieldCheck, UserPlus, UserRound } from 'lucide-react';
+import { ArrowLeft, Pencil, ShieldOff, ShieldCheck, Trash2, UserPlus, UserRound } from 'lucide-react';
 import { EditMemberSheet } from '@/components/admin/edit-member-sheet';
 import { AddFamilyMemberDialog } from '@/components/admin/add-family-member-dialog';
 import type { UserData, FamilyTreeMember } from '@/components/admin/member-detail-types';
-import { readCache, writeCache } from '@/lib/cache/local-cache';
+import { readCache, writeCache, clearCache } from '@/lib/cache/local-cache';
 
 function InfoField({ label, value }: { label: string; value?: string }) {
   return (
@@ -62,6 +62,8 @@ export default function MemberDetailPage() {
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [blockActionLoading, setBlockActionLoading] = useState(false);
   const [blockError, setBlockError] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const fetchUser = useCallback(async () => {
     const cacheKey = `member_${memberId}`;
@@ -143,6 +145,28 @@ export default function MemberDetailPage() {
     }
   }
 
+  async function handleDelete() {
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      const res = await fetch(`/api/admin/users/${memberId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) {
+        setDeleteError(data.error || 'Failed to delete member');
+        return;
+      }
+      clearCache(`member_${memberId}`);
+      if (user?.familyId?._id) clearCache(`family_tree_${user.familyId._id}`);
+      clearCache(`members_list_${communityId}`);
+      clearCache(`community_members_${communityId}`);
+      router.push(`/admin/community/${communityId}/members`);
+    } catch {
+      setDeleteError('Network error');
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>;
   }
@@ -216,6 +240,27 @@ export default function MemberDetailPage() {
             </AlertDialog>
           )}
 
+          <AlertDialog>
+            <AlertDialogTrigger render={<Button variant="outline" size="sm" className="text-destructive hover:text-destructive" />}>
+              <Trash2 className="size-4" />
+              Delete
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this member?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {user.fullName || user.firstName} will be permanently removed and unlinked from the family tree. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} disabled={deleteLoading} className="bg-destructive hover:bg-destructive/90">
+                  {deleteLoading ? 'Deleting...' : 'Delete'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           <Button size="sm" onClick={() => setEditOpen(true)} className="bg-[#3230c4] hover:bg-[#494ad9]">
             <Pencil className="size-4" />
             Edit
@@ -225,6 +270,7 @@ export default function MemberDetailPage() {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {blockError && <p className="text-sm text-destructive">{blockError}</p>}
+      {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
 
       <div className="bg-white rounded-xl border p-6 flex flex-col gap-6">
         <h2 className="text-sm font-semibold text-[#464555] uppercase tracking-wider">Personal Information</h2>

@@ -52,6 +52,11 @@ export async function unblockUser(client: AxiosInstance, id: string) {
   return res.data.user;
 }
 
+export async function deleteUser(client: AxiosInstance, id: string) {
+  const res = await client.delete(`/users/${id}`);
+  return res.data;
+}
+
 export async function getUserEvents(
   client: AxiosInstance,
   communityId: string,

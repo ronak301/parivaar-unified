@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/auth/admin-client';
-import { getUser } from '@/lib/api/user';
+import { getUser, deleteUser } from '@/lib/api/user';
 import { respondToAuthError } from '@/lib/api/route-error';
 
 export async function GET(
@@ -32,5 +32,19 @@ export async function PUT(
     return NextResponse.json(res.data);
   } catch (e) {
     return respondToAuthError(e, 'Failed to update user');
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  try {
+    const client = await getAdminClient();
+    const data = await deleteUser(client, id);
+    return NextResponse.json(data);
+  } catch (e) {
+    return respondToAuthError(e, 'Failed to delete member');
   }
 }
