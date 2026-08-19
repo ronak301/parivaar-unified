@@ -64,6 +64,20 @@ export default function MemberDetailPage() {
   const [blockError, setBlockError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [localities, setLocalities] = useState<string[]>(
+    () => readCache<{ localities?: string[] }>(`community_detail_${communityId}`)?.localities ?? [],
+  );
+
+  useEffect(() => {
+    fetch(`/api/admin/communities/${communityId}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.community) setLocalities(data.community.localities ?? []);
+      })
+      .catch(() => {});
+  }, [communityId]);
 
   const fetchUser = useCallback(async () => {
     const cacheKey = `member_${memberId}`;
@@ -382,6 +396,7 @@ export default function MemberDetailPage() {
         memberId={memberId}
         user={user}
         onSaved={fetchUser}
+        localities={localities}
       />
 
       <AddFamilyMemberDialog

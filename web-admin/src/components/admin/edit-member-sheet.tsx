@@ -28,6 +28,7 @@ interface EditMemberSheetProps {
   memberId: string;
   user: UserData;
   onSaved: () => void;
+  localities?: string[];
 }
 
 function buildFormState(u: UserData): PersonForm {
@@ -76,7 +77,7 @@ function buildBusinessFormState(b: Business | null): BusinessForm {
   };
 }
 
-export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved }: EditMemberSheetProps) {
+export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved, localities = [] }: EditMemberSheetProps) {
   const [form, setForm] = useState<PersonForm>(() => buildFormState(user));
   const [photoPreview, setPhotoPreview] = useState(user.profilePicture || '');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -268,6 +269,7 @@ export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved }:
             photoPreview={photoPreview}
             onPhotoFileReady={handlePhotoFileReady}
             uploadingPhoto={uploadingPhoto}
+            localities={localities}
             businessEnabled={businessEnabled}
             onToggleBusiness={() => setBusinessEnabled((v) => !v)}
             businessForm={businessForm}
