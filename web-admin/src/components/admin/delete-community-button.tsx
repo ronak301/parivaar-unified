@@ -42,7 +42,7 @@ export function DeleteCommunityButton({
         return;
       }
 
-      router.push('/communities');
+      router.push('/admin');
       router.refresh();
     } catch {
       setError('Network error. Please try again.');

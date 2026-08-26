@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { User, Family, MatrimonialProfile, BusinessEnquiry, BusinessPromotion } from '../models';
-import type { IApprovalRequest } from '../models';
+import { User, Family, Business, MatrimonialProfile, BusinessEnquiry, BusinessPromotion } from '../models';
+import type { IApprovalRequest, IUser } from '../models';
 
 export async function applyApprovalEffect(approval: IApprovalRequest): Promise<void> {
   const { entityType, entityId, payload, status } = approval;
@@ -101,6 +101,108 @@ async function applyApproveEffect(
       if (!entityId) return;
       await BusinessPromotion.findByIdAndUpdate(entityId, { status: 'approved' });
       break;
+    }
+
+    case 'new_family': {
+      if (!payload) return;
+      await createFamilyFromPayload(payload);
+      break;
+    }
+  }
+}
+
+async function createFamilyFromPayload(payload: Record<string, unknown>): Promise<void> {
+  const head = payload.head as Record<string, unknown>;
+  const communityIds = payload.communityIds as string[];
+  const sampradaya = payload.sampradaya as string | undefined;
+  const business = payload.business as Record<string, unknown> | undefined;
+  const members = payload.members as
+    | Array<{ relation?: string; relativeIndex?: number; [key: string]: unknown }>
+    | undefined;
+
+  const communityObjectIds = communityIds.map((id) => new mongoose.Types.ObjectId(id));
+
+  const headUser = await User.create({ ...head, communityIds: communityObjectIds });
+
+  const family = await Family.create({
+    headId: headUser._id,
+    sampradaya,
+    communityIds: communityObjectIds,
+  });
+
+  headUser.familyId = family._id;
+  headUser.isFamilyHead = true;
+  await headUser.save();
+
+  if (business) {
+    try {
+      await Business.create({
+        ...business,
+        ownerId: headUser._id,
+        communityId: communityIds[0],
+      });
+    } catch (err) {
+      console.error('Business creation failed while approving new_family:', err);
+    }
+  }
+
+  if (members && members.length > 0) {
+    const allUsers: IUser[] = [headUser];
+
+    for (const memberData of members) {
+      const { relation, relativeIndex, ...userData } = memberData;
+
+      const memberUser = await User.create({
+        ...userData,
+        communityIds: communityObjectIds,
+        familyId: family._id,
+        address: headUser.address,
+        nativePlace: headUser.nativePlace,
+        nativeDistrict: headUser.nativeDistrict,
+      });
+
+      if (relation && relativeIndex !== undefined) {
+        const relativeUser = relativeIndex === -1 ? headUser : allUsers[relativeIndex + 1];
+        if (relativeUser) {
+          switch (relation) {
+            case 'father':
+              memberUser.fatherId = relativeUser._id;
+              relativeUser.childrenIds.push(memberUser._id);
+              break;
+            case 'mother':
+              memberUser.motherId = relativeUser._id;
+              relativeUser.childrenIds.push(memberUser._id);
+              break;
+            case 'spouse':
+              memberUser.spouseId = relativeUser._id;
+              relativeUser.spouseId = memberUser._id;
+              break;
+            case 'sibling':
+              memberUser.siblingIds.push(relativeUser._id);
+              relativeUser.siblingIds.push(memberUser._id);
+              break;
+            case 'child':
+              memberUser.childrenIds.push(relativeUser._id);
+              relativeUser.fatherId = memberUser._id;
+              break;
+            case 'son':
+            case 'daughter':
+              if (relativeUser.gender === 'female') {
+                memberUser.motherId = relativeUser._id;
+              } else {
+                memberUser.fatherId = relativeUser._id;
+              }
+              relativeUser.childrenIds.push(memberUser._id);
+              if (relation === 'son') memberUser.gender = 'male';
+              else memberUser.gender = 'female';
+              break;
+          }
+          await relativeUser.save();
+          await memberUser.save();
+        }
+      }
+
+      allUsers.push(memberUser);
     }
   }
 }

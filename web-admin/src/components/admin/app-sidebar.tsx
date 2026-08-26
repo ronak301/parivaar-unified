@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
 import {
   Users,
-  Settings,
   LogOut,
+  Building2,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -14,7 +15,9 @@ const NAV_ITEMS = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const communityId = typeof window !== 'undefined' ? localStorage.getItem('selectedCommunityId') : null;
+  const { user } = useAuth();
+  const saved = typeof window !== 'undefined' ? localStorage.getItem('selectedCommunityId') : null;
+  const communityId = (user?.communities?.some(c => c._id === saved) ? saved : user?.communities?.[0]?._id) || null;
 
   async function handleLogout() {
     localStorage.removeItem('auth_token');
@@ -27,7 +30,7 @@ export function AppSidebar() {
       {/* Logo section */}
       <div className="p-4 flex items-center gap-3 border-b border-[#c7c4d7]">
         <img src="/logo.png" alt="Parivaar" className="h-8 w-auto" />
-        <span className="text-[18px] font-semibold text-[#3230c4] uppercase tracking-tight">Parivaar</span>
+        <span className="text-[18px] font-semibold text-[#0b1c30] uppercase tracking-tight">Parivaar</span>
       </div>
 
       {/* Nav */}
@@ -41,7 +44,7 @@ export function AppSidebar() {
               href={href}
               className={`flex items-center gap-3 px-4 py-2.5 rounded transition-colors ${
                 isActive
-                  ? 'bg-[#4c4ddc] text-[#dbdaff] font-semibold'
+                  ? 'bg-[#0b1c30] text-white font-semibold'
                   : 'text-[#464555] hover:bg-[#eff4ff] hover:text-[#0b1c30]'
               }`}
             >
@@ -51,15 +54,26 @@ export function AppSidebar() {
           );
         })}
 
-        {/* Settings divider at bottom of nav */}
+        {(() => {
+          const href = communityId ? `/admin/communities/${communityId}` : '#';
+          const isActive = pathname.startsWith('/admin/communities/');
+          return (
+            <Link
+              href={href}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded transition-colors ${
+                isActive
+                  ? 'bg-[#0b1c30] text-white font-semibold'
+                  : 'text-[#464555] hover:bg-[#eff4ff] hover:text-[#0b1c30]'
+              }`}
+            >
+              <Building2 className="size-5" />
+              <span className="text-sm">Community Info</span>
+            </Link>
+          );
+        })()}
+
+        {/* Divider at bottom of nav */}
         <div className="pt-4 mt-4 border-t border-[#c7c4d7]">
-          <Link
-            href="/admin/settings"
-            className="flex items-center gap-3 px-4 py-2.5 rounded text-[#464555] hover:bg-[#eff4ff] hover:text-[#0b1c30] transition-colors"
-          >
-            <Settings className="size-5" />
-            <span className="text-sm">Settings</span>
-          </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded text-[#464555] hover:bg-[#eff4ff] hover:text-[#0b1c30] transition-colors text-left"

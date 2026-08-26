@@ -90,7 +90,7 @@ export default function SettingsPage() {
           <div className="flex gap-3 pt-4">
             <Button
               onClick={handleSave}
-              className="bg-[#3230c4] hover:bg-[#494ad9] text-white"
+              className="bg-[#0b1c30] hover:bg-[#1c2f47] text-white"
             >
               Save Settings
             </Button>

@@ -5,7 +5,7 @@ import type { Community, Designation, UserListItem } from '@parivaar/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@chakra-ui/react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClickableAvatar } from '@/components/ui/clickable-image';
 import {
@@ -173,8 +173,9 @@ export function CommunityExecutivesTab({
   }
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4">
+    <div className="chakra-scope">
+    <Card.Root>
+      <Card.Body className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Executive designations for this community.
@@ -373,7 +374,8 @@ export function CommunityExecutivesTab({
             ))}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </Card.Body>
+    </Card.Root>
+    </div>
   );
 }

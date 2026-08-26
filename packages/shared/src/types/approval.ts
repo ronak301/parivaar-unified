@@ -5,7 +5,8 @@ export type ApprovalEntityType =
   | 'business_promotion'
   | 'new_member'
   | 'death_marking'
-  | 'family_head_change';
+  | 'family_head_change'
+  | 'new_family';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
@@ -14,7 +15,7 @@ export interface ApprovalRequest {
   entityType: ApprovalEntityType;
   entityId?: string;
   communityId: string;
-  requestedBy: string;
+  requestedBy?: string;
   reviewedBy?: string;
   status: ApprovalStatus;
   payload?: Record<string, unknown>;

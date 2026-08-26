@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@chakra-ui/react';
 import { Badge } from '@/components/ui/badge';
 import { readCache, writeCache } from '@/lib/cache/local-cache';
 
@@ -81,8 +81,9 @@ export function CommunityMembersTab({
   const pagination = data?.pagination;
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4">
+    <div className="chakra-scope">
+    <Card.Root>
+      <Card.Body className="flex flex-col gap-4">
         <Input
           placeholder="Search members..."
           value={search}
@@ -163,7 +164,8 @@ export function CommunityMembersTab({
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </Card.Body>
+    </Card.Root>
+    </div>
   );
 }

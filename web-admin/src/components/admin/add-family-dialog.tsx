@@ -96,6 +96,7 @@ const RELATIONS = [
   { id: 'son', label: 'Son' },
   { id: 'daughter', label: 'Daughter' },
   { id: 'spouse', label: 'Spouse' },
+  { id: 'sibling', label: 'Brother/Sister' },
 ];
 
 function emptyPersonForm(): PersonForm {
@@ -319,7 +320,7 @@ function PersonFieldsBlock({
           <Input id="pf-dob" type="date" value={form.dob} onChange={(e) => setField('dob', e.target.value)} />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="pf-guardianName">Guardian name</Label>
+          <Label htmlFor="pf-guardianName">Father&apos;s Name / Guardian Name</Label>
           <Input
             id="pf-guardianName"
             value={form.guardianName}
@@ -565,7 +566,9 @@ function PersonFieldsBlock({
                   onValueChange={(v) => setBusinessField('category', v ?? '')}
                 >
                   <SelectTrigger id="pf-biz-category" className="w-full">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Select category">
+                      {(value: string) => BusinessTypes.find((bt) => bt.id === value)?.label ?? value}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {BusinessTypes.map((bt) => (

@@ -51,6 +51,7 @@ export interface FamilyTreeMember {
   motherId?: string;
   spouseId?: string;
   childrenIds?: string[];
+  siblingIds?: string[];
   isFamilyHead?: boolean;
   isAlive?: boolean;
   demiseDate?: string;

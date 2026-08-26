@@ -1,30 +1,89 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
-import { Gender, BloodGroups, BusinessTypes } from '@parivaar/shared';
-import { states, getCitiesForState, getDistrictsForState } from '@/lib/locations';
-import { Plus, X } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Gender } from '@parivaar/shared';
 import type { Community } from '@parivaar/shared';
+import { Plus, X, UserPlus, CheckCircle2 } from 'lucide-react';
+import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
 import { readCache, writeCache } from '@/lib/cache/local-cache';
+import {
+  PersonFieldsBlock,
+  emptyPersonForm,
+  emptyBusinessForm,
+  buildUserPayload,
+  buildBusinessPayload,
+  type PersonForm,
+  type BusinessForm,
+} from '@/components/admin/person-fields-block';
+
+const RELATIONS = [
+  { id: 'son', label: 'Son' },
+  { id: 'daughter', label: 'Daughter' },
+  { id: 'spouse', label: 'Spouse' },
+  { id: 'sibling', label: 'Brother/Sister' },
+];
+
+interface PendingMember {
+  tempId: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  gender: string;
+  relation: string;
+  relatedTo: string;
+}
 
 export default function CommunityFormPage({ params }: { params: Promise<{ id: string }> }) {
+  const [communityId, setCommunityId] = useState('');
   const [community, setCommunity] = useState<Community | null>(null);
   const [loading, setLoading] = useState(true);
-  const [state, setState] = useState('Karnataka');
-  const [city, setCity] = useState('Bengaluru');
-  const [locality, setLocality] = useState('');
-  const [showAddMember, setShowAddMember] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const [phase, setPhase] = useState<'head' | 'members' | 'success'>('head');
+
+  const [form, setForm] = useState<PersonForm>(emptyPersonForm());
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>();
+  const [businessEnabled, setBusinessEnabled] = useState(false);
+  const [businessForm, setBusinessForm] = useState<BusinessForm>(emptyBusinessForm());
+  const [uploadingBusiness, setUploadingBusiness] = useState(false);
+  const [businessLogoPrev, setBusinessLogoPrev] = useState('');
+  const [businessLogoUrl, setBusinessLogoUrl] = useState<string | undefined>();
+  const [businessPhotosPrev, setBusinessPhotosPrev] = useState<string[]>([]);
+  const [businessPhotoUrls, setBusinessPhotoUrls] = useState<string[]>([]);
+
+  const [pendingMembers, setPendingMembers] = useState<PendingMember[]>([]);
+  const [memberFirstName, setMemberFirstName] = useState('');
+  const [memberLastName, setMemberLastName] = useState('');
+  const [memberPhone, setMemberPhone] = useState('');
+  const [memberGender, setMemberGender] = useState('');
+  const [memberRelation, setMemberRelation] = useState('');
+  const [memberRelatedTo, setMemberRelatedTo] = useState('');
+
+  const [submitterName, setSubmitterName] = useState('');
+  const [submitterPhone, setSubmitterPhone] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const headName = [form.firstName, form.lastName].filter(Boolean).join(' ');
 
   useEffect(() => {
     async function fetchCommunity() {
       try {
         const { id } = await params;
+        setCommunityId(id);
         const cacheKey = `community_detail_${id}`;
         const cached = readCache<Community>(cacheKey);
         if (cached) {
@@ -37,6 +96,8 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
           const data = await res.json();
           setCommunity(data.community);
           writeCache(cacheKey, data.community);
+        } else if (res.status === 404) {
+          setNotFound(true);
         }
       } catch (err) {
         console.error('Failed to fetch community:', err);
@@ -47,6 +108,176 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
     fetchCommunity();
   }, [params]);
 
+  function setField<K extends keyof PersonForm>(key: K, value: PersonForm[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function setBusinessField<K extends keyof BusinessForm>(key: K, value: BusinessForm[K]) {
+    setBusinessForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handlePhotoFileReady(file: File) {
+    setError('');
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    const preview = URL.createObjectURL(file);
+    setPhotoPreview(preview);
+    setUploadingPhoto(true);
+
+    uploadUserPhoto(file, `public-submit/${communityId}/${crypto.randomUUID()}`)
+      .then((url) => setPhotoUrl(url))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to upload photo'))
+      .finally(() => setUploadingPhoto(false));
+  }
+
+  function handleBusinessLogoFileReady(file: File) {
+    setError('');
+    if (businessLogoPrev) URL.revokeObjectURL(businessLogoPrev);
+    const preview = URL.createObjectURL(file);
+    setBusinessLogoPrev(preview);
+    setUploadingBusiness(true);
+
+    uploadBusinessLogo(file, `public-submit/${communityId}/${crypto.randomUUID()}`)
+      .then((url) => setBusinessLogoUrl(url))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to upload logo'))
+      .finally(() => setUploadingBusiness(false));
+  }
+
+  function handleBusinessPhotoFileReady(file: File) {
+    setError('');
+    if (businessPhotosPrev.length >= 2) return;
+    const preview = URL.createObjectURL(file);
+    setBusinessPhotosPrev((prev) => [...prev, preview].slice(0, 2));
+    setUploadingBusiness(true);
+
+    uploadBusinessPhoto(file, `public-submit/${communityId}/${crypto.randomUUID()}`)
+      .then((url) => setBusinessPhotoUrls((prev) => [...prev, url].slice(0, 2)))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to upload photo'))
+      .finally(() => setUploadingBusiness(false));
+  }
+
+  function validatePerson(): string {
+    if (!form.firstName.trim()) return 'First name is required';
+    if (!form.gender) return 'Gender is required';
+    if (!form.phone || !/^[0-9]{10}$/.test(form.phone)) return 'A valid 10-digit phone number is required';
+    if (form.pincode && !/^[0-9]{6}$/.test(form.pincode)) return 'Pincode must be 6 digits';
+    if (form.aadharLast4 && !/^[0-9]{4}$/.test(form.aadharLast4)) return 'Aadhar must be last 4 digits';
+    if (businessEnabled && !businessForm.name.trim()) return 'Business name is required';
+    return '';
+  }
+
+  function handleHeadContinue() {
+    const validationError = validatePerson();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError('');
+    setPhase('members');
+  }
+
+  function handleAddPendingMember() {
+    if (!memberFirstName.trim()) {
+      setError('First name is required');
+      return;
+    }
+    if (!memberGender) {
+      setError('Gender is required');
+      return;
+    }
+    if (!memberRelation) {
+      setError('Relation is required');
+      return;
+    }
+    if (!memberRelatedTo) {
+      setError('Please select who this member is related to');
+      return;
+    }
+    if (memberPhone && !/^[0-9]{10}$/.test(memberPhone)) {
+      setError('Phone number must be exactly 10 digits');
+      return;
+    }
+
+    setError('');
+    setPendingMembers((prev) => [
+      ...prev,
+      {
+        tempId: crypto.randomUUID(),
+        firstName: memberFirstName.trim(),
+        lastName: memberLastName.trim(),
+        phone: memberPhone.trim(),
+        gender: memberGender,
+        relation: memberRelation,
+        relatedTo: memberRelatedTo,
+      },
+    ]);
+    setMemberFirstName('');
+    setMemberLastName('');
+    setMemberPhone('');
+    setMemberGender('');
+    setMemberRelation('');
+    setMemberRelatedTo('');
+  }
+
+  function removePendingMember(tempId: string) {
+    setPendingMembers((prev) => prev.filter((m) => m.tempId !== tempId));
+  }
+
+  async function handleSubmit() {
+    setSubmitting(true);
+    setError('');
+    try {
+      const headPayload = buildUserPayload(form, photoUrl);
+
+      const batchMembers = pendingMembers.map((m) => {
+        let relativeIndex: number | undefined;
+        if (m.relation && m.relatedTo) {
+          if (m.relatedTo === 'head') {
+            relativeIndex = -1;
+          } else {
+            relativeIndex = pendingMembers.findIndex((pm) => pm.tempId === m.relatedTo);
+          }
+        }
+        return {
+          firstName: m.firstName,
+          lastName: m.lastName || undefined,
+          phone: m.phone || undefined,
+          gender: m.gender || undefined,
+          relation: m.relation || undefined,
+          relativeIndex,
+        };
+      });
+
+      const businessPayload = businessEnabled
+        ? buildBusinessPayload(businessForm, businessLogoUrl, businessPhotoUrls)
+        : undefined;
+
+      const res = await fetch('/api/public/families/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          communityId,
+          head: headPayload,
+          sampradaya: form.sampradaya || undefined,
+          business: businessPayload,
+          members: batchMembers.length > 0 ? batchMembers : undefined,
+          submitterName: submitterName.trim() || undefined,
+          submitterPhone: submitterPhone.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? 'Failed to submit. Please try again.');
+        return;
+      }
+
+      setPhase('success');
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -55,551 +286,250 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
     );
   }
 
+  if (notFound || !community) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">Community not found. Please check the link and try again.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <div className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-4xl">
-          {/* Header */}
           <div className="bg-gradient-to-r from-black via-slate-900 to-black text-white rounded-t-2xl px-8 py-16 sm:px-10 sm:py-20 text-center">
             <div className="flex flex-col gap-2">
-              <h1 className="text-4xl sm:text-5xl font-bold text-white">{community?.name}</h1>
+              <h1 className="text-4xl sm:text-5xl font-bold text-white">{community.name}</h1>
               <p className="text-base sm:text-lg text-gray-300 font-medium">Registration Form</p>
             </div>
           </div>
 
-          {/* Form */}
           <div className="rounded-b-2xl border border-t-0 bg-white p-6 sm:p-8 space-y-8">
-            {/* Family Head Information */}
-            <div className="space-y-5">
-              <h2 className="text-lg font-semibold text-foreground">Family Head Information</h2>
-
-              {/* Photo Section */}
-              <div className="flex flex-col gap-3">
-                <p className="text-sm font-medium">Photo Upload</p>
-              <div className="rounded-lg border-2 border-dashed border-border p-6 text-center">
-                <p className="text-sm text-muted-foreground">Profile photo (drag & drop or click)</p>
-                <p className="mt-1 text-xs text-muted-foreground">PNG, JPEG, WebP · Max 3MB</p>
+            {phase === 'success' && (
+              <div className="flex flex-col items-center gap-4 py-12 text-center">
+                <CheckCircle2 className="size-16 text-green-600" />
+                <h2 className="text-xl font-semibold text-foreground">Submission received</h2>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  Thank you{headName ? `, ${headName}` : ''}. Your family details have been sent to the community
+                  admins for approval. You&apos;ll be added to the directory once it&apos;s reviewed.
+                </p>
               </div>
-            </div>
+            )}
 
-            {/* Personal Info */}
-            <div className="border rounded-lg p-5 bg-gray-50 flex flex-col gap-3">
-              <p className="text-sm font-semibold text-foreground">Personal Information</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">First name *</Label>
-                  <Input placeholder="John" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Last name *</Label>
-                  <Input placeholder="Doe" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Sampradaya</Label>
-                  <Select onValueChange={() => {}}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select sampradaya" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Sthanak">Sthanak</SelectItem>
-                      <SelectItem value="Mandrimargi">Mandrimargi</SelectItem>
-                      <SelectItem value="Terapanthi">Terapanthi</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Phone (10 digits) *</Label>
-                  <Input placeholder="9876543210" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Email</Label>
-                  <Input type="email" placeholder="john@example.com" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Date of birth</Label>
-                  <Input type="date" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Guardian name</Label>
-                  <Input placeholder="Parent name" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Gender</Label>
-                  <Select>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Gender.map((g) => (
-                        <SelectItem key={g.id} value={g.id}>
-                          {g.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Wedding date</Label>
-                  <Input type="date" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Education</Label>
-                  <Input placeholder="e.g., Bachelor's Degree" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Special education</Label>
-                  <Input placeholder="Certifications, degrees" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Blood group</Label>
-                  <Select onValueChange={() => {}}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select blood group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BloodGroups.map((bg) => (
-                        <SelectItem key={bg.id} value={bg.label}>
-                          {bg.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Native place</Label>
-                  <Input placeholder="Village/city name" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Native district</Label>
-                  <Input placeholder="District name" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Nanihaal Gotra</Label>
-                  <Input placeholder="Gotra" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Hobbies</Label>
-                  <Input placeholder="e.g., Reading, Sports" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Achievements</Label>
-                  <Input placeholder="Awards, accomplishments" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Aadhar (last 4 digits)</Label>
-                  <Input placeholder="1234" maxLength={4} />
-                </div>
+            {phase === 'head' && (
+              <div className="space-y-5">
+                <h2 className="text-lg font-semibold text-foreground">Family Head Information</h2>
+                <PersonFieldsBlock
+                  form={form}
+                  setField={setField}
+                  photoPreview={photoPreview}
+                  onPhotoFileReady={handlePhotoFileReady}
+                  uploadingPhoto={uploadingPhoto}
+                  localities={community.localities ?? []}
+                  businessEnabled={businessEnabled}
+                  onToggleBusiness={() => setBusinessEnabled((v) => !v)}
+                  businessForm={businessForm}
+                  setBusinessField={setBusinessField}
+                  businessLogoPrev={businessLogoPrev}
+                  businessPhotosPrev={businessPhotosPrev}
+                  onBusinessLogoFileReady={handleBusinessLogoFileReady}
+                  onBusinessPhotoFileReady={handleBusinessPhotoFileReady}
+                  uploadingBusiness={uploadingBusiness}
+                  onError={setError}
+                />
               </div>
-            </div>
+            )}
 
-            {/* Address */}
-            <div className="border rounded-lg p-5 bg-gray-50 flex flex-col gap-3">
-              <p className="text-sm font-semibold text-foreground">Address</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label className="text-xs sm:text-sm">Full address</Label>
-                  <Input placeholder="Street address, building, etc." />
-                </div>
+            {phase === 'members' && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-foreground">Family Members</h2>
                 <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">State</Label>
-                  <Select value={state} onValueChange={(v) => v && setState(v)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {states.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">City</Label>
-                  <Select value={city} onValueChange={(v) => v && setCity(v)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {state &&
-                        getCitiesForState(state).map((c) => (
-                          <SelectItem key={c} value={c}>
-                            {c}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">District</Label>
-                  <Select>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={getDistrictsForState(state).length > 0 ? 'Select district' : 'Not available'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {state &&
-                        getDistrictsForState(state).map((d) => (
-                          <SelectItem key={d} value={d}>
-                            {d}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Locality</Label>
-                  {(community?.localities ?? []).length > 0 ? (
-                    <Select value={locality} onValueChange={(v) => v && setLocality(v)}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select locality" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(community?.localities ?? []).map((loc) => (
-                          <SelectItem key={loc} value={loc}>
-                            {loc}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input placeholder="Neighborhood/area" />
+                  <p className="text-sm font-medium">Head: {headName}</p>
+                  {pendingMembers.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      {pendingMembers.map((m) => {
+                        const relMeta = RELATIONS.find((r) => r.id === m.relation);
+                        const relatedName = m.relatedTo === 'head'
+                          ? headName
+                          : (() => {
+                              const p = pendingMembers.find((pm) => pm.tempId === m.relatedTo);
+                              return p ? [p.firstName, p.lastName].filter(Boolean).join(' ') : '';
+                            })();
+                        return (
+                          <div key={m.tempId} className="flex items-center gap-2">
+                            <Badge variant="secondary">
+                              {[m.firstName, m.lastName].filter(Boolean).join(' ')}
+                              {m.phone ? ` · ${m.phone}` : ''}
+                              {relMeta && relatedName ? ` · ${relMeta.label} of ${relatedName}` : relMeta ? ` · ${relMeta.label}` : ''}
+                            </Badge>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs text-muted-foreground"
+                              onClick={() => removePendingMember(m.tempId)}
+                            >
+                              <X className="size-3" />
+                              Remove
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Pincode (6 digits)</Label>
-                  <Input placeholder="560001" maxLength={6} />
-                </div>
-              </div>
-            </div>
 
-            {/* Business */}
-            <div className="border rounded-lg p-5 bg-gray-50 flex flex-col gap-3">
-              <p className="text-sm font-semibold text-foreground">Business (Optional)</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Business name</Label>
-                  <Input placeholder="Company name" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Category</Label>
-                  <Select>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BusinessTypes.map((bt) => (
-                        <SelectItem key={bt.id} value={bt.id}>
-                          {bt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Business phone</Label>
-                  <Input placeholder="9876543210" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Website</Label>
-                  <Input placeholder="https://example.com" />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label className="text-xs sm:text-sm">Description</Label>
-                  <Textarea placeholder="Business details..." rows={2} />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label className="text-xs sm:text-sm">Address</Label>
-                  <Input placeholder="Business address" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">Instagram profile</Label>
-                  <Input placeholder="https://instagram.com/..." />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm">LinkedIn profile</Label>
-                  <Input placeholder="https://linkedin.com/..." />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label className="text-xs sm:text-sm">Google Maps link</Label>
-                  <Input placeholder="https://maps.google.com/..." />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label className="text-xs sm:text-sm">Logo</Label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      disabled
-                      className="text-xs sm:text-sm file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-muted-foreground file:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label className="text-xs sm:text-sm">Photos (max 2)</Label>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    multiple
-                    disabled
-                    className="text-xs sm:text-sm file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-muted-foreground file:cursor-not-allowed disabled:opacity-50"
-                  />
-                </div>
-              </div>
-            </div>
-            </div>
+                <Separator />
 
-            {/* Family Members Section */}
-            <div className="space-y-4 border-t pt-6">
-              <h2 className="text-lg font-semibold text-foreground">Family Members</h2>
-              {!showAddMember && (
-                <Button className="w-full" size="lg" onClick={() => setShowAddMember(true)}>
-                  <Plus />
-                  Add Family Member
-                </Button>
-              )}
-
-              {showAddMember && (
                 <div className="space-y-5 border rounded-lg p-6 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-foreground">Add Family Member</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowAddMember(false)}
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  </div>
-
-                  <div className="space-y-6">
-                      {/* Photo Upload */}
-                      <div className="flex flex-col gap-3">
-                        <Label className="text-sm font-medium">Photo</Label>
-                        <div className="rounded-lg border-2 border-dashed border-border p-6 text-center">
-                          <p className="text-sm text-muted-foreground">Profile photo (drag & drop or click)</p>
-                          <p className="mt-1 text-xs text-muted-foreground">PNG, JPEG, WebP · Max 3MB</p>
-                        </div>
-                      </div>
-
-                      {/* Relation Fields */}
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="flex flex-col gap-2">
-                          <Label htmlFor="relation" className="text-sm">Relation (Optional)</Label>
-                          <Select>
-                            <SelectTrigger id="relation" className="w-full">
-                              <SelectValue placeholder="Select relation" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="father">Father</SelectItem>
-                              <SelectItem value="mother">Mother</SelectItem>
-                              <SelectItem value="spouse">Spouse</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Label htmlFor="relatedTo" className="text-sm">Related to (Optional)</Label>
-                          <Input id="relatedTo" placeholder="Member name" />
-                        </div>
-                      </div>
-
-                      {/* Personal Information */}
-                      <div className="border rounded-lg p-4 bg-gray-50 space-y-4">
-                        <p className="text-sm font-semibold text-foreground">Personal Information</p>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">First name *</Label>
-                            <Input placeholder="John" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Last name *</Label>
-                            <Input placeholder="Doe" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Phone (10 digits)</Label>
-                            <Input placeholder="9876543210" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Email</Label>
-                            <Input type="email" placeholder="john@example.com" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Date of birth</Label>
-                            <Input type="date" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Guardian name</Label>
-                            <Input placeholder="Parent name" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Gender</Label>
-                            <Select>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select gender" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Gender.map((g) => (
-                                  <SelectItem key={g.id} value={g.id}>
-                                    {g.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Wedding date</Label>
-                            <Input type="date" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Education</Label>
-                            <Input placeholder="e.g., Bachelor's Degree" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Special education</Label>
-                            <Input placeholder="Certifications, degrees" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Blood group</Label>
-                            <Select>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select blood group" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {BloodGroups.map((bg) => (
-                                  <SelectItem key={bg.id} value={bg.label}>
-                                    {bg.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Nanihaal Gotra</Label>
-                            <Input placeholder="Gotra" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Hobbies</Label>
-                            <Input placeholder="e.g., Reading, Sports" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Achievements</Label>
-                            <Input placeholder="Awards, accomplishments" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Aadhar (last 4 digits)</Label>
-                            <Input placeholder="1234" maxLength={4} />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Address */}
-                      <div className="border rounded-lg p-4 bg-gray-50 space-y-4">
-                        <p className="text-sm font-semibold text-foreground">Address</p>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="flex flex-col gap-2 sm:col-span-2">
-                            <Label className="text-xs">Full address</Label>
-                            <Input placeholder="Street address" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">State</Label>
-                            <Select>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select state" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {states.map((s) => (
-                                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">City</Label>
-                            <Input placeholder="City" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">District</Label>
-                            <Input placeholder="District" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Locality</Label>
-                            <Input placeholder="Locality" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Pincode</Label>
-                            <Input placeholder="560001" maxLength={6} />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Business */}
-                      <div className="border rounded-lg p-4 bg-gray-50 space-y-4">
-                        <p className="text-sm font-semibold text-foreground">Business (Optional)</p>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Business name</Label>
-                            <Input placeholder="Company name" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Category</Label>
-                            <Select>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {BusinessTypes.map((bt) => (
-                                  <SelectItem key={bt.id} value={bt.id}>
-                                    {bt.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Business phone</Label>
-                            <Input placeholder="9876543210" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Website</Label>
-                            <Input placeholder="https://example.com" />
-                          </div>
-                          <div className="flex flex-col gap-2 sm:col-span-2">
-                            <Label className="text-xs">Description</Label>
-                            <Textarea placeholder="Business details..." rows={2} />
-                          </div>
-                          <div className="flex flex-col gap-2 sm:col-span-2">
-                            <Label className="text-xs">Address</Label>
-                            <Input placeholder="Business address" />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">Instagram profile</Label>
-                            <Input placeholder="https://instagram.com/..." />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label className="text-xs">LinkedIn profile</Label>
-                            <Input placeholder="https://linkedin.com/..." />
-                          </div>
-                          <div className="flex flex-col gap-2 sm:col-span-2">
-                            <Label className="text-xs">Google Maps link</Label>
-                            <Input placeholder="https://maps.google.com/..." />
-                          </div>
-                        </div>
-                      </div>
+                  <p className="text-sm font-medium">Add a member</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="m-firstName" className="text-xs">First name <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="m-firstName"
+                        placeholder="First name"
+                        value={memberFirstName}
+                        onChange={(e) => setMemberFirstName(e.target.value)}
+                      />
                     </div>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="m-lastName" className="text-xs">Last name</Label>
+                      <Input
+                        id="m-lastName"
+                        placeholder="Last name"
+                        value={memberLastName}
+                        onChange={(e) => setMemberLastName(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="m-phone" className="text-xs">Phone</Label>
+                      <Input
+                        id="m-phone"
+                        placeholder="10-digit phone"
+                        value={memberPhone}
+                        onChange={(e) => setMemberPhone(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="m-gender" className="text-xs">Gender <span className="text-red-500">*</span></Label>
+                      <Select value={memberGender} onValueChange={(v) => setMemberGender(v ?? '')}>
+                        <SelectTrigger id="m-gender" className="w-full">
+                          {memberGender
+                            ? <span data-slot="select-value" className="flex flex-1 text-left">{Gender.find((g) => g.id === memberGender)?.label ?? memberGender}</span>
+                            : <SelectValue placeholder="Select gender" />
+                          }
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Gender.map((g) => (
+                            <SelectItem key={g.id} value={g.id}>
+                              {g.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="m-relation" className="text-xs">Relation <span className="text-red-500">*</span></Label>
+                      <Select value={memberRelation} onValueChange={(v) => setMemberRelation(v ?? '')}>
+                        <SelectTrigger id="m-relation" className="w-full">
+                          {memberRelation
+                            ? <span data-slot="select-value" className="flex flex-1 text-left">{RELATIONS.find((r) => r.id === memberRelation)?.label}</span>
+                            : <SelectValue placeholder="Select relation" />
+                          }
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RELATIONS.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="m-relatedTo" className="text-xs">Related to <span className="text-red-500">*</span></Label>
+                      <Select value={memberRelatedTo} onValueChange={(v) => setMemberRelatedTo(v ?? '')}>
+                        <SelectTrigger id="m-relatedTo" className="w-full">
+                          {memberRelatedTo
+                            ? <span data-slot="select-value" className="flex flex-1 text-left">{
+                                memberRelatedTo === 'head'
+                                  ? `${headName} (Head)`
+                                  : (() => { const pm = pendingMembers.find((p) => p.tempId === memberRelatedTo); return pm ? [pm.firstName, pm.lastName].filter(Boolean).join(' ') : ''; })()
+                              }</span>
+                            : <SelectValue placeholder="Select person" />
+                          }
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="head">{headName} (Head)</SelectItem>
+                          {pendingMembers.map((pm) => (
+                            <SelectItem key={pm.tempId} value={pm.tempId}>
+                              {[pm.firstName, pm.lastName].filter(Boolean).join(' ')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" className="w-fit" onClick={handleAddPendingMember}>
+                    <UserPlus className="size-3.5" />
+                    Add Member
+                  </Button>
+                </div>
 
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowAddMember(false)}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
-                    <Button className="flex-1">Add Member</Button>
+                <Separator />
+
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">Your details (optional)</p>
+                  <p className="text-xs text-muted-foreground">
+                    Let us know who&apos;s submitting this, in case the admin has questions.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="submitter-name" className="text-xs">Your name</Label>
+                      <Input
+                        id="submitter-name"
+                        value={submitterName}
+                        onChange={(e) => setSubmitterName(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="submitter-phone" className="text-xs">Your phone</Label>
+                      <Input
+                        id="submitter-phone"
+                        placeholder="10-digit phone"
+                        value={submitterPhone}
+                        onChange={(e) => setSubmitterPhone(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            {phase !== 'success' && (
+              <div className="flex gap-3 border-t pt-6">
+                {phase === 'members' && (
+                  <Button variant="outline" size="lg" onClick={() => setPhase('head')} className="flex-1">
+                    Back
+                  </Button>
+                )}
+                {phase === 'head' && (
+                  <Button size="lg" onClick={handleHeadContinue} className="w-full">
+                    <Plus />
+                    Continue
+                  </Button>
+                )}
+                {phase === 'members' && (
+                  <Button size="lg" onClick={handleSubmit} disabled={submitting} className="flex-1">
+                    {submitting ? 'Submitting...' : `Submit for Approval${pendingMembers.length > 0 ? ` (${pendingMembers.length + 1} members)` : ''}`}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

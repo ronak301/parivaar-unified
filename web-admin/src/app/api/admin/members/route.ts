@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBackendUrl } from '@/lib/api/backend-url';
 
+const FILTER_KEYS = [
+  'gender',
+  'bloodGroup',
+  'locality',
+  'ageMin',
+  'ageMax',
+  'isMarried',
+  'businessCategory',
+  'isFamilyHead',
+] as const;
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const communityId = searchParams.get('communityId') || '';
@@ -19,6 +30,11 @@ export async function GET(request: NextRequest) {
     url.searchParams.set('page', page);
     url.searchParams.set('limit', limit);
 
+    for (const key of FILTER_KEYS) {
+      const value = searchParams.get(key);
+      if (value) url.searchParams.set(key, value);
+    }
+
     if (query) {
       // Use search endpoint if query provided
       const searchUrl = new URL(`${backendUrl}/api/users/search`);
@@ -26,6 +42,11 @@ export async function GET(request: NextRequest) {
       searchUrl.searchParams.set('communityId', communityId);
       searchUrl.searchParams.set('page', page);
       searchUrl.searchParams.set('limit', limit);
+
+      for (const key of FILTER_KEYS) {
+        const value = searchParams.get(key);
+        if (value) searchUrl.searchParams.set(`filters[${key}]`, value);
+      }
 
       const res = await fetch(searchUrl, {
         headers: { Authorization: `Bearer ${token}` },

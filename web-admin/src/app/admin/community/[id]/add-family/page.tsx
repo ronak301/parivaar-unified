@@ -119,7 +119,7 @@ export default function AddFamilyPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-[#3230c4] hover:bg-[#494ad9] text-white"
+              className="flex-1 bg-[#0b1c30] hover:bg-[#1c2f47] text-white"
             >
               {loading ? 'Creating...' : 'Create Family'}
             </Button>

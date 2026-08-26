@@ -1,107 +1,100 @@
-"use client"
+'use client';
 
-import * as React from "react"
+import { chakra } from '@chakra-ui/react';
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils';
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+const ChakraTable = chakra('table');
+const ChakraThead = chakra('thead');
+const ChakraTbody = chakra('tbody');
+const ChakraTfoot = chakra('tfoot');
+const ChakraTr = chakra('tr');
+const ChakraTh = chakra('th');
+const ChakraTd = chakra('td');
+const ChakraCaption = chakra('caption');
+
+function Table({ className, ...props }: React.ComponentProps<typeof ChakraTable>) {
   return (
-    <div
-      data-slot="table-container"
-      className="relative w-full overflow-x-auto"
-    >
-      <table
+    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+      <ChakraTable
         data-slot="table"
-        className={cn("w-full caption-bottom text-[0.9rem]", className)}
+        className={cn('w-full caption-bottom text-[0.9rem]', className)}
         {...props}
       />
     </div>
-  )
+  );
 }
 
-function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
+function TableHeader({ className, ...props }: React.ComponentProps<typeof ChakraThead>) {
   return (
-    <thead
-      data-slot="table-header"
-      className={cn("[&_tr]:border-b", className)}
-      {...props}
-    />
-  )
+    <ChakraThead data-slot="table-header" className={cn('[&_tr]:border-b', className)} {...props} />
+  );
 }
 
-function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
+function TableBody({ className, ...props }: React.ComponentProps<typeof ChakraTbody>) {
   return (
-    <tbody
+    <ChakraTbody
       data-slot="table-body"
-      className={cn("[&_tr:last-child]:border-0", className)}
+      className={cn('[&_tr:last-child]:border-0', className)}
       {...props}
     />
-  )
+  );
 }
 
-function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
+function TableFooter({ className, ...props }: React.ComponentProps<typeof ChakraTfoot>) {
   return (
-    <tfoot
+    <ChakraTfoot
       data-slot="table-footer"
-      className={cn(
-        "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
-        className
-      )}
+      className={cn('border-t bg-muted/50 font-medium [&>tr]:last:border-b-0', className)}
       {...props}
     />
-  )
+  );
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+function TableRow({ className, ...props }: React.ComponentProps<typeof ChakraTr>) {
   return (
-    <tr
+    <ChakraTr
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        'border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted',
         className
       )}
       {...props}
     />
-  )
+  );
 }
 
-function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+function TableHead({ className, ...props }: React.ComponentProps<typeof ChakraTh>) {
   return (
-    <th
+    <ChakraTh
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+        'h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0',
         className
       )}
       {...props}
     />
-  )
+  );
 }
 
-function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+function TableCell({ className, ...props }: React.ComponentProps<typeof ChakraTd>) {
   return (
-    <td
+    <ChakraTd
       data-slot="table-cell"
-      className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
-        className
-      )}
+      className={cn('p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0', className)}
       {...props}
     />
-  )
+  );
 }
 
-function TableCaption({
-  className,
-  ...props
-}: React.ComponentProps<"caption">) {
+function TableCaption({ className, ...props }: React.ComponentProps<typeof ChakraCaption>) {
   return (
-    <caption
+    <ChakraCaption
       data-slot="table-caption"
-      className={cn("mt-4 text-sm text-muted-foreground", className)}
+      className={cn('mt-4 text-sm text-muted-foreground', className)}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -113,4 +106,4 @@ export {
   TableRow,
   TableCell,
   TableCaption,
-}
+};

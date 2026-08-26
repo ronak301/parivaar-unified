@@ -285,7 +285,7 @@ export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved, l
         </div>
 
         <SheetFooter>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#3230c4] hover:bg-[#494ad9]">
+          <Button onClick={handleSave} disabled={saving} className="bg-[#0b1c30] hover:bg-[#1c2f47]">
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </SheetFooter>

@@ -49,6 +49,7 @@ export interface IUser extends Document {
   motherId?: mongoose.Types.ObjectId;
   spouseId?: mongoose.Types.ObjectId;
   childrenIds: mongoose.Types.ObjectId[];
+  siblingIds: mongoose.Types.ObjectId[];
   privateFields: string[];
   isAlive: boolean;
   demiseDate?: Date;
@@ -107,6 +108,7 @@ const userSchema = new Schema<IUser>(
     motherId: { type: Schema.Types.ObjectId, ref: 'User' },
     spouseId: { type: Schema.Types.ObjectId, ref: 'User' },
     childrenIds: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    siblingIds: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     privateFields: [String],
     isAlive: { type: Boolean, default: true },
     demiseDate: Date,

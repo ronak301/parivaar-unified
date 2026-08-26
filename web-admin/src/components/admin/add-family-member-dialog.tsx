@@ -36,6 +36,7 @@ const RELATIONS = [
   { id: 'son', label: 'Son' },
   { id: 'daughter', label: 'Daughter' },
   { id: 'spouse', label: 'Spouse' },
+  { id: 'sibling', label: 'Brother/Sister' },
 ];
 
 interface PendingMember {

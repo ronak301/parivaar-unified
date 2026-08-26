@@ -76,16 +76,16 @@ export function TopBar() {
     : 'AU';
 
   return (
-    <header className="fixed top-0 right-0 left-[260px] h-16 bg-white/90 backdrop-blur-md border-b border-[#c7c4d7] z-40 flex items-center justify-between px-6">
+    <header className="fixed top-0 right-0 left-[260px] h-16 bg-[#0b1c30] z-40 flex items-center justify-between px-6">
       {/* Left: Community selector */}
       <div className="relative" onMouseLeave={() => setIsDropdownOpen(false)}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-[#e5eeff] hover:bg-[#dce9ff] rounded-lg border border-[#c7c4d7] transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg border border-white/20 transition-colors"
         >
-          <Globe className="size-[18px] text-[#3230c4]" />
-          <span className="font-body-md text-sm font-semibold text-[#0b1c30]">{communityName}</span>
-          <ChevronDown className={`size-[18px] text-[#3230c4] transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          <Globe className="size-[18px] text-white" />
+          <span className="font-body-md text-sm font-semibold text-white">{communityName}</span>
+          <ChevronDown className={`size-[18px] text-white transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {isDropdownOpen && (
@@ -110,7 +110,7 @@ export function TopBar() {
       {/* Right: Bell, divider, user */}
       <div className="flex items-center gap-4">
         <Link href="/admin/notifications">
-          <button className="p-2 text-[#464555] hover:bg-[#e5eeff] rounded-full transition-colors relative">
+          <button className="p-2 text-white/80 hover:bg-white/10 hover:text-white rounded-full transition-colors relative">
             <Bell className="size-5" />
             {unreadCount > 0 && (
               <Badge variant="destructive" className="absolute -right-1 -top-1 size-5 rounded-full p-0 flex items-center justify-center text-xs">
@@ -120,13 +120,13 @@ export function TopBar() {
           </button>
         </Link>
 
-        <div className="h-8 w-[1px] bg-[#c7c4d7]" />
+        <div className="h-8 w-[1px] bg-white/20" />
 
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-3 pl-2 outline-none">
             <div className="text-right hidden sm:block">
-              <div className="text-sm font-semibold text-[#0b1c30]">{user?.fullName}</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-[#464555]">{user?.role.replace('_', ' ')}</div>
+              <div className="text-sm font-semibold text-white">{user?.fullName}</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-white/70">{user?.role.replace('_', ' ')}</div>
             </div>
             <Avatar className="w-8 h-8">
               <AvatarImage src={user?.profilePicture} alt={user?.fullName} />

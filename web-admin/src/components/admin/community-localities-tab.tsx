@@ -4,9 +4,9 @@ import { useState } from 'react';
 import type { Community } from '@parivaar/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@chakra-ui/react';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Sparkles, Loader2, Check } from 'lucide-react';
 
 export function CommunityLocalitiesTab({
   community,
@@ -19,6 +19,13 @@ export function CommunityLocalitiesTab({
   const [newLocality, setNewLocality] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const [manualCity, setManualCity] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestError, setSuggestError] = useState('');
+  const [suggestAttempted, setSuggestAttempted] = useState(false);
 
   async function persist(next: string[]) {
     setSaving(true);
@@ -53,9 +60,56 @@ export function CommunityLocalitiesTab({
     await persist(localities.filter((l) => l !== value));
   }
 
+  async function handleSuggest() {
+    const city = (community.city || manualCity).trim();
+    if (!city) return;
+
+    setSuggestLoading(true);
+    setSuggestError('');
+    setSuggestAttempted(true);
+    try {
+      const params = new URLSearchParams({ city, communityId: community._id });
+      const res = await fetch(`/api/admin/localities/suggest?${params.toString()}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setSuggestError(data.error ?? 'Failed to fetch suggestions');
+        setSuggestions([]);
+        return;
+      }
+      setSuggestions(data.suggestions ?? []);
+      setSelected(new Set());
+    } catch {
+      setSuggestError('Network error. Please try again.');
+      setSuggestions([]);
+    } finally {
+      setSuggestLoading(false);
+    }
+  }
+
+  function toggleSelected(value: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) {
+        next.delete(value);
+      } else {
+        next.add(value);
+      }
+      return next;
+    });
+  }
+
+  async function handleAddSelected() {
+    if (selected.size === 0) return;
+    const toAdd = Array.from(selected).filter((s) => !localities.includes(s));
+    await persist([...localities, ...toAdd]);
+    setSuggestions((prev) => prev.filter((s) => !selected.has(s)));
+    setSelected(new Set());
+  }
+
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4">
+    <div className="chakra-scope">
+    <Card.Root>
+      <Card.Body className="flex flex-col gap-4">
         <div className="flex gap-2">
           <Input
             placeholder="Add a locality..."
@@ -97,7 +151,62 @@ export function CommunityLocalitiesTab({
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+
+        <div className="flex flex-col gap-3 border-t pt-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {!community.city && (
+              <Input
+                placeholder="Enter a city..."
+                value={manualCity}
+                onChange={(e) => setManualCity(e.target.value)}
+                className="max-w-xs"
+              />
+            )}
+            <Button
+              onClick={handleSuggest}
+              disabled={suggestLoading || !(community.city || manualCity).trim()}
+              variant="outline"
+              size="sm"
+            >
+              {suggestLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
+              Suggest from internet
+            </Button>
+          </div>
+
+          {suggestError && <p className="text-sm text-destructive">{suggestError}</p>}
+
+          {!suggestLoading && suggestAttempted && !suggestError && suggestions.length === 0 && (
+            <p className="text-sm text-muted-foreground">No suggestions found for this city.</p>
+          )}
+
+          {suggestions.length > 0 && (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((suggestion) => {
+                  const isSelected = selected.has(suggestion);
+                  return (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => toggleSelected(suggestion)}
+                      className="inline-flex"
+                    >
+                      <Badge variant={isSelected ? 'default' : 'outline'} className="gap-1">
+                        {isSelected && <Check className="size-3" />}
+                        {suggestion}
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </div>
+              <Button onClick={handleAddSelected} disabled={saving || selected.size === 0} size="sm" className="w-fit">
+                Add selected ({selected.size})
+              </Button>
+            </>
+          )}
+        </div>
+      </Card.Body>
+    </Card.Root>
+    </div>
   );
 }

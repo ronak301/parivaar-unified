@@ -275,7 +275,7 @@ export default function MemberDetailPage() {
             </AlertDialogContent>
           </AlertDialog>
 
-          <Button size="sm" onClick={() => setEditOpen(true)} className="bg-[#3230c4] hover:bg-[#494ad9]">
+          <Button size="sm" onClick={() => setEditOpen(true)} className="bg-[#0b1c30] hover:bg-[#1c2f47]">
             <Pencil className="size-4" />
             Edit
           </Button>
@@ -295,7 +295,7 @@ export default function MemberDetailPage() {
           <InfoField label="Email" value={user.email} />
           <InfoField label="Gender" value={genderLabel(user.gender)} />
           <InfoField label="Date of Birth" value={formatDate(user.dob)} />
-          <InfoField label="Guardian Name" value={user.guardianName} />
+          <InfoField label="Father's Name / Guardian Name" value={user.guardianName} />
           <InfoField label="Blood Group" value={user.bloodGroup} />
           <InfoField label="Wedding Date" value={formatDate(user.weddingDate)} />
         </div>

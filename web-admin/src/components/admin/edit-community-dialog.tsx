@@ -1,31 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Community } from '@parivaar/shared';
 import { CommunityStatus } from '@parivaar/shared';
+import {
+  CloseButton,
+  Dialog,
+  Field,
+  Input,
+  Portal,
+  Select,
+  Textarea,
+  createListCollection,
+} from '@chakra-ui/react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { ClickableAvatar } from '@/components/ui/clickable-image';
 import { ImageUploadField } from '@/components/ui/image-upload-field';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Building2, Pencil } from 'lucide-react';
 import { uploadCommunityLogo } from '@/lib/firebase/storage';
+
+const statusCollection = createListCollection({
+  items: CommunityStatus.map((s) => ({ label: s.label, value: s.id })),
+});
 
 export function EditCommunityDialog({
   community,
@@ -49,6 +45,7 @@ export function EditCommunityDialog({
   const [logoPreview, setLogoPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const scopeRef = useRef<HTMLDivElement>(null);
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -127,140 +124,166 @@ export function EditCommunityDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) resetToSource();
-      }}
-    >
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
-        <Pencil />
-        Edit
-      </DialogTrigger>
-      <DialogContent className="max-h-[88vh] max-w-2xl overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Edit Community</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-6">
-            <ClickableAvatar
-              src={logoPreview || form.logo}
-              alt="Community logo"
-              fallback={<Building2 className="size-12" />}
-              size="lg"
-              className="size-28 ring-4 ring-muted"
-            />
-            <ImageUploadField
-              fieldKey="communityLogo"
-              onFileReady={handleFileReady}
-              onError={setError}
-            >
-              {({ openFilePicker }) => (
-                <div className="flex flex-col gap-2">
-                  <Button type="button" variant="outline" size="lg" onClick={openFilePicker}>
-                    {logoFile ? 'Change logo' : 'Upload logo'}
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    PNG, JPEG or WEBP, up to 1MB. Uploaded when you save.
-                  </span>
-                </div>
-              )}
-            </ImageUploadField>
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-name" className="text-base">Name</Label>
-              <Input
-                id="edit-name"
-                className="h-11 text-base"
-                value={form.name}
-                onChange={(e) => set('name', e.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-status" className="text-base">Status</Label>
-              <Select
-                value={form.status || undefined}
-                onValueChange={(value) => set('status', String(value))}
-              >
-                <SelectTrigger id="edit-status" size="lg" className="w-full">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CommunityStatus.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-contactPersonName" className="text-base">Contact Person</Label>
-              <Input
-                id="edit-contactPersonName"
-                className="h-11 text-base"
-                value={form.contactPersonName}
-                onChange={(e) => set('contactPersonName', e.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-contactPersonNumber" className="text-base">Contact Number</Label>
-              <Input
-                id="edit-contactPersonNumber"
-                className="h-11 text-base"
-                value={form.contactPersonNumber}
-                onChange={(e) => set('contactPersonNumber', e.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-state" className="text-base">State</Label>
-              <Input
-                id="edit-state"
-                className="h-11 text-base"
-                value={form.state}
-                onChange={(e) => set('state', e.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-city" className="text-base">City</Label>
-              <Input
-                id="edit-city"
-                className="h-11 text-base"
-                value={form.city}
-                onChange={(e) => set('city', e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="edit-description" className="text-base">Description</Label>
-            <Textarea
-              id="edit-description"
-              className="text-base"
-              value={form.description}
-              onChange={(e) => set('description', e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
-
-        <DialogFooter>
-          <Button size="lg" onClick={handleSave} disabled={saving || !form.name.trim()}>
-            {saving ? 'Saving...' : 'Save Changes'}
+    <div className="chakra-scope" ref={scopeRef}>
+      <Dialog.Root
+        lazyMount
+        open={open}
+        onOpenChange={(e) => {
+          setOpen(e.open);
+          if (!e.open) resetToSource();
+        }}
+      >
+        <Dialog.Trigger asChild>
+          <Button variant="outline" size="sm">
+            <Pencil />
+            Edit
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </Dialog.Trigger>
+        <Portal container={scopeRef}>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content maxH="88vh" maxW="2xl" overflowY="auto">
+              <Dialog.Header>
+                <Dialog.Title fontSize="xl">Edit Community</Dialog.Title>
+              </Dialog.Header>
+
+              <Dialog.Body display="flex" flexDirection="column" gap="6">
+                <div className="flex items-center gap-6">
+                  <ClickableAvatar
+                    src={logoPreview || form.logo}
+                    alt="Community logo"
+                    fallback={<Building2 className="size-12" />}
+                    size="lg"
+                    className="size-28 ring-4 ring-muted"
+                  />
+                  <ImageUploadField
+                    fieldKey="communityLogo"
+                    onFileReady={handleFileReady}
+                    onError={setError}
+                  >
+                    {({ openFilePicker }) => (
+                      <div className="flex flex-col gap-2">
+                        <Button type="button" variant="outline" size="lg" onClick={openFilePicker}>
+                          {logoFile ? 'Change logo' : 'Upload logo'}
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
+                          PNG, JPEG or WEBP, up to 1MB. Uploaded when you save.
+                        </span>
+                      </div>
+                    )}
+                  </ImageUploadField>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field.Root>
+                    <Field.Label>Name</Field.Label>
+                    <Input
+                      id="edit-name"
+                      size="lg"
+                      value={form.name}
+                      onChange={(e) => set('name', e.target.value)}
+                    />
+                  </Field.Root>
+
+                  <Field.Root>
+                    <Field.Label>Status</Field.Label>
+                    <Select.Root
+                      collection={statusCollection}
+                      value={form.status ? [form.status] : []}
+                      onValueChange={(e) => set('status', e.value[0] ?? '')}
+                      size="lg"
+                    >
+                      <Select.HiddenSelect />
+                      <Select.Control>
+                        <Select.Trigger id="edit-status">
+                          <Select.ValueText placeholder="Select status" />
+                        </Select.Trigger>
+                        <Select.IndicatorGroup>
+                          <Select.Indicator />
+                        </Select.IndicatorGroup>
+                      </Select.Control>
+                      <Portal container={scopeRef}>
+                        <Select.Positioner>
+                          <Select.Content>
+                            {statusCollection.items.map((item) => (
+                              <Select.Item item={item} key={item.value}>
+                                {item.label}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Portal>
+                    </Select.Root>
+                  </Field.Root>
+
+                  <Field.Root>
+                    <Field.Label>Contact Person</Field.Label>
+                    <Input
+                      id="edit-contactPersonName"
+                      size="lg"
+                      value={form.contactPersonName}
+                      onChange={(e) => set('contactPersonName', e.target.value)}
+                    />
+                  </Field.Root>
+
+                  <Field.Root>
+                    <Field.Label>Contact Number</Field.Label>
+                    <Input
+                      id="edit-contactPersonNumber"
+                      size="lg"
+                      value={form.contactPersonNumber}
+                      onChange={(e) => set('contactPersonNumber', e.target.value)}
+                    />
+                  </Field.Root>
+
+                  <Field.Root>
+                    <Field.Label>State</Field.Label>
+                    <Input
+                      id="edit-state"
+                      size="lg"
+                      value={form.state}
+                      onChange={(e) => set('state', e.target.value)}
+                    />
+                  </Field.Root>
+
+                  <Field.Root>
+                    <Field.Label>City</Field.Label>
+                    <Input
+                      id="edit-city"
+                      size="lg"
+                      value={form.city}
+                      onChange={(e) => set('city', e.target.value)}
+                    />
+                  </Field.Root>
+                </div>
+
+                <Field.Root>
+                  <Field.Label>Description</Field.Label>
+                  <Textarea
+                    id="edit-description"
+                    value={form.description}
+                    onChange={(e) => set('description', e.target.value)}
+                    rows={3}
+                  />
+                </Field.Root>
+
+                {error && <p className="text-sm text-destructive">{error}</p>}
+              </Dialog.Body>
+
+              <Dialog.Footer>
+                <Button size="lg" onClick={handleSave} disabled={saving || !form.name.trim()}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </Dialog.Footer>
+
+              <Dialog.CloseTrigger asChild>
+                <CloseButton size="sm" />
+              </Dialog.CloseTrigger>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
+    </div>
   );
 }

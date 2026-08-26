@@ -6,6 +6,20 @@ import { fuzzyFilterAndPaginate, CANDIDATE_CAP } from '../utils/fuzzy-search';
 
 const SEARCH_SELECT = 'enrollmentId firstName lastName fullName profilePicture phone gender address.city address.locality communityIds familyId isFamilyHead isAlive';
 
+function buildAgeFilter(ageMin?: number, ageMax?: number): Record<string, Date> | undefined {
+  if (ageMin === undefined && ageMax === undefined) return undefined;
+
+  const today = new Date();
+  const dobFilter: Record<string, Date> = {};
+  if (ageMin !== undefined) {
+    dobFilter.$lte = new Date(today.getFullYear() - ageMin, today.getMonth(), today.getDate());
+  }
+  if (ageMax !== undefined) {
+    dobFilter.$gte = new Date(today.getFullYear() - ageMax - 1, today.getMonth(), today.getDate() + 1);
+  }
+  return dobFilter;
+}
+
 export async function checkPhone(req: AuthRequest, res: Response): Promise<void> {
   const phone = req.query.phone as string;
   if (!phone) {
@@ -118,18 +132,10 @@ export async function searchUsers(req: AuthRequest, res: Response): Promise<void
   if (filters?.nativePlace) filter.nativePlace = filters.nativePlace;
   if (filters?.nativeDistrict) filter.nativeDistrict = filters.nativeDistrict;
   if (filters?.isFamilyHead !== undefined) filter.isFamilyHead = filters.isFamilyHead;
+  if (filters?.isMarried !== undefined) filter.isMarried = filters.isMarried;
 
-  if (filters?.ageMin !== undefined || filters?.ageMax !== undefined) {
-    const today = new Date();
-    const dobFilter: Record<string, Date> = {};
-    if (filters.ageMin !== undefined) {
-      dobFilter.$lte = new Date(today.getFullYear() - filters.ageMin, today.getMonth(), today.getDate());
-    }
-    if (filters.ageMax !== undefined) {
-      dobFilter.$gte = new Date(today.getFullYear() - filters.ageMax - 1, today.getMonth(), today.getDate() + 1);
-    }
-    filter.dob = dobFilter;
-  }
+  const ageFilter = buildAgeFilter(filters?.ageMin, filters?.ageMax);
+  if (ageFilter) filter.dob = ageFilter;
 
   if (filters?.sampradaya) {
     const familyIds = await Family.distinct('_id', { sampradaya: filters.sampradaya });
@@ -192,6 +198,21 @@ export async function getUsersByCommunity(req: AuthRequest, res: Response): Prom
   if (req.query.bloodGroup) filter.bloodGroup = req.query.bloodGroup;
   if (req.query.locality) filter['address.locality'] = req.query.locality;
   if (req.query.isAlive !== undefined) filter.isAlive = req.query.isAlive === 'true';
+  if (req.query.isMarried !== undefined) filter.isMarried = req.query.isMarried === 'true';
+  if (req.query.isFamilyHead !== undefined) filter.isFamilyHead = req.query.isFamilyHead === 'true';
+
+  const ageMin = req.query.ageMin !== undefined ? Number(req.query.ageMin) : undefined;
+  const ageMax = req.query.ageMax !== undefined ? Number(req.query.ageMax) : undefined;
+  const ageFilter = buildAgeFilter(ageMin, ageMax);
+  if (ageFilter) filter.dob = ageFilter;
+
+  if (req.query.businessCategory) {
+    const ownerIds = await Business.distinct('ownerId', {
+      category: req.query.businessCategory,
+      communityId,
+    });
+    filter._id = { $in: ownerIds };
+  }
 
   if (search.trim()) {
     const candidates = await User.find(filter)

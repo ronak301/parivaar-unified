@@ -53,7 +53,7 @@ export async function getFamilyTree(req: AuthRequest, res: Response): Promise<vo
   }
 
   const members = await User.find({ familyId: family._id, isBlocked: { $ne: true } })
-    .select('enrollmentId firstName lastName fullName profilePicture dob gender phone fatherId motherId spouseId childrenIds isFamilyHead isAlive demiseDate');
+    .select('enrollmentId firstName lastName fullName profilePicture dob gender phone fatherId motherId spouseId childrenIds siblingIds isFamilyHead isAlive demiseDate');
 
   res.json({ success: true, family, members });
 }
@@ -175,6 +175,10 @@ export async function batchCreateFamily(req: AuthRequest, res: Response): Promis
                 memberUser.spouseId = relativeUser._id;
                 relativeUser.spouseId = memberUser._id;
                 break;
+              case 'sibling':
+                memberUser.siblingIds.push(relativeUser._id);
+                relativeUser.siblingIds.push(memberUser._id);
+                break;
               case 'child':
                 memberUser.childrenIds.push(relativeUser._id);
                 relativeUser.fatherId = memberUser._id;
@@ -260,6 +264,10 @@ export async function addFamilyMember(req: AuthRequest, res: Response): Promise<
         user.spouseId = relative._id;
         relative.spouseId = user._id;
         break;
+      case 'sibling':
+        user.siblingIds.push(relative._id);
+        relative.siblingIds.push(user._id);
+        break;
       case 'child':
         user.childrenIds.push(relative._id);
         relative.fatherId = user._id;
@@ -339,6 +347,10 @@ export async function addFamilyMembers(req: AuthRequest, res: Response): Promise
         case 'spouse':
           memberUser.spouseId = relative._id;
           relative.spouseId = memberUser._id;
+          break;
+        case 'sibling':
+          memberUser.siblingIds.push(relative._id);
+          relative.siblingIds.push(memberUser._id);
           break;
         case 'son':
         case 'daughter':

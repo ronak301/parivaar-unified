@@ -43,6 +43,7 @@ export interface User {
   motherId?: string;
   spouseId?: string;
   childrenIds?: string[];
+  siblingIds?: string[];
 
   privateFields?: string[];
 

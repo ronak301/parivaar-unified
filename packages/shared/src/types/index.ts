@@ -1,6 +1,7 @@
 export * from './user';
 export * from './family';
 export * from './community';
+export * from './locality';
 export * from './business';
 export * from './matrimonial';
 export * from './approval';

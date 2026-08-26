@@ -6,21 +6,32 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { readCache, writeCache } from '@/lib/cache/local-cache';
 import { ClickableImage } from '@/components/ui/clickable-image';
 import { AddFamilyDialog } from '@/components/admin/add-family-dialog';
-import type { Community } from '@parivaar/shared';
+import { Gender, BloodGroups, BusinessTypes, type Community } from '@parivaar/shared';
 import {
   Search,
   Download,
-  Plus,
   ChevronLeft,
   ChevronRight,
   Filter,
-  SortAsc,
   Store,
   BookOpen,
   ExternalLink,
+  Users2,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserPlus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Input as TextInput } from '@/components/ui/input';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 interface User {
   _id: string;
@@ -57,6 +68,26 @@ interface MembersResponse {
   pagination: PaginationData;
 }
 
+interface MemberFilters {
+  gender: string;
+  bloodGroup: string;
+  locality: string;
+  isMarried: string;
+  businessCategory: string;
+  ageMin: string;
+  ageMax: string;
+}
+
+const EMPTY_FILTERS: MemberFilters = {
+  gender: '',
+  bloodGroup: '',
+  locality: '',
+  isMarried: '',
+  businessCategory: '',
+  ageMin: '',
+  ageMax: '',
+};
+
 export function MembersDirectoryView({ communityId: propCommunityId }: { communityId?: string } = {}) {
   const { user } = useAuth();
   const [members, setMembers] = useState<User[]>([]);
@@ -66,16 +97,39 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
   const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [openImageId, setOpenImageId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [filters, setFilters] = useState<MemberFilters>(EMPTY_FILTERS);
+  const [familyHeadOnly, setFamilyHeadOnly] = useState(false);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
   const saved = typeof window !== 'undefined' ? localStorage.getItem('selectedCommunityId') : null;
   const communityId = propCommunityId || (user?.communities?.some(c => c._id === saved) ? saved : user?.communities?.[0]?._id) || '';
-  const currentCommunity = user?.communities?.find((c: Community) => c._id === communityId);
+  const currentCommunity = user?.communities?.find((c) => c._id === communityId);
+
+  const [localities, setLocalities] = useState<string[]>(
+    () => readCache<{ localities?: string[] }>(`community_detail_${communityId}`)?.localities ?? [],
+  );
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0 || familyHeadOnly;
 
   useEffect(() => {
     if (!communityId) return;
     fetchMembers(1);
-  }, [debouncedSearch, communityId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, communityId, filters, familyHeadOnly]);
+
+  useEffect(() => {
+    if (!communityId) return;
+    fetch(`/api/admin/communities/${communityId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
+    })
+      .then((res) => res.json())
+      .then((data: { community?: Community }) => {
+        if (data.community?.localities) setLocalities(data.community.localities);
+      })
+      .catch(() => {});
+  }, [communityId]);
 
   if (!user?.communities?.length) {
     return <div className="text-center py-8 text-[#464555]">No communities available</div>;
@@ -84,7 +138,7 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
   async function fetchMembers(pageNum: number) {
     if (!communityId) return;
 
-    const cacheable = pageNum === 1 && !debouncedSearch;
+    const cacheable = pageNum === 1 && !debouncedSearch && !hasActiveFilters;
     const cacheKey = `members_list_${communityId}`;
 
     if (cacheable) {
@@ -111,6 +165,14 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
       if (debouncedSearch) {
         params.set('query', debouncedSearch);
       }
+      if (filters.gender) params.set('gender', filters.gender);
+      if (filters.bloodGroup) params.set('bloodGroup', filters.bloodGroup);
+      if (filters.locality) params.set('locality', filters.locality);
+      if (filters.isMarried) params.set('isMarried', filters.isMarried);
+      if (filters.businessCategory) params.set('businessCategory', filters.businessCategory);
+      if (filters.ageMin) params.set('ageMin', filters.ageMin);
+      if (filters.ageMax) params.set('ageMax', filters.ageMax);
+      if (familyHeadOnly) params.set('isFamilyHead', 'true');
 
       const res = await fetch(`/api/admin/members?${params}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
@@ -160,34 +222,199 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
           {/* Action buttons */}
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#464555] size-5" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#464555] size-4" />
               <input
                 type="text"
                 placeholder="Search members..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-[#e5eeff] rounded-lg border-none focus:ring-2 focus:ring-[#3230c4]/20 focus:outline-none text-sm text-[#0b1c30] placeholder:text-[#464555] transition-all"
+                className="w-full h-10 pl-10 pr-4 bg-white border border-[#c7c4d7] rounded-lg focus:ring-2 focus:ring-[#3230c4]/20 focus:outline-none text-sm text-[#0b1c30] placeholder:text-[#464555] transition-all"
               />
             </div>
-            <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#e5eeff] hover:bg-[#dce9ff] text-[#0b1c30] rounded-lg text-sm transition-colors whitespace-nowrap">
-              <Download className="size-5" />
+            <Button
+              variant={familyHeadOnly ? 'default' : 'outline'}
+              onClick={() => setFamilyHeadOnly((v) => !v)}
+              className={familyHeadOnly ? 'bg-[#0b1c30] hover:bg-[#1c2f47]' : ''}
+            >
+              <Users2 className="size-4" />
+              Family Heads Only
+            </Button>
+
+            <Popover open={filterPanelOpen} onOpenChange={setFilterPanelOpen}>
+              <PopoverTrigger render={<Button variant="outline" className="relative" />}>
+                <Filter className="size-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <Badge className="bg-[#0b1c30] text-white">{activeFilterCount}</Badge>
+                )}
+              </PopoverTrigger>
+
+              <PopoverContent align="end" className="w-80">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-[#0b1c30]">Filters</p>
+                    {hasActiveFilters && (
+                      <button
+                        onClick={() => {
+                          setFilters(EMPTY_FILTERS);
+                          setFamilyHeadOnly(false);
+                        }}
+                        className="flex items-center gap-1 text-xs text-[#464555] hover:text-[#0b1c30]"
+                      >
+                        <X className="size-3.5" />
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label>Gender</Label>
+                    <Select
+                      value={filters.gender}
+                      onValueChange={(v) => setFilters((f) => ({ ...f, gender: v ?? '' }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Any" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Gender.map((g) => (
+                          <SelectItem key={g.id} value={g.id}>
+                            {g.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label>Blood Group</Label>
+                    <Select
+                      value={filters.bloodGroup}
+                      onValueChange={(v) => setFilters((f) => ({ ...f, bloodGroup: v ?? '' }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Any">
+                          {(value: string) => BloodGroups.find((bg) => bg.id === value)?.label ?? value}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BloodGroups.map((bg) => (
+                          <SelectItem key={bg.id} value={bg.id}>
+                            {bg.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label>Locality</Label>
+                    {localities.length > 0 ? (
+                      <Select
+                        value={filters.locality}
+                        onValueChange={(v) => setFilters((f) => ({ ...f, locality: v ?? '' }))}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Any" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {localities.map((loc) => (
+                            <SelectItem key={loc} value={loc}>
+                              {loc}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <TextInput
+                        placeholder="Any"
+                        value={filters.locality}
+                        onChange={(e) => setFilters((f) => ({ ...f, locality: e.target.value }))}
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label>Married</Label>
+                    <Select
+                      value={filters.isMarried}
+                      onValueChange={(v) => setFilters((f) => ({ ...f, isMarried: v ?? '' }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Any">
+                          {(value: string) => (value === 'true' ? 'Married' : 'Unmarried')}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Married</SelectItem>
+                        <SelectItem value="false">Unmarried</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label>Business Category</Label>
+                    <Select
+                      value={filters.businessCategory}
+                      onValueChange={(v) => setFilters((f) => ({ ...f, businessCategory: v ?? '' }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Any">
+                          {(value: string) => BusinessTypes.find((bt) => bt.id === value)?.label ?? value}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BusinessTypes.map((bt) => (
+                          <SelectItem key={bt.id} value={bt.id}>
+                            {bt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label>Age</Label>
+                    <div className="flex items-center gap-2">
+                      <TextInput
+                        type="number"
+                        min={0}
+                        placeholder="Min"
+                        value={filters.ageMin}
+                        onChange={(e) => setFilters((f) => ({ ...f, ageMin: e.target.value }))}
+                      />
+                      <span className="text-[#464555]">–</span>
+                      <TextInput
+                        type="number"
+                        min={0}
+                        placeholder="Max"
+                        value={filters.ageMax}
+                        onChange={(e) => setFilters((f) => ({ ...f, ageMax: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Button variant="outline">
+              <Download className="size-4" />
               Export CSV
-            </button>
+            </Button>
             {currentCommunity && (
-              <button
+              <Button
+                variant="outline"
                 onClick={() => window.open(`/community/${currentCommunity._id}/form`, '_blank')}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#e5eeff] hover:bg-[#dce9ff] text-[#0b1c30] rounded-lg text-sm transition-colors whitespace-nowrap"
               >
-                <ExternalLink className="size-5" />
+                <ExternalLink className="size-4" />
                 Open Form
-              </button>
+              </Button>
             )}
             <Button
-              size="lg"
               onClick={() => setDialogOpen(true)}
-              className="bg-[#3230c4] hover:bg-[#494ad9]"
+              className="bg-[#0b1c30] hover:bg-[#1c2f47]"
             >
-              <UserPlus className="size-5" />
+              <UserPlus className="size-4" />
               Add Family
             </Button>
           </div>
@@ -202,64 +429,60 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
           <>
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-left border-collapse whitespace-nowrap">
-                <thead className="bg-[#e5eeff]/50 sticky top-0 z-10 backdrop-blur-sm">
+                <thead className="bg-[#0b1c30] sticky top-0 z-10">
                   <tr>
-                    <th className="py-3 px-4 text-xs text-[#464555] font-semibold w-[80px]">Photo</th>
-                    <th className="py-3 px-4 text-xs text-[#464555] font-semibold min-w-[200px]">Member Details</th>
-                    <th className="py-3 px-4 text-xs text-[#464555] font-semibold min-w-[200px]">Guardian</th>
-                    <th className="py-3 px-4 text-xs text-[#464555] font-semibold min-w-[250px]">Business / Education</th>
+                    <th className="py-4 px-6 text-xs text-white/90 font-semibold uppercase tracking-wide w-[90px]">Profile</th>
+                    <th className="py-4 px-6 text-xs text-white/90 font-semibold uppercase tracking-wide min-w-[220px]">Name</th>
+                    <th className="py-4 px-6 text-xs text-white/90 font-semibold uppercase tracking-wide min-w-[200px]">Father&apos;s Name</th>
+                    <th className="py-4 px-6 text-xs text-white/90 font-semibold uppercase tracking-wide min-w-[250px]">Business / Education</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#c7c4d7]/20">
-                  {members.map((member) => (
+                  {members.map((member, i) => (
                     <tr
                       key={member._id}
-                      className="hover:bg-[#e5eeff]/30 transition-colors cursor-pointer"
+                      className={`hover:bg-[#e5eeff]/50 transition-colors cursor-pointer ${
+                        i % 2 === 1 ? 'bg-[#e5eeff]/25' : 'bg-white'
+                      }`}
                       onClick={() => window.location.href = `/admin/community/${communityId}/members/${member._id}`}
                     >
-                      <td className="py-3 px-4">
+                      <td className="py-4 px-6">
                         {member.profilePicture ? (
                           <ClickableImage
                             src={member.profilePicture}
                             alt={member.fullName}
-                            className="w-10 h-10 rounded-full object-cover shadow-sm cursor-pointer"
+                            className="w-11 h-11 rounded-full object-cover shadow-sm cursor-pointer"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-[#dce9ff] flex items-center justify-center text-[#3230c4] text-xs font-semibold">
+                          <div className="w-11 h-11 rounded-full bg-[#dce9ff] flex items-center justify-center text-[#3230c4] text-sm font-semibold">
                             {getInitials(member)}
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-4 px-6">
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-[#0b1c30]">{member.fullName}</span>
-                          <span className="text-xs text-[#464555]">{member.enrollmentId}</span>
+                          <span className="text-base font-bold text-[#0b1c30]">{member.fullName}</span>
+                          <span className="text-sm text-[#464555]">{member.enrollmentId}</span>
                         </div>
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col">
-                          <span className="text-sm text-[#0b1c30]">{member.guardianName || '—'}</span>
-                          <span className="text-xs text-[#464555]">
-                            {member.isFamilyHead ? 'Self (Head)' : 'Family member'}
-                          </span>
-                        </div>
+                      <td className="py-4 px-6">
+                        <span className="text-sm text-[#0b1c30]">{member.guardianName || '—'}</span>
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          {member.businessName ? (
-                            <>
-                              <Store className="size-4 text-[#3230c4]" />
-                              <span className="text-sm text-[#0b1c30] truncate">{member.businessName}</span>
-                            </>
-                          ) : member.education ? (
-                            <>
-                              <BookOpen className="size-4 text-[#4648d4]" />
-                              <span className="text-sm text-[#0b1c30] truncate">{member.education}</span>
-                            </>
-                          ) : (
-                            <span className="text-sm text-[#464555]">—</span>
-                          )}
-                        </div>
+                      <td className="py-4 px-6">
+                        {member.businessName ? (
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-[#0b1c30]">{member.businessName}</span>
+                            {member.businessCategory && (
+                              <span className="text-sm text-[#464555]">{member.businessCategory}</span>
+                            )}
+                          </div>
+                        ) : member.education ? (
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-[#0b1c30]">{member.education}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-[#464555]">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -296,7 +519,7 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
                           onClick={() => fetchMembers(pageNum)}
                           className={`w-8 h-8 rounded text-xs font-semibold transition-colors ${
                             pageNum === page
-                              ? 'bg-[#3230c4] text-white'
+                              ? 'bg-[#0b1c30] text-white'
                               : 'hover:bg-[#e5eeff] text-[#0b1c30]'
                           }`}
                         >

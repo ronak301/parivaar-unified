@@ -8,6 +8,7 @@ const ENTITY_TYPES = [
   'new_member',
   'death_marking',
   'family_head_change',
+  'new_family',
 ] as const;
 
 export const createApprovalRequestSchema = z.object({

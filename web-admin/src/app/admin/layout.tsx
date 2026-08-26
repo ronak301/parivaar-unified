@@ -26,7 +26,7 @@ function AdminContent({ children }: { children: React.ReactNode }) {
           <p className="text-[#464555] text-sm">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-[#3230c4] text-white rounded-lg"
+            className="mt-4 px-4 py-2 bg-[#0b1c30] text-white rounded-lg"
           >
             Retry
           </button>

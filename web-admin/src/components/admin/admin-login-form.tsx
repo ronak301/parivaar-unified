@@ -5,13 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card } from '@chakra-ui/react';
 import {
   InputOTP,
   InputOTPGroup,
@@ -90,16 +84,17 @@ export function AdminLoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Admin Login</CardTitle>
-        <CardDescription>
-          {step === 'phone'
-            ? 'Enter your phone number to receive an OTP'
-            : `Enter the OTP sent to ${phone}`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="chakra-scope w-full max-w-sm">
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>Admin Login</Card.Title>
+          <Card.Description>
+            {step === 'phone'
+              ? 'Enter your phone number to receive an OTP'
+              : `Enter the OTP sent to ${phone}`}
+          </Card.Description>
+        </Card.Header>
+        <Card.Body>
         {step === 'phone' ? (
           <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
@@ -156,7 +151,8 @@ export function AdminLoginForm() {
             </Button>
           </form>
         )}
-      </CardContent>
-    </Card>
+        </Card.Body>
+      </Card.Root>
+    </div>
   );
 }

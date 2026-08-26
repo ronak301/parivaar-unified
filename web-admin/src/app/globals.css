@@ -1,3 +1,5 @@
+@layer reset, tokens, properties, theme, base, components, recipes, utilities;
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

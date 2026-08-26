@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@chakra-ui/react';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -29,7 +29,19 @@ function requesterName(request: ApprovalRequest): string {
     const r = requestedBy as { fullName?: string; firstName?: string; lastName?: string };
     return r.fullName ?? ([r.firstName, r.lastName].filter(Boolean).join(' ') || '-');
   }
+  const submitterName = request.payload?.submitterName;
+  if (typeof submitterName === 'string' && submitterName) return `${submitterName} (public)`;
   return '-';
+}
+
+function requestDetails(request: ApprovalRequest): string {
+  if (request.entityType !== 'new_family') return '-';
+  const head = request.payload?.head as { firstName?: string; lastName?: string } | undefined;
+  const members = request.payload?.members as unknown[] | undefined;
+  const headName = head ? [head.firstName, head.lastName].filter(Boolean).join(' ') : '';
+  const memberCount = members?.length ?? 0;
+  if (!headName) return '-';
+  return `${headName}${memberCount > 0 ? ` + ${memberCount} member${memberCount > 1 ? 's' : ''}` : ''}`;
 }
 
 export function CommunityApprovalsTab({ communityId }: { communityId: string }) {
@@ -83,11 +95,12 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
   }
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4">
+    <div className="chakra-scope">
+    <Card.Root>
+      <Card.Body className="flex flex-col gap-4">
         <Select value={status} onValueChange={(value) => setStatus(value as ApprovalStatus)}>
           <SelectTrigger size="lg" className="w-fit">
-            <SelectValue />
+            <SelectValue>{(value: ApprovalStatus) => value.charAt(0).toUpperCase() + value.slice(1)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {STATUS_FILTERS.map((s) => (
@@ -104,6 +117,7 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
           <TableHeader>
             <TableRow>
               <TableHead>Type</TableHead>
+              <TableHead>Details</TableHead>
               <TableHead>Requested By</TableHead>
               <TableHead>Created</TableHead>
               {status === 'pending' && <TableHead />}
@@ -112,14 +126,14 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                   Loading...
                 </TableCell>
               </TableRow>
             )}
             {!loading && requests.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                   No {status} requests.
                 </TableCell>
               </TableRow>
@@ -129,6 +143,7 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
                 <TableCell>
                   <Badge variant="outline">{request.entityType}</Badge>
                 </TableCell>
+                <TableCell>{requestDetails(request)}</TableCell>
                 <TableCell>{requesterName(request)}</TableCell>
                 <TableCell>
                   {request.createdAt ? new Date(request.createdAt).toLocaleDateString() : '-'}
@@ -158,7 +173,8 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
             ))}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </Card.Body>
+    </Card.Root>
+    </div>
   );
 }

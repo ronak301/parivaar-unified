@@ -4,7 +4,7 @@ export interface IApprovalRequest extends Document {
   entityType: string;
   entityId?: string;
   communityId: mongoose.Types.ObjectId;
-  requestedBy: mongoose.Types.ObjectId;
+  requestedBy?: mongoose.Types.ObjectId;
   reviewedBy?: mongoose.Types.ObjectId;
   status: 'pending' | 'approved' | 'rejected';
   payload?: Record<string, unknown>;
@@ -23,12 +23,13 @@ const approvalRequestSchema = new Schema<IApprovalRequest>(
         'new_member',
         'death_marking',
         'family_head_change',
+        'new_family',
       ],
       required: true,
     },
     entityId: String,
     communityId: { type: Schema.Types.ObjectId, ref: 'Community', required: true },
-    requestedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    requestedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     status: {
       type: String,
