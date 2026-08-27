@@ -311,31 +311,44 @@ export default function MemberDetailPage() {
           </AlertDialog>
 
           {deleteWarning && (
-            <AlertDialog open={true}>
-              <AlertDialogContent>
+            <AlertDialog open={true} onOpenChange={() => setDeleteWarning(null)}>
+              <AlertDialogContent className="max-w-md">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-destructive">⚠️ This will delete entire family subtree</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    <div className="space-y-3 mt-4">
-                      <p>
-                        <strong>{user.fullName || user.firstName}</strong> has <strong>{deleteWarning.dependentsCount}</strong> dependent member{deleteWarning.dependentsCount !== 1 ? 's' : ''} in the family tree. Deleting this member will permanently remove all of the following:
-                      </p>
-                      <div className="bg-destructive/10 border border-destructive/30 rounded p-3 max-h-48 overflow-y-auto">
-                        <ul className="space-y-1 text-sm">
-                          <li className="font-medium text-destructive">• {user.fullName || user.firstName}</li>
-                          {deleteWarning.dependents.map((dep) => (
-                            <li key={dep.id} className="text-destructive/80 ml-2">
-                              └ {dep.name}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        This action cannot be undone. All family relations will be permanently deleted.
-                      </p>
-                    </div>
-                  </AlertDialogDescription>
+                  <AlertDialogTitle className="text-destructive text-lg">⚠️ User has dependents</AlertDialogTitle>
                 </AlertDialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="bg-destructive/10 border-l-4 border-destructive rounded p-3">
+                    <p className="text-sm font-semibold text-destructive mb-2">
+                      Cannot delete directly. This member has {deleteWarning.dependentsCount} dependent{deleteWarning.dependentsCount !== 1 ? 's' : ''}.
+                    </p>
+                    <p className="text-xs text-destructive/80">
+                      Deleting <strong>{user.fullName || user.firstName}</strong> will permanently remove all family members and relations listed below.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Members that will be deleted:</p>
+                    <div className="bg-slate-50 border rounded p-3 max-h-64 overflow-y-auto space-y-1.5">
+                      <div className="flex items-start gap-2 text-sm font-semibold text-destructive">
+                        <span className="text-destructive">●</span>
+                        <span>{user.fullName || user.firstName}</span>
+                      </div>
+                      {deleteWarning.dependents.map((dep) => (
+                        <div key={dep.id} className="flex items-start gap-2 text-sm text-destructive/80 ml-3">
+                          <span className="text-destructive/60">└─</span>
+                          <span>{dep.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2.5">
+                    <p className="text-xs text-yellow-900">
+                      <strong>⚠️ Warning:</strong> This action cannot be undone. All data will be permanently deleted.
+                    </p>
+                  </div>
+                </div>
+
                 <AlertDialogFooter>
                   <AlertDialogCancel onClick={() => setDeleteWarning(null)}>Cancel</AlertDialogCancel>
                   <AlertDialogAction
@@ -357,9 +370,21 @@ export default function MemberDetailPage() {
         </div>
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {blockError && <p className="text-sm text-destructive">{blockError}</p>}
-      {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+          <p className="text-sm text-destructive font-medium">{error}</p>
+        </div>
+      )}
+      {blockError && (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+          <p className="text-sm text-destructive font-medium">{blockError}</p>
+        </div>
+      )}
+      {deleteError && (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+          <p className="text-sm text-destructive font-medium">{deleteError}</p>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border p-6 flex flex-col gap-6">
         <h2 className="text-sm font-semibold text-[#464555] uppercase tracking-wider">Personal Information</h2>

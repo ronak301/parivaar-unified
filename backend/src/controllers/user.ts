@@ -117,12 +117,12 @@ export async function deleteUser(req: AuthRequest, res: Response): Promise<void>
 
   // Check if user has children
   if (user.childrenIds.length > 0 && cascade !== 'true') {
-    const children = await User.find({ _id: { $in: user.childrenIds } }).select('firstName lastName');
+    const allDescendants = await getAllDescendants(user._id.toString());
     return res.status(400).json({
       error: 'User has dependents',
       hasDependents: true,
-      dependentsCount: user.childrenIds.length,
-      dependents: children.map((c) => ({ id: c._id, name: `${c.firstName} ${c.lastName || ''}`.trim() })),
+      dependentsCount: allDescendants.length,
+      dependents: allDescendants.map((c) => ({ id: c._id, name: `${c.firstName} ${c.lastName || ''}`.trim() })),
     });
   }
 
@@ -130,6 +130,24 @@ export async function deleteUser(req: AuthRequest, res: Response): Promise<void>
   await deleteUserAndDescendants(id);
 
   res.json({ success: true, message: 'User deleted' });
+}
+
+async function getAllDescendants(userId: string): Promise<any[]> {
+  const descendants: any[] = [];
+  const queue = [userId];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift();
+    const currentUser = await User.findById(currentId).select('firstName lastName childrenIds');
+
+    if (currentUser && currentUser.childrenIds.length > 0) {
+      const children = await User.find({ _id: { $in: currentUser.childrenIds } }).select('firstName lastName childrenIds');
+      descendants.push(...children);
+      queue.push(...children.map((c) => c._id.toString()));
+    }
+  }
+
+  return descendants;
 }
 
 async function deleteUserAndDescendants(userId: string): Promise<void> {
