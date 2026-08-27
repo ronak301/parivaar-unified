@@ -10,6 +10,14 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
 import type { UserData } from './member-detail-types';
 import {
@@ -254,42 +262,56 @@ export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved, l
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto data-[side=right]:w-1/2 data-[side=right]:sm:max-w-[50vw]">
-        <SheetHeader>
-          <SheetTitle>Edit Member</SheetTitle>
-        </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent className="overflow-y-auto data-[side=right]:w-1/2 data-[side=right]:sm:max-w-[50vw]">
+          <SheetHeader>
+            <SheetTitle>Edit Member</SheetTitle>
+          </SheetHeader>
 
-        <div className="flex flex-col gap-6 px-4">
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          <div className="flex flex-col gap-6 px-4">
+            <PersonFieldsBlock
+              form={form}
+              setField={setField}
+              photoPreview={photoPreview}
+              onPhotoFileReady={handlePhotoFileReady}
+              uploadingPhoto={uploadingPhoto}
+              localities={localities}
+              businessEnabled={businessEnabled}
+              onToggleBusiness={() => setBusinessEnabled((v) => !v)}
+              businessForm={businessForm}
+              setBusinessField={setBusinessField}
+              businessLogoPrev={businessLogoPrev}
+              businessPhotosPrev={businessPhotosPrev}
+              onBusinessLogoFileReady={handleBusinessLogoFileReady}
+              onBusinessPhotoFileReady={handleBusinessPhotoFileReady}
+              uploadingBusiness={uploadingBusiness || loadingBusiness}
+              onError={setError}
+              showSampradaya={false}
+            />
+          </div>
 
-          <PersonFieldsBlock
-            form={form}
-            setField={setField}
-            photoPreview={photoPreview}
-            onPhotoFileReady={handlePhotoFileReady}
-            uploadingPhoto={uploadingPhoto}
-            localities={localities}
-            businessEnabled={businessEnabled}
-            onToggleBusiness={() => setBusinessEnabled((v) => !v)}
-            businessForm={businessForm}
-            setBusinessField={setBusinessField}
-            businessLogoPrev={businessLogoPrev}
-            businessPhotosPrev={businessPhotosPrev}
-            onBusinessLogoFileReady={handleBusinessLogoFileReady}
-            onBusinessPhotoFileReady={handleBusinessPhotoFileReady}
-            uploadingBusiness={uploadingBusiness || loadingBusiness}
-            onError={setError}
-            showSampradaya={false}
-          />
-        </div>
+          <SheetFooter>
+            <Button onClick={handleSave} disabled={saving} className="bg-[#0b1c30] hover:bg-[#1c2f47]">
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-        <SheetFooter>
-          <Button onClick={handleSave} disabled={saving} className="bg-[#0b1c30] hover:bg-[#1c2f47]">
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      {error && (
+        <AlertDialog open={true} onOpenChange={(open) => !open && setError('')}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-destructive">Error</AlertDialogTitle>
+              <AlertDialogDescription>{error}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogAction onClick={() => setError('')}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </>
   );
 }
