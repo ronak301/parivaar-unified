@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { createApprovalRequestSchema, reviewApprovalSchema, publicSubmitFamilySchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
 import { ApprovalRequest, Community } from '../models';
@@ -63,7 +64,15 @@ export async function reviewApproval(req: AuthRequest, res: Response): Promise<v
   }
 
   existing.status = status;
-  existing.reviewedBy = req.user?._id;
+  if (req.user?._id) {
+    if (typeof req.user._id === 'string') {
+      if (mongoose.Types.ObjectId.isValid(req.user._id)) {
+        existing.reviewedBy = new mongoose.Types.ObjectId(req.user._id);
+      }
+    } else {
+      existing.reviewedBy = req.user._id;
+    }
+  }
   if (remarks) existing.remarks = remarks;
   await existing.save();
 
