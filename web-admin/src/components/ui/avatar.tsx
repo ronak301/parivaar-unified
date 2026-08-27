@@ -25,11 +25,12 @@ function Avatar({
   );
 }
 
-function AvatarImage({ className, ...props }: React.ComponentProps<typeof ChakraAvatar.Image>) {
+function AvatarImage({ className, src, ...props }: React.ComponentProps<typeof ChakraAvatar.Image>) {
   return (
     <ChakraAvatar.Image
       data-slot="avatar-image"
       className={cn('aspect-square size-full rounded-full object-cover', className)}
+      src={src || undefined}
       {...props}
     />
   );

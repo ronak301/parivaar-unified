@@ -1,4 +1,4 @@
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { createUserSchema, updateUserSchema, searchUsersSchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
 import { User, Family, Business } from '../models';
@@ -31,6 +31,20 @@ export async function checkPhone(req: AuthRequest, res: Response): Promise<void>
     .select('_id firstName lastName fullName phone communityIds')
     .populate('communityIds', 'name');
   res.json({ success: true, exists: !!existing, user: existing ?? undefined });
+}
+
+// Public, unauthenticated variant for the anonymous family-submission form.
+// Returns only a boolean — never the matched user's name/communities — to
+// avoid leaking PII about registered members to unauthenticated callers.
+export async function checkPhonePublic(req: Request, res: Response): Promise<void> {
+  const phone = req.query.phone as string;
+  if (!phone || !/^[0-9]{10}$/.test(phone)) {
+    res.status(400).json({ error: 'A valid 10-digit phone number is required' });
+    return;
+  }
+
+  const existing = await User.exists({ phone });
+  res.json({ success: true, exists: !!existing });
 }
 
 export async function createUser(req: AuthRequest, res: Response): Promise<void> {

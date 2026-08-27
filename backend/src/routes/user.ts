@@ -1,8 +1,15 @@
 import { Router } from 'express';
 import { authenticate, authorize, communityScope, asyncHandler } from '../middleware';
+import { rateLimit } from '../middleware/rateLimit';
 import * as ctrl from '../controllers/user';
 
 const router = Router();
+
+router.get(
+  '/check-phone-public',
+  rateLimit({ windowMs: 60 * 60 * 1000, max: 20, keyPrefix: 'public-check-phone' }),
+  asyncHandler(ctrl.checkPhonePublic),
+);
 
 router.use(authenticate);
 

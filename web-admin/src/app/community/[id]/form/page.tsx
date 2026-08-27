@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Gender } from '@parivaar/shared';
 import type { Community } from '@parivaar/shared';
-import { Plus, X, UserPlus, CheckCircle2 } from 'lucide-react';
+import { Plus, X, UserPlus, CheckCircle2, Phone } from 'lucide-react';
 import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
 import { readCache, writeCache } from '@/lib/cache/local-cache';
 import {
@@ -50,7 +50,8 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
   const [community, setCommunity] = useState<Community | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [phase, setPhase] = useState<'head' | 'members' | 'success'>('head');
+  const [phase, setPhase] = useState<'phone' | 'head' | 'members' | 'success'>('phone');
+  const [checkingPhone, setCheckingPhone] = useState(false);
 
   const [form, setForm] = useState<PersonForm>(emptyPersonForm());
   const [photoPreview, setPhotoPreview] = useState('');
@@ -163,6 +164,38 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
     if (form.aadharLast4 && !/^[0-9]{4}$/.test(form.aadharLast4)) return 'Aadhar must be last 4 digits';
     if (businessEnabled && !businessForm.name.trim()) return 'Business name is required';
     return '';
+  }
+
+  async function handlePhoneCheck() {
+    const phone = form.phone.trim();
+    if (!phone) {
+      setError('Phone number is required');
+      return;
+    }
+    if (!/^[0-9]{10}$/.test(phone)) {
+      setError('Invalid phone number');
+      return;
+    }
+
+    setCheckingPhone(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/public/check-phone?phone=${encodeURIComponent(phone)}`);
+      if (!res.ok) {
+        setError('Could not verify phone number right now. Please try again.');
+        return;
+      }
+      const data = await res.json();
+      if (data.exists) {
+        setError('This phone number is already registered with us.');
+        return;
+      }
+      setPhase('head');
+    } catch {
+      setError('Failed to check phone number. Please try again.');
+    } finally {
+      setCheckingPhone(false);
+    }
   }
 
   function handleHeadContinue() {
@@ -317,6 +350,35 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
               </div>
             )}
 
+            {phase === 'phone' && (
+              <div className="space-y-5">
+                <h2 className="text-lg font-semibold text-foreground">Verify Phone Number</h2>
+                <p className="text-sm text-muted-foreground">
+                  Enter your phone number to check for existing records before proceeding.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="phone-check">
+                    Phone number <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Phone className="size-5 shrink-0 text-muted-foreground" />
+                    <Input
+                      id="phone-check"
+                      placeholder="e.g. 9876543210"
+                      value={form.phone}
+                      onChange={(e) => setField('phone', e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handlePhoneCheck();
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {phase === 'head' && (
               <div className="space-y-5">
                 <h2 className="text-lg font-semibold text-foreground">Family Head Information</h2>
@@ -327,6 +389,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                   onPhotoFileReady={handlePhotoFileReady}
                   uploadingPhoto={uploadingPhoto}
                   localities={community.localities ?? []}
+                  phoneReadOnly
                   businessEnabled={businessEnabled}
                   onToggleBusiness={() => setBusinessEnabled((v) => !v)}
                   businessForm={businessForm}
@@ -515,6 +578,11 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                 {phase === 'members' && (
                   <Button variant="outline" size="lg" onClick={() => setPhase('head')} className="flex-1">
                     Back
+                  </Button>
+                )}
+                {phase === 'phone' && (
+                  <Button size="lg" onClick={handlePhoneCheck} disabled={checkingPhone} className="w-full">
+                    {checkingPhone ? 'Checking...' : 'Continue'}
                   </Button>
                 )}
                 {phase === 'head' && (
