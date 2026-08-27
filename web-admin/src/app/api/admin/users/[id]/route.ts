@@ -36,13 +36,17 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  const { searchParams } = new URL(request.url);
+  const cascade = searchParams.get('cascade') === 'true';
+
   try {
     const client = await getAdminClient();
-    const data = await deleteUser(client, id);
+    const url = cascade ? `/users/${id}?cascade=true` : `/users/${id}`;
+    const data = await deleteUser(client, id, url);
     return NextResponse.json(data);
   } catch (e) {
     return respondToAuthError(e, 'Failed to delete member');

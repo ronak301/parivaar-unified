@@ -64,6 +64,8 @@ export default function MemberDetailPage() {
   const [blockError, setBlockError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [deleteWarning, setDeleteWarning] = useState<{ dependentsCount: number; dependents: Array<{ id: string; name: string }> } | null>(null);
+  const [confirmCascadeDelete, setConfirmCascadeDelete] = useState(false);
   const [localities, setLocalities] = useState<string[]>(
     () => readCache<{ localities?: string[] }>(`community_detail_${communityId}`)?.localities ?? [],
   );
@@ -159,14 +161,48 @@ export default function MemberDetailPage() {
     }
   }
 
-  async function handleDelete() {
+  async function handleDeleteClick() {
     setDeleteLoading(true);
     setDeleteError('');
     try {
       const res = await fetch(`/api/admin/users/${memberId}`, { method: 'DELETE' });
       const data = await res.json();
+
+      if (!res.ok) {
+        if (data.hasDependents) {
+          setDeleteWarning({
+            dependentsCount: data.dependentsCount,
+            dependents: data.dependents || [],
+          });
+          setConfirmCascadeDelete(false);
+          setDeleteLoading(false);
+          return;
+        }
+        setDeleteError(data.error || 'Failed to delete member');
+        setDeleteLoading(false);
+        return;
+      }
+
+      clearCache(`member_${memberId}`);
+      if (user?.familyId?._id) clearCache(`family_tree_${user.familyId._id}`);
+      clearCache(`members_list_${communityId}`);
+      clearCache(`community_members_${communityId}`);
+      router.push(`/admin/community/${communityId}/members`);
+    } catch {
+      setDeleteError('Network error');
+      setDeleteLoading(false);
+    }
+  }
+
+  async function handleCascadeDelete() {
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      const res = await fetch(`/api/admin/users/${memberId}?cascade=true`, { method: 'DELETE' });
+      const data = await res.json();
       if (!res.ok) {
         setDeleteError(data.error || 'Failed to delete member');
+        setDeleteLoading(false);
         return;
       }
       clearCache(`member_${memberId}`);
@@ -176,7 +212,6 @@ export default function MemberDetailPage() {
       router.push(`/admin/community/${communityId}/members`);
     } catch {
       setDeleteError('Network error');
-    } finally {
       setDeleteLoading(false);
     }
   }
@@ -254,7 +289,7 @@ export default function MemberDetailPage() {
             </AlertDialog>
           )}
 
-          <AlertDialog>
+          <AlertDialog open={!deleteWarning ? undefined : undefined}>
             <AlertDialogTrigger render={<Button variant="outline" size="sm" className="text-destructive hover:text-destructive" />}>
               <Trash2 className="size-4" />
               Delete
@@ -268,12 +303,52 @@ export default function MemberDetailPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} disabled={deleteLoading} className="bg-destructive hover:bg-destructive/90">
-                  {deleteLoading ? 'Deleting...' : 'Delete'}
+                <AlertDialogAction onClick={handleDeleteClick} disabled={deleteLoading} className="bg-destructive hover:bg-destructive/90">
+                  {deleteLoading ? 'Checking...' : 'Delete'}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {deleteWarning && (
+            <AlertDialog open={true}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-destructive">⚠️ This will delete entire family subtree</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    <div className="space-y-3 mt-4">
+                      <p>
+                        <strong>{user.fullName || user.firstName}</strong> has <strong>{deleteWarning.dependentsCount}</strong> dependent member{deleteWarning.dependentsCount !== 1 ? 's' : ''} in the family tree. Deleting this member will permanently remove all of the following:
+                      </p>
+                      <div className="bg-destructive/10 border border-destructive/30 rounded p-3 max-h-48 overflow-y-auto">
+                        <ul className="space-y-1 text-sm">
+                          <li className="font-medium text-destructive">• {user.fullName || user.firstName}</li>
+                          {deleteWarning.dependents.map((dep) => (
+                            <li key={dep.id} className="text-destructive/80 ml-2">
+                              └ {dep.name}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        This action cannot be undone. All family relations will be permanently deleted.
+                      </p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDeleteWarning(null)}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleCascadeDelete}
+                    disabled={deleteLoading}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    {deleteLoading ? 'Deleting...' : 'Delete All'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
 
           <Button size="sm" onClick={() => setEditOpen(true)} className="bg-[#0b1c30] hover:bg-[#1c2f47]">
             <Pencil className="size-4" />

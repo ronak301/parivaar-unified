@@ -106,25 +106,66 @@ export async function updateUser(req: AuthRequest, res: Response): Promise<void>
 }
 
 export async function deleteUser(req: AuthRequest, res: Response): Promise<void> {
-  const user = await User.findByIdAndDelete(req.params.id);
+  const { id } = req.params;
+  const { cascade } = req.query;
+
+  const user = await User.findById(id);
   if (!user) {
     res.status(404).json({ error: 'User not found' });
     return;
   }
 
-  if (user.familyId) {
-    await Family.updateOne({ _id: user.familyId, headId: user._id }, { $unset: { headId: '' } });
+  // Check if user has children
+  if (user.childrenIds.length > 0 && cascade !== 'true') {
+    const children = await User.find({ _id: { $in: user.childrenIds } }).select('firstName lastName');
+    return res.status(400).json({
+      error: 'User has dependents',
+      hasDependents: true,
+      dependentsCount: user.childrenIds.length,
+      dependents: children.map((c) => ({ id: c._id, name: `${c.firstName} ${c.lastName || ''}`.trim() })),
+    });
   }
-  await User.updateMany(
-    { $or: [{ fatherId: user._id }, { motherId: user._id }, { spouseId: user._id }] },
-    { $unset: { fatherId: '', motherId: '', spouseId: '' } },
-  );
-  await User.updateMany(
-    { childrenIds: user._id },
-    { $pull: { childrenIds: user._id } },
-  );
+
+  // Recursively delete user and all descendants
+  await deleteUserAndDescendants(id);
 
   res.json({ success: true, message: 'User deleted' });
+}
+
+async function deleteUserAndDescendants(userId: string): Promise<void> {
+  const user = await User.findById(userId);
+  if (!user) return;
+
+  // Recursively delete all children first
+  if (user.childrenIds.length > 0) {
+    for (const childId of user.childrenIds) {
+      await deleteUserAndDescendants(childId.toString());
+    }
+  }
+
+  // Delete the user
+  await User.findByIdAndDelete(userId);
+
+  // Unlink from family
+  if (user.familyId) {
+    await Family.updateOne({ _id: user.familyId, headId: userId }, { $unset: { headId: '' } });
+  }
+
+  // Unlink from parents/spouse
+  await User.updateMany(
+    { $or: [{ fatherId: userId }, { motherId: userId }, { spouseId: userId }] },
+    { $unset: { fatherId: '', motherId: '', spouseId: '' } },
+  );
+
+  // Remove from siblings and parents' children list
+  await User.updateMany(
+    { childrenIds: userId },
+    { $pull: { childrenIds: userId } },
+  );
+  await User.updateMany(
+    { siblingIds: userId },
+    { $pull: { siblingIds: userId } },
+  );
 }
 
 export async function searchUsers(req: AuthRequest, res: Response): Promise<void> {
