@@ -18,6 +18,7 @@ const envSchema = z.object({
   MESSAGE_CENTRAL_OTP_LENGTH: z.string().default('6'),
   EXPO_ACCESS_TOKEN: z.string().optional(),
   FIREBASE_SERVICE_ACCOUNT_PATH: z.string().optional(),
+  FIREBASE_STORAGE_BUCKET: z.string().optional(),
   PORT: z
     .string()
     .transform(Number)
