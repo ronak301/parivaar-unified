@@ -54,8 +54,35 @@ export async function createUser(req: AuthRequest, res: Response): Promise<void>
     return;
   }
 
-  const user = await User.create(parsed.data);
-  res.status(201).json({ success: true, user });
+  try {
+    const user = await User.create(parsed.data);
+    res.status(201).json({ success: true, user });
+  } catch (err: any) {
+    // Handle Mongoose validation errors
+    if (err.name === 'ValidationError') {
+      const details: Record<string, string[]> = {};
+      Object.keys(err.errors).forEach((field) => {
+        details[field] = [err.errors[field].message];
+      });
+      return res.status(400).json({ error: 'Validation error', details });
+    }
+
+    // Handle duplicate key errors
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      const value = err.keyValue?.[field];
+      const existingUser = await User.findOne({ [field]: value }).select('firstName lastName');
+      const name = existingUser ? `${existingUser.firstName} ${existingUser.lastName || ''}`.trim() : 'another user';
+      const message = `${field === 'phone' ? 'Phone' : field} already exists with ${name}`;
+      return res.status(400).json({
+        error: 'Validation error',
+        details: { [field]: [message] }
+      });
+    }
+
+    console.error('User create error:', err);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
 }
 
 export async function getUser(req: AuthRequest, res: Response): Promise<void> {
@@ -96,13 +123,40 @@ export async function updateUser(req: AuthRequest, res: Response): Promise<void>
     return;
   }
 
-  const user = await User.findByIdAndUpdate(userId, parsed.data, { new: true, runValidators: true });
-  if (!user) {
-    res.status(404).json({ error: 'User not found' });
-    return;
-  }
+  try {
+    const user = await User.findByIdAndUpdate(userId, parsed.data, { new: true, runValidators: true });
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
 
-  res.json({ success: true, user });
+    res.json({ success: true, user });
+  } catch (err: any) {
+    // Handle Mongoose validation errors
+    if (err.name === 'ValidationError') {
+      const details: Record<string, string[]> = {};
+      Object.keys(err.errors).forEach((field) => {
+        details[field] = [err.errors[field].message];
+      });
+      return res.status(400).json({ error: 'Validation error', details });
+    }
+
+    // Handle duplicate key errors
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      const value = err.keyValue?.[field];
+      const existingUser = await User.findOne({ [field]: value }).select('firstName lastName');
+      const name = existingUser ? `${existingUser.firstName} ${existingUser.lastName || ''}`.trim() : 'another user';
+      const message = `${field === 'phone' ? 'Phone' : field} already exists with ${name}`;
+      return res.status(400).json({
+        error: 'Validation error',
+        details: { [field]: [message] }
+      });
+    }
+
+    console.error('User update error:', err);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
 }
 
 export async function deleteUser(req: AuthRequest, res: Response): Promise<void> {

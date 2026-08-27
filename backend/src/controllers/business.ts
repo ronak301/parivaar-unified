@@ -28,12 +28,36 @@ export async function createBusiness(req: AuthRequest, res: Response): Promise<v
     resolvedOwnerId = owner._id;
   }
 
-  const business = await Business.create({
-    ...data,
-    ownerId: resolvedOwnerId,
-  });
+  try {
+    const business = await Business.create({
+      ...data,
+      ownerId: resolvedOwnerId,
+    });
 
-  res.status(201).json({ success: true, business });
+    res.status(201).json({ success: true, business });
+  } catch (err: any) {
+    // Handle Mongoose validation errors
+    if (err.name === 'ValidationError') {
+      const details: Record<string, string[]> = {};
+      Object.keys(err.errors).forEach((field) => {
+        details[field] = [err.errors[field].message];
+      });
+      return res.status(400).json({ error: 'Validation error', details });
+    }
+
+    // Handle duplicate key errors
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      const message = `${field} already exists`;
+      return res.status(400).json({
+        error: 'Validation error',
+        details: { [field]: [message] }
+      });
+    }
+
+    console.error('Business create error:', err);
+    res.status(500).json({ error: 'Failed to create business' });
+  }
 }
 
 export async function getBusiness(req: AuthRequest, res: Response): Promise<void> {
@@ -68,10 +92,34 @@ export async function updateBusiness(req: AuthRequest, res: Response): Promise<v
     return;
   }
 
-  Object.assign(business, parsed.data);
-  await business.save();
+  try {
+    Object.assign(business, parsed.data);
+    await business.save();
 
-  res.json({ success: true, business });
+    res.json({ success: true, business });
+  } catch (err: any) {
+    // Handle Mongoose validation errors
+    if (err.name === 'ValidationError') {
+      const details: Record<string, string[]> = {};
+      Object.keys(err.errors).forEach((field) => {
+        details[field] = [err.errors[field].message];
+      });
+      return res.status(400).json({ error: 'Validation error', details });
+    }
+
+    // Handle duplicate key errors
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      const message = `${field} already exists`;
+      return res.status(400).json({
+        error: 'Validation error',
+        details: { [field]: [message] }
+      });
+    }
+
+    console.error('Business update error:', err);
+    res.status(500).json({ error: 'Failed to update business' });
+  }
 }
 
 export async function deleteBusiness(req: AuthRequest, res: Response): Promise<void> {
