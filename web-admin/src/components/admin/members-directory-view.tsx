@@ -200,9 +200,9 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
     <>
       <div className="flex flex-col w-full h-full gap-6">
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#3230c4] rounded-xl flex items-center justify-center text-white">
+            <div className="w-12 h-12 bg-[#3230c4] rounded-xl flex items-center justify-center text-white shrink-0">
               <svg
                 className="w-7 h-7"
                 fill="currentColor"
@@ -211,8 +211,8 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
                 <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm8 0c1.66 0 2.99-1.34 2.99-3S25.66 5 24 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5zM9 11c1.66 0 2.99-1.34 2.99-3S10.66 5 9 5C7.34 5 6 6.34 6 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" />
               </svg>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-[#0b1c30]">{currentCommunity?.name ?? 'Community'}</h1>
+            <div className="min-w-0">
+              <h1 className="text-3xl font-bold text-[#0b1c30] truncate">{currentCommunity?.name ?? 'Community'}</h1>
               <p className="text-sm text-[#464555]">
                 {pagination ? `${pagination.total} Members` : 'Loading...'}
               </p>
@@ -220,7 +220,7 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full">
             <div className="relative flex-1 md:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#464555] size-4" />
               <input

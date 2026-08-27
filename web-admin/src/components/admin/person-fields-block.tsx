@@ -287,7 +287,14 @@ export function PersonFieldsBlock({
         )}
         <div className="flex flex-col gap-2">
           <Label htmlFor="pf-phone">Phone</Label>
-          <Input id="pf-phone" value={form.phone} disabled={phoneReadOnly} onChange={(e) => setField('phone', e.target.value)} />
+          <Input
+            id="pf-phone"
+            type="tel"
+            inputMode="numeric"
+            value={form.phone}
+            disabled={phoneReadOnly}
+            onChange={(e) => setField('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+          />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="pf-email">Email</Label>

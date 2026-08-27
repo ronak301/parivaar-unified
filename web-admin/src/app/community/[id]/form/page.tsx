@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Gender } from '@parivaar/shared';
 import type { Community } from '@parivaar/shared';
-import { Plus, X, UserPlus, CheckCircle2, Phone } from 'lucide-react';
+import { Plus, X, UserPlus, CheckCircle2 } from 'lucide-react';
 import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
 import { readCache, writeCache } from '@/lib/cache/local-cache';
 import {
@@ -311,6 +311,31 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
     }
   }
 
+  function handleSubmitAnother() {
+    setForm(emptyPersonForm());
+    setPhotoPreview('');
+    setUploadingPhoto(false);
+    setPhotoUrl(undefined);
+    setBusinessEnabled(false);
+    setBusinessForm(emptyBusinessForm());
+    setUploadingBusiness(false);
+    setBusinessLogoPrev('');
+    setBusinessLogoUrl(undefined);
+    setBusinessPhotosPrev([]);
+    setBusinessPhotoUrls([]);
+    setPendingMembers([]);
+    setMemberFirstName('');
+    setMemberLastName('');
+    setMemberPhone('');
+    setMemberGender('');
+    setMemberRelation('');
+    setMemberRelatedTo('');
+    setSubmitterName('');
+    setSubmitterPhone('');
+    setError('');
+    setPhase('phone');
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -347,6 +372,9 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                   Thank you{headName ? `, ${headName}` : ''}. Your family details have been sent to the community
                   admins for approval. You&apos;ll be added to the directory once it&apos;s reviewed.
                 </p>
+                <Button size="lg" onClick={handleSubmitAnother}>
+                  Add Another Family
+                </Button>
               </div>
             )}
 
@@ -354,27 +382,27 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
               <div className="space-y-5">
                 <h2 className="text-lg font-semibold text-foreground">Verify Phone Number</h2>
                 <p className="text-sm text-muted-foreground">
-                  Enter your phone number to check for existing records before proceeding.
+                  Enter Family Head phone number to check for existing records before proceeding.
                 </p>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="phone-check">
                     Phone number <span className="text-red-500">*</span>
                   </Label>
-                  <div className="flex items-center gap-3">
-                    <Phone className="size-5 shrink-0 text-muted-foreground" />
-                    <Input
-                      id="phone-check"
-                      placeholder="e.g. 9876543210"
-                      value={form.phone}
-                      onChange={(e) => setField('phone', e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handlePhoneCheck();
-                        }
-                      }}
-                    />
-                  </div>
+                  <Input
+                    id="phone-check"
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="e.g. 9876543210"
+                    className="h-12 text-lg"
+                    value={form.phone}
+                    onChange={(e) => setField('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handlePhoneCheck();
+                      }
+                    }}
+                  />
                 </div>
               </div>
             )}
@@ -470,9 +498,11 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                       <Label htmlFor="m-phone" className="text-xs">Phone</Label>
                       <Input
                         id="m-phone"
+                        type="tel"
+                        inputMode="numeric"
                         placeholder="10-digit phone"
                         value={memberPhone}
-                        onChange={(e) => setMemberPhone(e.target.value)}
+                        onChange={(e) => setMemberPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -561,9 +591,11 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                       <Label htmlFor="submitter-phone" className="text-xs">Your phone</Label>
                       <Input
                         id="submitter-phone"
+                        type="tel"
+                        inputMode="numeric"
                         placeholder="10-digit phone"
                         value={submitterPhone}
-                        onChange={(e) => setSubmitterPhone(e.target.value)}
+                        onChange={(e) => setSubmitterPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       />
                     </div>
                   </div>

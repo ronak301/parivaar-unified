@@ -54,9 +54,9 @@ export async function reviewApproval(req: AuthRequest, res: Response): Promise<v
   }
 
   const isSuperAdmin = req.user?.role === 'super_admin';
-  const inScope = req.user?.communityIds.some(
+  const inScope = req.user?.communityIds?.some(
     (communityId) => communityId.toString() === existing.communityId.toString(),
-  );
+  ) ?? false;
   if (!isSuperAdmin && !inScope) {
     res.status(403).json({ error: 'Not authorized for this community' });
     return;
