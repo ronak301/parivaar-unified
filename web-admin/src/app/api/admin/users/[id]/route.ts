@@ -30,7 +30,14 @@ export async function PUT(
     const client = await getAdminClient();
     const res = await client.put(`/users/${id}`, body);
     return NextResponse.json(res.data);
-  } catch (e) {
+  } catch (e: any) {
+    // Extract detailed error from backend response
+    if (e.response?.data?.error) {
+      return NextResponse.json(
+        { error: e.response.data.error, details: e.response.data.details },
+        { status: e.response.status || 502 }
+      );
+    }
     return respondToAuthError(e, 'Failed to update user');
   }
 }

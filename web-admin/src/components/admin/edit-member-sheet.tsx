@@ -220,7 +220,25 @@ export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved, l
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Failed to update');
+        let errorMessage = data.error || 'Failed to update';
+
+        // Show detailed validation errors if available
+        if (data.details) {
+          if (typeof data.details === 'object') {
+            const fieldErrors = Object.entries(data.details)
+              .map(([field, msgs]: [string, any]) => {
+                if (Array.isArray(msgs)) {
+                  return `${field}: ${msgs.join(', ')}`;
+                }
+                return `${field}: ${msgs}`;
+              });
+            if (fieldErrors.length > 0) {
+              errorMessage = fieldErrors.join('\n');
+            }
+          }
+        }
+
+        setError(errorMessage);
         return;
       }
 
@@ -234,7 +252,20 @@ export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved, l
           });
           const bizData = await bizRes.json();
           if (!bizRes.ok) {
-            setError(bizData.error || 'Member updated, but failed to save business');
+            let errorMessage = bizData.error || 'Member updated, but failed to save business';
+            if (bizData.details && typeof bizData.details === 'object') {
+              const fieldErrors = Object.entries(bizData.details)
+                .map(([field, msgs]: [string, any]) => {
+                  if (Array.isArray(msgs)) {
+                    return `${field}: ${msgs.join(', ')}`;
+                  }
+                  return `${field}: ${msgs}`;
+                });
+              if (fieldErrors.length > 0) {
+                errorMessage = fieldErrors.join('\n');
+              }
+            }
+            setError(errorMessage);
             return;
           }
         } else {
@@ -246,7 +277,20 @@ export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved, l
           });
           const bizData = await bizRes.json();
           if (!bizRes.ok) {
-            setError(bizData.error || 'Member updated, but failed to save business');
+            let errorMessage = bizData.error || 'Member updated, but failed to save business';
+            if (bizData.details && typeof bizData.details === 'object') {
+              const fieldErrors = Object.entries(bizData.details)
+                .map(([field, msgs]: [string, any]) => {
+                  if (Array.isArray(msgs)) {
+                    return `${field}: ${msgs.join(', ')}`;
+                  }
+                  return `${field}: ${msgs}`;
+                });
+              if (fieldErrors.length > 0) {
+                errorMessage = fieldErrors.join('\n');
+              }
+            }
+            setError(errorMessage);
             return;
           }
         }
@@ -304,8 +348,10 @@ export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved, l
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle className="text-destructive">Error</AlertDialogTitle>
-              <AlertDialogDescription>{error}</AlertDialogDescription>
             </AlertDialogHeader>
+            <div className="bg-destructive/10 border border-destructive/30 rounded p-3 text-sm whitespace-pre-wrap text-destructive font-medium max-h-64 overflow-y-auto">
+              {error}
+            </div>
             <AlertDialogAction onClick={() => setError('')}>
               OK
             </AlertDialogAction>
