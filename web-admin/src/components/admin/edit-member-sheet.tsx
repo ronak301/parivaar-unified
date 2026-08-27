@@ -220,22 +220,29 @@ export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved, l
       });
       const data = await res.json();
       if (!res.ok) {
-        let errorMessage = data.error || 'Failed to update';
+        let errorMessage = 'Failed to update';
 
-        // Show detailed validation errors if available
-        if (data.details) {
-          if (typeof data.details === 'object') {
-            const fieldErrors = Object.entries(data.details)
-              .map(([field, msgs]: [string, any]) => {
-                if (Array.isArray(msgs)) {
-                  return `${field}: ${msgs.join(', ')}`;
-                }
-                return `${field}: ${msgs}`;
-              });
-            if (fieldErrors.length > 0) {
-              errorMessage = fieldErrors.join('\n');
-            }
+        // Prioritize detailed validation errors from backend
+        if (data.details && typeof data.details === 'object') {
+          const fieldErrors = Object.entries(data.details)
+            .map(([field, msgs]: [string, any]) => {
+              if (Array.isArray(msgs) && msgs.length > 0) {
+                // Just show the message without field name prefix
+                return msgs[0];
+              }
+              if (typeof msgs === 'string') {
+                return msgs;
+              }
+              return `${field}: ${msgs}`;
+            })
+            .filter(Boolean);
+
+          if (fieldErrors.length > 0) {
+            errorMessage = fieldErrors.join('\n');
           }
+        } else if (data.error && data.error !== 'Validation error') {
+          // Use error message if it's not generic
+          errorMessage = data.error;
         }
 
         setError(errorMessage);
@@ -252,19 +259,28 @@ export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved, l
           });
           const bizData = await bizRes.json();
           if (!bizRes.ok) {
-            let errorMessage = bizData.error || 'Member updated, but failed to save business';
+            let errorMessage = 'Member updated, but failed to save business';
+
             if (bizData.details && typeof bizData.details === 'object') {
               const fieldErrors = Object.entries(bizData.details)
                 .map(([field, msgs]: [string, any]) => {
-                  if (Array.isArray(msgs)) {
-                    return `${field}: ${msgs.join(', ')}`;
+                  if (Array.isArray(msgs) && msgs.length > 0) {
+                    return msgs[0];
+                  }
+                  if (typeof msgs === 'string') {
+                    return msgs;
                   }
                   return `${field}: ${msgs}`;
-                });
+                })
+                .filter(Boolean);
+
               if (fieldErrors.length > 0) {
                 errorMessage = fieldErrors.join('\n');
               }
+            } else if (bizData.error && bizData.error !== 'Validation error') {
+              errorMessage = bizData.error;
             }
+
             setError(errorMessage);
             return;
           }
@@ -277,19 +293,28 @@ export function EditMemberSheet({ open, onOpenChange, memberId, user, onSaved, l
           });
           const bizData = await bizRes.json();
           if (!bizRes.ok) {
-            let errorMessage = bizData.error || 'Member updated, but failed to save business';
+            let errorMessage = 'Member updated, but failed to save business';
+
             if (bizData.details && typeof bizData.details === 'object') {
               const fieldErrors = Object.entries(bizData.details)
                 .map(([field, msgs]: [string, any]) => {
-                  if (Array.isArray(msgs)) {
-                    return `${field}: ${msgs.join(', ')}`;
+                  if (Array.isArray(msgs) && msgs.length > 0) {
+                    return msgs[0];
+                  }
+                  if (typeof msgs === 'string') {
+                    return msgs;
                   }
                   return `${field}: ${msgs}`;
-                });
+                })
+                .filter(Boolean);
+
               if (fieldErrors.length > 0) {
                 errorMessage = fieldErrors.join('\n');
               }
+            } else if (bizData.error && bizData.error !== 'Validation error') {
+              errorMessage = bizData.error;
             }
+
             setError(errorMessage);
             return;
           }

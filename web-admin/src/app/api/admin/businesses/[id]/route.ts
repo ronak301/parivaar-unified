@@ -17,7 +17,18 @@ export async function PUT(
     const client = await getAdminClient();
     const business = await updateBusiness(client, id, body);
     return NextResponse.json({ success: true, business });
-  } catch (e) {
+  } catch (e: any) {
+    // Extract detailed error from backend response
+    if (e.response?.data) {
+      const backendData = e.response.data;
+      return NextResponse.json(
+        {
+          error: backendData.error || 'Failed to update business',
+          details: backendData.details || undefined,
+        },
+        { status: e.response.status || 400 }
+      );
+    }
     return respondToAuthError(e, 'Failed to update business');
   }
 }

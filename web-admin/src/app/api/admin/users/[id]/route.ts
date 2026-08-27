@@ -32,10 +32,14 @@ export async function PUT(
     return NextResponse.json(res.data);
   } catch (e: any) {
     // Extract detailed error from backend response
-    if (e.response?.data?.error) {
+    if (e.response?.data) {
+      const backendData = e.response.data;
       return NextResponse.json(
-        { error: e.response.data.error, details: e.response.data.details },
-        { status: e.response.status || 502 }
+        {
+          error: backendData.error || 'Failed to update user',
+          details: backendData.details || undefined,
+        },
+        { status: e.response.status || 400 }
       );
     }
     return respondToAuthError(e, 'Failed to update user');
