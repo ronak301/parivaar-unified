@@ -66,6 +66,7 @@ export default function MemberDetailPage() {
   const [deleteError, setDeleteError] = useState('');
   const [deleteWarning, setDeleteWarning] = useState<{ dependentsCount: number; dependents: Array<{ id: string; name: string }> } | null>(null);
   const [confirmCascadeDelete, setConfirmCascadeDelete] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [localities, setLocalities] = useState<string[]>(
     () => readCache<{ localities?: string[] }>(`community_detail_${communityId}`)?.localities ?? [],
   );
@@ -174,7 +175,7 @@ export default function MemberDetailPage() {
             dependentsCount: data.dependentsCount,
             dependents: data.dependents || [],
           });
-          setConfirmCascadeDelete(false);
+          setShowDeleteDialog(false);
           setDeleteLoading(false);
           return;
         }
@@ -187,6 +188,7 @@ export default function MemberDetailPage() {
       if (user?.familyId?._id) clearCache(`family_tree_${user.familyId._id}`);
       clearCache(`members_list_${communityId}`);
       clearCache(`community_members_${communityId}`);
+      setShowDeleteDialog(false);
       router.push(`/admin/community/${communityId}/members`);
     } catch {
       setDeleteError('Network error');
@@ -209,6 +211,7 @@ export default function MemberDetailPage() {
       if (user?.familyId?._id) clearCache(`family_tree_${user.familyId._id}`);
       clearCache(`members_list_${communityId}`);
       clearCache(`community_members_${communityId}`);
+      setDeleteWarning(null);
       router.push(`/admin/community/${communityId}/members`);
     } catch {
       setDeleteError('Network error');
@@ -289,7 +292,7 @@ export default function MemberDetailPage() {
             </AlertDialog>
           )}
 
-          <AlertDialog open={!deleteWarning ? undefined : undefined}>
+          <AlertDialog open={showDeleteDialog && !deleteWarning} onOpenChange={setShowDeleteDialog}>
             <AlertDialogTrigger render={<Button variant="outline" size="sm" className="text-destructive hover:text-destructive" />}>
               <Trash2 className="size-4" />
               Delete
@@ -301,8 +304,13 @@ export default function MemberDetailPage() {
                   {user.fullName || user.firstName} will be permanently removed and unlinked from the family tree. This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              {deleteError && (
+                <div className="bg-destructive/10 border border-destructive/30 rounded p-3 my-2">
+                  <p className="text-sm text-destructive font-medium">{deleteError}</p>
+                </div>
+              )}
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleDeleteClick} disabled={deleteLoading} className="bg-destructive hover:bg-destructive/90">
                   {deleteLoading ? 'Checking...' : 'Delete'}
                 </AlertDialogAction>
@@ -311,7 +319,7 @@ export default function MemberDetailPage() {
           </AlertDialog>
 
           {deleteWarning && (
-            <AlertDialog open={true} onOpenChange={() => setDeleteWarning(null)}>
+            <AlertDialog open={true} onOpenChange={() => !deleteLoading && setDeleteWarning(null)}>
               <AlertDialogContent className="max-w-md">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-destructive text-lg">⚠️ User has dependents</AlertDialogTitle>
@@ -342,6 +350,12 @@ export default function MemberDetailPage() {
                     </div>
                   </div>
 
+                  {deleteError && (
+                    <div className="bg-destructive/10 border border-destructive/30 rounded p-3">
+                      <p className="text-sm text-destructive font-medium">{deleteError}</p>
+                    </div>
+                  )}
+
                   <div className="bg-yellow-50 border border-yellow-200 rounded p-2.5">
                     <p className="text-xs text-yellow-900">
                       <strong>⚠️ Warning:</strong> This action cannot be undone. All data will be permanently deleted.
@@ -350,7 +364,7 @@ export default function MemberDetailPage() {
                 </div>
 
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDeleteWarning(null)}>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel disabled={deleteLoading} onClick={() => setDeleteWarning(null)}>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleCascadeDelete}
                     disabled={deleteLoading}
@@ -378,11 +392,6 @@ export default function MemberDetailPage() {
       {blockError && (
         <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
           <p className="text-sm text-destructive font-medium">{blockError}</p>
-        </div>
-      )}
-      {deleteError && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
-          <p className="text-sm text-destructive font-medium">{deleteError}</p>
         </div>
       )}
 
