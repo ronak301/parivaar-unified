@@ -116,9 +116,32 @@ export async function batchCreateFamily(req: AuthRequest, res: Response): Promis
   try {
     const { head: headData, communityIds, sampradaya, business: businessData, members: membersData } = parsed.data;
 
+    if (headData.phone && membersData?.some(m => m.phone === headData.phone)) {
+      res.status(400).json({ error: 'Phone number already exists (family head has this number)' });
+      return;
+    }
+
+    if (membersData) {
+      const phoneNumbers = membersData.map(m => m.phone).filter(Boolean);
+      const duplicates = phoneNumbers.filter((phone, index) => phoneNumbers.indexOf(phone) !== index);
+      if (duplicates.length > 0) {
+        res.status(400).json({ error: `Duplicate phone number found in members: ${duplicates[0]}` });
+        return;
+      }
+    }
+
     const communityObjectIds = communityIds.map((id) => new mongoose.Types.ObjectId(id));
 
-    const headUser = await User.create({ ...headData, communityIds: communityObjectIds });
+    let headUser;
+    try {
+      headUser = await User.create({ ...headData, communityIds: communityObjectIds });
+    } catch (err: any) {
+      if (err.code === 11000 && err.keyPattern?.phone) {
+        res.status(400).json({ error: 'This phone number is already registered. Please use a different number.' });
+        return;
+      }
+      throw err;
+    }
 
     const family = await Family.create({
       headId: headUser._id,
@@ -150,14 +173,23 @@ export async function batchCreateFamily(req: AuthRequest, res: Response): Promis
       for (const memberData of membersData) {
         const { relation, relativeIndex, ...userData } = memberData;
 
-        const memberUser = await User.create({
-          ...userData,
-          communityIds: communityObjectIds,
-          familyId: family._id,
-          address: headUser.address,
-          nativePlace: headUser.nativePlace,
-          nativeDistrict: headUser.nativeDistrict,
-        });
+        let memberUser;
+        try {
+          memberUser = await User.create({
+            ...userData,
+            communityIds: communityObjectIds,
+            familyId: family._id,
+            address: headUser.address,
+            nativePlace: headUser.nativePlace,
+            nativeDistrict: headUser.nativeDistrict,
+          });
+        } catch (err: any) {
+          if (err.code === 11000 && err.keyPattern?.phone) {
+            res.status(400).json({ error: `Phone number ${userData.phone} is already registered. Please use a different number.` });
+            return;
+          }
+          throw err;
+        }
 
         if (relation && relativeIndex !== undefined) {
           const relativeUser = relativeIndex === -1 ? headUser : allUsers[relativeIndex + 1];
@@ -331,17 +363,26 @@ export async function addFamilyMembers(req: AuthRequest, res: Response): Promise
         gender = relative.gender === 'female' ? 'male' : relative.gender === 'male' ? 'female' : undefined;
       }
 
-      const memberUser = await User.create({
-        firstName,
-        lastName,
-        phone,
-        gender,
-        familyId: family._id,
-        communityIds: family.communityIds,
-        address: headUser?.address,
-        nativePlace: headUser?.nativePlace,
-        nativeDistrict: headUser?.nativeDistrict,
-      });
+      let memberUser;
+      try {
+        memberUser = await User.create({
+          firstName,
+          lastName,
+          phone,
+          gender,
+          familyId: family._id,
+          communityIds: family.communityIds,
+          address: headUser?.address,
+          nativePlace: headUser?.nativePlace,
+          nativeDistrict: headUser?.nativeDistrict,
+        });
+      } catch (err: any) {
+        if (err.code === 11000 && err.keyPattern?.phone) {
+          res.status(400).json({ error: `Phone number ${phone} is already registered. Please use a different number.` });
+          return;
+        }
+        throw err;
+      }
 
       switch (relation) {
         case 'spouse':

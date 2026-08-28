@@ -137,27 +137,49 @@ export async function submitPublicFamilyRequest(req: Request, res: Response): Pr
 
   const { communityId, head, sampradaya, business, members, submitterName, submitterPhone } = parsed.data;
 
+  if (head.phone && members?.some(m => m.phone === head.phone)) {
+    res.status(400).json({ error: 'Phone number already exists (family head has this number)' });
+    return;
+  }
+
+  if (members) {
+    const phoneNumbers = members.map(m => m.phone).filter(Boolean);
+    const duplicates = phoneNumbers.filter((phone, index) => phoneNumbers.indexOf(phone) !== index);
+    if (duplicates.length > 0) {
+      res.status(400).json({ error: `Duplicate phone number found in members: ${duplicates[0]}` });
+      return;
+    }
+  }
+
   const community = await Community.findById(communityId);
   if (!community) {
     res.status(404).json({ error: 'Community not found' });
     return;
   }
 
-  const request = await ApprovalRequest.create({
-    entityType: 'new_family',
-    communityId,
-    payload: { head, communityIds: [communityId], sampradaya, business, members, submitterName, submitterPhone },
-  });
+  try {
+    const request = await ApprovalRequest.create({
+      entityType: 'new_family',
+      communityId,
+      payload: { head, communityIds: [communityId], sampradaya, business, members, submitterName, submitterPhone },
+    });
 
-  const requesterName = submitterName || head.firstName || 'Someone';
-  await notifyCommunityAdmins(
-    communityId,
-    'approval_request',
-    'New family registration request',
-    `${requesterName} submitted a new family for review`,
-    { approvalRequestId: request._id.toString(), entityType: 'new_family' },
-    request._id.toString(),
-  );
+    const requesterName = submitterName || head.firstName || 'Someone';
+    await notifyCommunityAdmins(
+      communityId,
+      'approval_request',
+      'New family registration request',
+      `${requesterName} submitted a new family for review`,
+      { approvalRequestId: request._id.toString(), entityType: 'new_family' },
+      request._id.toString(),
+    );
 
-  res.status(201).json({ success: true, requestId: request._id.toString() });
+    res.status(201).json({ success: true, requestId: request._id.toString() });
+  } catch (err: any) {
+    if (err.code === 11000 && err.keyPattern?.phone) {
+      res.status(400).json({ error: 'This phone number is already registered. Please use a different number.' });
+      return;
+    }
+    throw err;
+  }
 }

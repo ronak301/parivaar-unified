@@ -16,6 +16,14 @@ import {
 import { Gender } from '@parivaar/shared';
 import type { Community } from '@parivaar/shared';
 import { Plus, X, UserPlus, CheckCircle2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
 import { readCache, writeCache } from '@/lib/cache/local-cache';
 import {
@@ -77,6 +85,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
   const [submitterPhone, setSubmitterPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [alertError, setAlertError] = useState('');
 
   const headName = [form.firstName, form.lastName].filter(Boolean).join(' ');
 
@@ -208,28 +217,53 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
     setPhase('members');
   }
 
-  function handleAddPendingMember() {
+  async function handleAddPendingMember() {
     if (!memberFirstName.trim()) {
-      setError('First name is required');
+      setAlertError('First name is required');
       return;
     }
     if (!memberGender) {
-      setError('Gender is required');
+      setAlertError('Gender is required');
       return;
     }
     if (!memberRelation) {
-      setError('Relation is required');
+      setAlertError('Relation is required');
       return;
     }
     if (!memberRelatedTo) {
-      setError('Please select who this member is related to');
+      setAlertError('Please select who this member is related to');
       return;
     }
     if (memberPhone && !/^[0-9]{10}$/.test(memberPhone)) {
-      setError('Phone number must be exactly 10 digits');
+      setAlertError('Phone number must be exactly 10 digits');
       return;
     }
+    if (memberPhone) {
+      if (memberPhone === form.phone) {
+        setAlertError('This phone number already exists (family head)');
+        return;
+      }
+      if (pendingMembers.some((m) => m.phone === memberPhone)) {
+        setAlertError('This phone number already exists in added members');
+        return;
+      }
 
+      try {
+        const res = await fetch(`/api/public/check-phone?phone=${encodeURIComponent(memberPhone)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.exists) {
+            setAlertError('This phone number is already registered with us.');
+            return;
+          }
+        }
+      } catch {
+        setAlertError('Could not verify phone number. Please try again.');
+        return;
+      }
+    }
+
+    setAlertError('');
     setError('');
     setPendingMembers((prev) => [
       ...prev,
@@ -333,6 +367,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
     setSubmitterName('');
     setSubmitterPhone('');
     setError('');
+    setAlertError('');
     setPhase('phone');
   }
 
@@ -630,6 +665,16 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
             )}
+
+            <AlertDialog open={!!alertError} onOpenChange={(open) => { if (!open) setAlertError(''); }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Error</AlertDialogTitle>
+                  <AlertDialogDescription>{alertError}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogAction onClick={() => setAlertError('')}>OK</AlertDialogAction>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>

@@ -20,6 +20,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { UserPlus } from 'lucide-react';
 import type { UserData, FamilyTreeMember } from './member-detail-types';
 
@@ -58,6 +66,7 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [alertError, setAlertError] = useState('');
 
   const memberName = member.fullName || `${member.firstName} ${member.lastName ?? ''}`.trim();
 
@@ -86,28 +95,57 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
       setRelation('');
       setRelatedTo('');
       setError('');
+      setAlertError('');
     }
     onOpenChange(next);
   }
 
-  function handleAddPendingMember() {
+  async function handleAddPendingMember() {
     if (!firstName.trim()) {
-      setError('First name is required');
+      setAlertError('First name is required');
       return;
     }
     if (!relation) {
-      setError('Relation is required');
+      setAlertError('Relation is required');
       return;
     }
     if (!relatedTo) {
-      setError('Please select who this member is related to');
+      setAlertError('Please select who this member is related to');
       return;
     }
     if (phone && !/^[0-9]{10}$/.test(phone)) {
-      setError('Phone number must be exactly 10 digits');
+      setAlertError('Phone number must be exactly 10 digits');
       return;
     }
 
+    if (phone) {
+      if (phone === member.phone) {
+        setAlertError('This phone number already exists (family head)');
+        return;
+      }
+      if (pendingMembers.some((m) => m.phone === phone)) {
+        setAlertError('This phone number already exists in added members');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/users/check-phone?phone=${encodeURIComponent(phone)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.exists) {
+            const name = data.user?.fullName || data.user?.firstName || 'Unknown';
+            const communities = data.user?.communityIds?.map((c: { name: string }) => c.name).join(', ') || '';
+            setAlertError(`Phone number is already registered to "${name}"${communities ? ` (${communities})` : ''}`);
+            return;
+          }
+        }
+      } catch {
+        setAlertError('Could not verify phone number. Please try again.');
+        return;
+      }
+    }
+
+    setAlertError('');
     setError('');
     setPendingMembers((prev) => [
       ...prev,
@@ -286,6 +324,16 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
 
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
+
+        <AlertDialog open={!!alertError} onOpenChange={(open) => { if (!open) setAlertError(''); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Error</AlertDialogTitle>
+              <AlertDialogDescription>{alertError}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogAction onClick={() => setAlertError('')}>OK</AlertDialogAction>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <DialogFooter>
           <Button size="lg" onClick={handleSubmit} disabled={saving || pendingMembers.length === 0}>
