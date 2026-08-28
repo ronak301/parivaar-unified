@@ -21,6 +21,7 @@ const batchAddMemberSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().max(100).optional(),
   phone: z.string().regex(/^[0-9]{10}$/).optional(),
+  gender: z.string().min(1, 'Gender is required'),
   relation: z.enum(['son', 'daughter', 'spouse', 'sibling']),
   relativeId: z.string().optional(),
   relativeIndex: z.number().int().min(0).optional(),
@@ -36,7 +37,7 @@ const batchMemberSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().max(100).optional(),
   phone: z.string().regex(/^[0-9]{10}$/).optional(),
-  gender: z.string().optional(),
+  gender: z.string().min(1, 'Gender is required'),
   relation: z.enum(['father', 'mother', 'spouse', 'child', 'son', 'daughter', 'sibling']).optional(),
   relativeIndex: z.number().int().min(-1).optional(),
 });

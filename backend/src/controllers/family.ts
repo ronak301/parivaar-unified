@@ -345,7 +345,7 @@ export async function addFamilyMembers(req: AuthRequest, res: Response): Promise
     const createdInThisBatch: IUser[] = [];
 
     for (const memberData of parsed.data.members) {
-      const { firstName, lastName, phone, relation, relativeId, relativeIndex } = memberData;
+      const { firstName, lastName, phone, gender: providedGender, relation, relativeId, relativeIndex } = memberData;
 
       const relative = relativeId
         ? await User.findById(relativeId)
@@ -361,6 +361,8 @@ export async function addFamilyMembers(req: AuthRequest, res: Response): Promise
       else if (relation === 'daughter') gender = 'female';
       else if (relation === 'spouse') {
         gender = relative.gender === 'female' ? 'male' : relative.gender === 'male' ? 'female' : undefined;
+      } else if (relation === 'sibling') {
+        gender = providedGender;
       }
 
       let memberUser;

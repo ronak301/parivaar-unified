@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { UserPlus } from 'lucide-react';
+import { Gender } from '@parivaar/shared';
 import type { UserData, FamilyTreeMember } from './member-detail-types';
 
 interface AddFamilyMemberDialogProps {
@@ -52,6 +53,7 @@ interface PendingMember {
   firstName: string;
   lastName: string;
   phone: string;
+  gender: string;
   relation: string;
   relatedTo: string;
 }
@@ -61,6 +63,7 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState('');
   const [relation, setRelation] = useState('');
   const [relatedTo, setRelatedTo] = useState('');
 
@@ -92,6 +95,7 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
       setFirstName('');
       setLastName('');
       setPhone('');
+      setGender('');
       setRelation('');
       setRelatedTo('');
       setError('');
@@ -103,6 +107,10 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
   async function handleAddPendingMember() {
     if (!firstName.trim()) {
       setAlertError('First name is required');
+      return;
+    }
+    if (!gender) {
+      setAlertError('Gender is required');
       return;
     }
     if (!relation) {
@@ -149,11 +157,12 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
     setError('');
     setPendingMembers((prev) => [
       ...prev,
-      { tempId: crypto.randomUUID(), firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), relation, relatedTo },
+      { tempId: crypto.randomUUID(), firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), gender, relation, relatedTo },
     ]);
     setFirstName('');
     setLastName('');
     setPhone('');
+    setGender('');
     setRelation('');
     setRelatedTo('');
   }
@@ -198,6 +207,7 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
             firstName: m.firstName,
             lastName: m.lastName || undefined,
             phone: m.phone || undefined,
+            gender: m.gender || undefined,
             relation: m.relation,
             ...(kind === 'existing' ? { relativeId: value } : { relativeIndex: pendingIndex }),
           };
@@ -237,11 +247,13 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
               <div className="flex flex-col gap-1">
                 {pendingMembers.map((m) => {
                   const relMeta = RELATIONS.find((r) => r.id === m.relation);
+                  const genderLabel = Gender.find((g) => g.id === m.gender)?.label;
                   return (
                     <div key={m.tempId} className="flex items-center gap-2">
                       <Badge variant="secondary">
                         {[m.firstName, m.lastName].filter(Boolean).join(' ')}
                         {m.phone ? ` · ${m.phone}` : ''}
+                        {genderLabel ? ` · ${genderLabel}` : ''}
                         {relMeta ? ` · ${relMeta.label} of ${relatedToLabel(m.relatedTo)}` : ''}
                       </Badge>
                       <Button
@@ -271,6 +283,22 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
               <div className="flex flex-col gap-1">
                 <Label htmlFor="m-lastName" className="text-xs">Last name</Label>
                 <Input id="m-lastName" placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="m-gender" className="text-xs">Gender <span className="text-red-500">*</span></Label>
+                <Select value={gender} onValueChange={(v) => setGender(v ?? '')}>
+                  <SelectTrigger id="m-gender" className="w-full">
+                    {gender
+                      ? <span data-slot="select-value" className="flex flex-1 text-left">{Gender.find((g) => g.id === gender)?.label}</span>
+                      : <SelectValue placeholder="Select gender" />
+                    }
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Gender.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex flex-col gap-1">
                 <Label htmlFor="m-relation" className="text-xs">Relation <span className="text-red-500">*</span></Label>
