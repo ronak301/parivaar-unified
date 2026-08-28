@@ -149,6 +149,13 @@ export async function submitPublicFamilyRequest(req: Request, res: Response): Pr
       res.status(400).json({ error: `Duplicate phone number found in members: ${duplicates[0]}` });
       return;
     }
+
+    for (const member of members) {
+      if (member.relation === 'sibling' && member.relativeIndex !== -1) {
+        res.status(400).json({ error: 'Siblings can only be added to the family head' });
+        return;
+      }
+    }
   }
 
   const community = await Community.findById(communityId);

@@ -121,6 +121,10 @@ export function AddFamilyMemberDialog({ open, onOpenChange, member, familyMember
       setAlertError('Please select who this member is related to');
       return;
     }
+    if (relation === 'sibling' && relatedTo !== `existing:${member._id}`) {
+      setAlertError('Siblings can only be added to the family head');
+      return;
+    }
     if (phone && !/^[0-9]{10}$/.test(phone)) {
       setAlertError('Phone number must be exactly 10 digits');
       return;

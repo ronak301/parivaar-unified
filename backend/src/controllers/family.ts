@@ -192,6 +192,10 @@ export async function batchCreateFamily(req: AuthRequest, res: Response): Promis
         }
 
         if (relation && relativeIndex !== undefined) {
+          if (relation === 'sibling' && relativeIndex !== -1) {
+            res.status(400).json({ error: 'Siblings can only be added to the family head' });
+            return;
+          }
           const relativeUser = relativeIndex === -1 ? headUser : allUsers[relativeIndex + 1];
           if (relativeUser) {
             switch (relation) {
@@ -353,6 +357,11 @@ export async function addFamilyMembers(req: AuthRequest, res: Response): Promise
 
       if (!relative) {
         res.status(400).json({ error: 'Related-to member not found' });
+        return;
+      }
+
+      if (relation === 'sibling' && relative._id.toString() !== family.headId.toString()) {
+        res.status(400).json({ error: 'Siblings can only be added to the family head' });
         return;
       }
 
