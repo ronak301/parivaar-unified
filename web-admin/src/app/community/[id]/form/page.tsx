@@ -27,7 +27,7 @@ import {
 import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
 import { readCache, writeCache } from '@/lib/cache/local-cache';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.parivaarapp.in';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 import {
   PersonFieldsBlock,

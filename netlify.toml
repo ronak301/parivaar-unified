@@ -7,12 +7,16 @@
 
 [env.production]
   BACKEND_URL = "https://api.parivaarapp.in"
-  NEXT_PUBLIC_API_URL = "https://api.parivaarapp.in"
 
 [env.preview]
   BACKEND_URL = "https://api.parivaarapp.in"
-  NEXT_PUBLIC_API_URL = "https://api.parivaarapp.in"
 
 [env.development]
   BACKEND_URL = "https://api.parivaarapp.in"
-  NEXT_PUBLIC_API_URL = "https://api.parivaarapp.in"
+
+# Proxy all /api/* requests to the backend — runs at CDN level, no CORS needed
+[[redirects]]
+  from = "/api/*"
+  to = "https://api.parivaarapp.in/api/:splat"
+  status = 200
+  force = true
