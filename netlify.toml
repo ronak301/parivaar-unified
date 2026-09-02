@@ -14,9 +14,21 @@
 [env.development]
   BACKEND_URL = "https://api.parivaarapp.in"
 
-# Proxy all /api/* requests to the backend — runs at CDN level, no CORS needed
+# Proxy only the public endpoints the form uses (CDN-level, no CORS needed)
 [[redirects]]
-  from = "/api/*"
-  to = "https://api.parivaarapp.in/api/:splat"
+  from = "/api/communities/*"
+  to = "https://api.parivaarapp.in/api/communities/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/users/check-phone-public"
+  to = "https://api.parivaarapp.in/api/users/check-phone-public"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/approvals/public/submit-family"
+  to = "https://api.parivaarapp.in/api/approvals/public/submit-family"
   status = 200
   force = true
