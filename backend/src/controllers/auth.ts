@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 import { z } from 'zod';
 import { sendOtpSchema, verifyOtpSchema, phoneSchema } from '@parivaar/shared';
 import { env } from '../config/env';
@@ -13,15 +12,6 @@ const adminLoginSchema = z.object({
   password: z.string().min(1),
 });
 
-function verifyPassword(password: string, stored: string): boolean {
-  const [salt, hash] = stored.split(':');
-  if (!salt || !hash) return false;
-  const candidate = crypto.scryptSync(password, salt, 64);
-  const expected = Buffer.from(hash, 'hex');
-  if (candidate.length !== expected.length) return false;
-  return crypto.timingSafeEqual(candidate, expected);
-}
-
 export async function adminLogin(req: Request, res: Response): Promise<void> {
   const parsed = adminLoginSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -31,12 +21,12 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
 
   const { phone, password } = parsed.data;
 
-  if (!env.SUPER_ADMIN_PHONE || !env.ADMIN_PASSWORD_HASH) {
+  if (!env.SUPER_ADMIN_PHONE) {
     res.status(503).json({ error: 'Admin login not configured' });
     return;
   }
 
-  if (phone !== env.SUPER_ADMIN_PHONE || !verifyPassword(password, env.ADMIN_PASSWORD_HASH)) {
+  if (phone !== env.SUPER_ADMIN_PHONE || password !== env.ADMIN_PASSWORD) {
     res.status(401).json({ error: 'Invalid credentials' });
     return;
   }
