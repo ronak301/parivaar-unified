@@ -42,17 +42,19 @@ export async function createBusiness(req: AuthRequest, res: Response): Promise<v
       Object.keys(err.errors).forEach((field) => {
         details[field] = [err.errors[field].message];
       });
-      return res.status(400).json({ error: 'Validation error', details });
+      res.status(400).json({ error: 'Validation error', details });
+      return;
     }
 
     // Handle duplicate key errors
     if (err.code === 11000) {
       const field = Object.keys(err.keyPattern)[0];
       const message = `${field} already exists`;
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Validation error',
         details: { [field]: [message] }
       });
+      return;
     }
 
     console.error('Business create error:', err);
@@ -104,17 +106,19 @@ export async function updateBusiness(req: AuthRequest, res: Response): Promise<v
       Object.keys(err.errors).forEach((field) => {
         details[field] = [err.errors[field].message];
       });
-      return res.status(400).json({ error: 'Validation error', details });
+      res.status(400).json({ error: 'Validation error', details });
+      return;
     }
 
     // Handle duplicate key errors
     if (err.code === 11000) {
       const field = Object.keys(err.keyPattern)[0];
       const message = `${field} already exists`;
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Validation error',
         details: { [field]: [message] }
       });
+      return;
     }
 
     console.error('Business update error:', err);

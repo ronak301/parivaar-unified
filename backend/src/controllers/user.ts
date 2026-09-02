@@ -64,7 +64,8 @@ export async function createUser(req: AuthRequest, res: Response): Promise<void>
       Object.keys(err.errors).forEach((field) => {
         details[field] = [err.errors[field].message];
       });
-      return res.status(400).json({ error: 'Validation error', details });
+      res.status(400).json({ error: 'Validation error', details });
+      return;
     }
 
     // Handle duplicate key errors
@@ -74,10 +75,11 @@ export async function createUser(req: AuthRequest, res: Response): Promise<void>
       const existingUser = await User.findOne({ [field]: value }).select('firstName lastName');
       const name = existingUser ? `${existingUser.firstName} ${existingUser.lastName || ''}`.trim() : 'another user';
       const message = `${field === 'phone' ? 'Phone' : field} already exists with ${name}`;
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Validation error',
         details: { [field]: [message] }
       });
+      return;
     }
 
     console.error('User create error:', err);
@@ -138,7 +140,8 @@ export async function updateUser(req: AuthRequest, res: Response): Promise<void>
       Object.keys(err.errors).forEach((field) => {
         details[field] = [err.errors[field].message];
       });
-      return res.status(400).json({ error: 'Validation error', details });
+      res.status(400).json({ error: 'Validation error', details });
+      return;
     }
 
     // Handle duplicate key errors
@@ -148,10 +151,11 @@ export async function updateUser(req: AuthRequest, res: Response): Promise<void>
       const existingUser = await User.findOne({ [field]: value }).select('firstName lastName');
       const name = existingUser ? `${existingUser.firstName} ${existingUser.lastName || ''}`.trim() : 'another user';
       const message = `${field === 'phone' ? 'Phone' : field} already exists with ${name}`;
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Validation error',
         details: { [field]: [message] }
       });
+      return;
     }
 
     console.error('User update error:', err);
@@ -172,12 +176,13 @@ export async function deleteUser(req: AuthRequest, res: Response): Promise<void>
   // Check if user has children
   if (user.childrenIds.length > 0 && cascade !== 'true') {
     const allDescendants = await getAllDescendants(user._id.toString());
-    return res.status(400).json({
+    res.status(400).json({
       error: 'User has dependents',
       hasDependents: true,
       dependentsCount: allDescendants.length,
       dependents: allDescendants.map((c) => ({ id: c._id, name: `${c.firstName} ${c.lastName || ''}`.trim() })),
     });
+    return;
   }
 
   // Recursively delete user and all descendants
