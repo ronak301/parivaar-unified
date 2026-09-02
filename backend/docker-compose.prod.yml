@@ -10,12 +10,22 @@ services:
     depends_on:
       - mongo
       - redis
-    env_file:
-      - .env
     environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGODB_URI=mongodb+srv://ronakkothari301_db_user:SljHJ6I5a3BATU4a@cluster0.xzyu4dq.mongodb.net/parivaar?retryWrites=true&w=majority&appName=Cluster0
       - REDIS_URL=redis://redis:6379
       - REDIS_ENABLED=true
-      - NODE_ENV=production
+      - JWT_SECRET=fa0980e0e70fe837cd00a1d5becf77723990d3ae984cb83d6a6a68609698a43f
+      - JWT_EXPIRES_IN=30d
+      - MESSAGE_CENTRAL_AUTH_TOKEN=eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJDLUUxMTk3REQ5M0VEQTQ0QiIsImlhdCI6MTc4ODAwODA3NywiZXhwIjoxOTQ1Njg4MDc3fQ.AZPtgBPGYG0eBvBuBytGIYuqCuxYlfoQeUJiy74-FeymUr8OM0T4TDON3tz5wCReEqMHfaIA-jEqPtVeV2EhAA
+      - MESSAGE_CENTRAL_CUSTOMER_ID=C-E1197DD93EDA44B
+      - MESSAGE_CENTRAL_OTP_LENGTH=6
+      - FIREBASE_SERVICE_ACCOUNT_PATH=./firebase-service-account.json
+      - CORS_ORIGINS=http://localhost:3000,https://parivaardirectory.netlify.app
+      - SUPER_ADMIN_PHONE=9999999999
+      - ADMIN_PASSWORD=12345
+      - DEV_OTP_BYPASS=false
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
     networks:
