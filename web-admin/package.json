@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@chakra-ui/cli": "^3.36.1",
+    "@netlify/plugin-nextjs": "^5.15.13",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
