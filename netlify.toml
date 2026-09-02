@@ -3,10 +3,10 @@
   publish = "web-admin/.next"
 
 [env.production]
-  BACKEND_URL = "http://api.parivaarapp.in:3002"
+  BACKEND_URL = "https://api.parivaarapp.in"
 
 [env.preview]
-  BACKEND_URL = "http://api.parivaarapp.in:3002"
+  BACKEND_URL = "https://api.parivaarapp.in"
 
 [env.development]
-  BACKEND_URL = "http://api.parivaarapp.in:3002"
+  BACKEND_URL = "https://api.parivaarapp.in"
