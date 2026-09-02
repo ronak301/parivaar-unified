@@ -190,11 +190,11 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
     setError('');
     try {
       const res = await fetch(`/api/public/check-phone?phone=${encodeURIComponent(phone)}`);
+      const data = await res.json();
       if (!res.ok) {
-        setError('Could not verify phone number right now. Please try again.');
+        setError(data.error || 'Could not verify phone number right now. Please try again.');
         return;
       }
-      const data = await res.json();
       if (data.exists) {
         setError('This phone number is already registered with us.');
         return;

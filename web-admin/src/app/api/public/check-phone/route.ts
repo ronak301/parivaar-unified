@@ -12,11 +12,13 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(
       `${getBackendUrl()}/api/users/check-phone-public?phone=${encodeURIComponent(phone)}`,
+      { signal: AbortSignal.timeout(10000) },
     );
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
     console.error('Public check-phone proxy error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }
