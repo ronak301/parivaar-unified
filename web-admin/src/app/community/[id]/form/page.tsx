@@ -26,6 +26,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { uploadUserPhoto, uploadBusinessLogo, uploadBusinessPhoto } from '@/lib/firebase/storage';
 import { readCache, writeCache } from '@/lib/cache/local-cache';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
 import {
   PersonFieldsBlock,
   emptyPersonForm,
@@ -101,7 +104,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
           setLoading(false);
         }
 
-        const res = await fetch(`/api/admin/communities/${id}`);
+        const res = await fetch(`${API_URL}/api/communities/${id}`);
         if (res.ok) {
           const data = await res.json();
           setCommunity(data.community);
@@ -189,7 +192,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
     setCheckingPhone(true);
     setError('');
     try {
-      const res = await fetch(`/api/public/check-phone?phone=${encodeURIComponent(phone)}`);
+      const res = await fetch(`${API_URL}/api/users/check-phone-public?phone=${encodeURIComponent(phone)}`);
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || 'Could not verify phone number right now. Please try again.');
@@ -322,7 +325,7 @@ export default function CommunityFormPage({ params }: { params: Promise<{ id: st
         ? buildBusinessPayload(businessForm, businessLogoUrl, businessPhotoUrls)
         : undefined;
 
-      const res = await fetch('/api/public/families/submit', {
+      const res = await fetch(`${API_URL}/api/approvals/public/submit-family`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

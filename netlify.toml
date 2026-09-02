@@ -7,9 +7,12 @@
 
 [env.production]
   BACKEND_URL = "https://api.parivaarapp.in"
+  NEXT_PUBLIC_API_URL = "https://api.parivaarapp.in"
 
 [env.preview]
   BACKEND_URL = "https://api.parivaarapp.in"
+  NEXT_PUBLIC_API_URL = "https://api.parivaarapp.in"
 
 [env.development]
   BACKEND_URL = "https://api.parivaarapp.in"
+  NEXT_PUBLIC_API_URL = "https://api.parivaarapp.in"
