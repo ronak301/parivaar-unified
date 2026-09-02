@@ -79,24 +79,6 @@ export async function sendOtp(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const tokenRes = await axios.get(
-      `${MESSAGE_CENTRAL_BASE}/auth/v1/authentication/token`,
-      {
-        params: {
-          customerId: env.MESSAGE_CENTRAL_CUSTOMER_ID,
-          key: env.MESSAGE_CENTRAL_AUTH_TOKEN,
-          scope: 'NEW',
-          country: env.MESSAGE_CENTRAL_COUNTRY_CODE,
-        },
-      },
-    );
-
-    const mcToken = tokenRes.data?.token;
-    if (!mcToken) {
-      res.status(502).json({ error: 'Failed to get auth token from MessageCentral' });
-      return;
-    }
-
     const otpRes = await axios.post(
       `${MESSAGE_CENTRAL_BASE}/verification/v3/send`,
       null,
@@ -108,11 +90,11 @@ export async function sendOtp(req: Request, res: Response): Promise<void> {
           mobileNumber: phone,
           otpLength: env.MESSAGE_CENTRAL_OTP_LENGTH,
         },
-        headers: { authToken: mcToken },
+        headers: { authToken: env.MESSAGE_CENTRAL_AUTH_TOKEN },
       },
     );
 
-    const verificationId = otpRes.data?.data?.verifyId;
+    const verificationId = otpRes.data?.data?.verificationId;
     if (!verificationId) {
       res.status(502).json({ error: 'Failed to send OTP' });
       return;
@@ -121,8 +103,13 @@ export async function sendOtp(req: Request, res: Response): Promise<void> {
     await setOTP(phone, { sentAt: Date.now(), verificationId }, OTP_TTL_SECONDS);
 
     res.json({ success: true, verificationId });
-  } catch {
-    res.status(502).json({ error: 'OTP service unavailable' });
+  } catch (err: any) {
+    const errorMsg = err.response?.data?.message || err.message || 'OTP service unavailable';
+    if (err.response?.status === 400) {
+      res.status(400).json({ error: errorMsg });
+    } else {
+      res.status(502).json({ error: errorMsg });
+    }
   }
 }
 
@@ -157,24 +144,6 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const tokenRes = await axios.get(
-      `${MESSAGE_CENTRAL_BASE}/auth/v1/authentication/token`,
-      {
-        params: {
-          customerId: env.MESSAGE_CENTRAL_CUSTOMER_ID,
-          key: env.MESSAGE_CENTRAL_AUTH_TOKEN,
-          scope: 'NEW',
-          country: env.MESSAGE_CENTRAL_COUNTRY_CODE,
-        },
-      },
-    );
-
-    const mcToken = tokenRes.data?.token;
-    if (!mcToken) {
-      res.status(502).json({ error: 'Verification service unavailable' });
-      return;
-    }
-
     const verifyRes = await axios.get(
       `${MESSAGE_CENTRAL_BASE}/verification/v3/validateOtp`,
       {
@@ -183,7 +152,7 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
           code: otp,
           verificationId,
         },
-        headers: { authToken: mcToken },
+        headers: { authToken: env.MESSAGE_CENTRAL_AUTH_TOKEN },
       },
     );
 
@@ -195,8 +164,9 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
 
     await deleteOTP(phone);
     await issueSessionAndRespond(phone, res);
-  } catch {
-    res.status(502).json({ error: 'OTP verification failed' });
+  } catch (err: any) {
+    const errorMsg = err.response?.data?.message || err.message || 'OTP verification failed';
+    res.status(err.response?.status || 502).json({ error: errorMsg });
   }
 }
 
