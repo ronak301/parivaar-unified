@@ -6,6 +6,18 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Member portal: public login page, everything else under /m requires member auth
+  if (request.nextUrl.pathname.startsWith('/m/login')) {
+    return NextResponse.next();
+  }
+  if (request.nextUrl.pathname.startsWith('/m')) {
+    const hasMemberAuth = request.cookies.get('member_auth_token');
+    if (!hasMemberAuth) {
+      return NextResponse.redirect(new URL('/m/login', request.url));
+    }
+    return NextResponse.next();
+  }
+
   // Check for auth token
   const hasAuth = request.cookies.get('auth_token');
 

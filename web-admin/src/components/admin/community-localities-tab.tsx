@@ -4,9 +4,7 @@ import { useState } from 'react';
 import type { Community } from '@parivaar/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@chakra-ui/react';
-import { Badge } from '@/components/ui/badge';
-import { Plus, X, Sparkles, Loader2, Check } from 'lucide-react';
+import { Plus, X, Sparkles, Loader2, Check, MapPin, ChevronDown } from 'lucide-react';
 
 export function CommunityLocalitiesTab({
   community,
@@ -15,19 +13,27 @@ export function CommunityLocalitiesTab({
   community: Community;
   onUpdated: (community: Community) => void;
 }) {
-  const localities = community.localities ?? [];
+  const localityMap: Record<string, string[]> =
+    community.localities && typeof community.localities === 'object' && !Array.isArray(community.localities)
+      ? community.localities
+      : {};
+
+  const cities = Object.keys(localityMap);
+  const [activeCity, setActiveCity] = useState(cities[0] ?? '');
   const [newLocality, setNewLocality] = useState('');
+  const [newCity, setNewCity] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const [manualCity, setManualCity] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestError, setSuggestError] = useState('');
   const [suggestAttempted, setSuggestAttempted] = useState(false);
 
-  async function persist(next: string[]) {
+  const areas = localityMap[activeCity] ?? [];
+
+  async function persist(next: Record<string, string[]>) {
     setSaving(true);
     setError('');
     try {
@@ -38,175 +44,236 @@ export function CommunityLocalitiesTab({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? 'Failed to save changes');
+        setError(data.error ?? 'Failed to save');
         return;
       }
       onUpdated(data.community);
     } catch {
-      setError('Network error. Please try again.');
+      setError('Network error');
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleAdd() {
-    const value = newLocality.trim();
-    if (!value || localities.includes(value)) return;
-    await persist([...localities, value]);
+  function handleAddCity() {
+    const city = newCity.trim();
+    if (!city || localityMap[city]) return;
+    setActiveCity(city);
+    setNewCity('');
+    persist({ ...localityMap, [city]: [] });
+  }
+
+  function handleRemoveCity(city: string) {
+    const next = { ...localityMap };
+    delete next[city];
+    if (activeCity === city) setActiveCity(Object.keys(next)[0] ?? '');
+    persist(next);
+  }
+
+  function handleAddLocality() {
+    const val = newLocality.trim();
+    if (!val || !activeCity || areas.includes(val)) return;
+    persist({ ...localityMap, [activeCity]: [...areas, val] });
     setNewLocality('');
   }
 
-  async function handleRemove(value: string) {
-    await persist(localities.filter((l) => l !== value));
+  function handleRemoveLocality(val: string) {
+    persist({ ...localityMap, [activeCity]: areas.filter((l) => l !== val) });
   }
 
   async function handleSuggest() {
-    const city = (community.city || manualCity).trim();
-    if (!city) return;
-
+    if (!activeCity) return;
     setSuggestLoading(true);
     setSuggestError('');
     setSuggestAttempted(true);
     try {
-      const params = new URLSearchParams({ city, communityId: community._id });
-      const res = await fetch(`/api/admin/localities/suggest?${params.toString()}`);
+      const params = new URLSearchParams({ city: activeCity, communityId: community._id });
+      const res = await fetch(`/api/admin/localities/suggest?${params}`);
       const data = await res.json();
       if (!res.ok) {
-        setSuggestError(data.error ?? 'Failed to fetch suggestions');
+        setSuggestError(data.error ?? 'Failed');
         setSuggestions([]);
         return;
       }
       setSuggestions(data.suggestions ?? []);
       setSelected(new Set());
     } catch {
-      setSuggestError('Network error. Please try again.');
+      setSuggestError('Network error');
       setSuggestions([]);
     } finally {
       setSuggestLoading(false);
     }
   }
 
-  function toggleSelected(value: string) {
+  function toggleSelected(val: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(value)) {
-        next.delete(value);
-      } else {
-        next.add(value);
-      }
+      next.has(val) ? next.delete(val) : next.add(val);
       return next;
     });
   }
 
   async function handleAddSelected() {
-    if (selected.size === 0) return;
-    const toAdd = Array.from(selected).filter((s) => !localities.includes(s));
-    await persist([...localities, ...toAdd]);
+    if (!selected.size || !activeCity) return;
+    const toAdd = Array.from(selected).filter((s) => !areas.includes(s));
+    await persist({ ...localityMap, [activeCity]: [...areas, ...toAdd] });
     setSuggestions((prev) => prev.filter((s) => !selected.has(s)));
     setSelected(new Set());
   }
 
   return (
-    <div className="chakra-scope">
-    <Card.Root>
-      <Card.Body className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
+      {/* City selector + add */}
+      <div className="m-card flex flex-col gap-3 p-4">
+        <p className="text-sm font-semibold text-m-ink">Cities</p>
+        <div className="flex flex-wrap gap-2">
+          {cities.map((city) => (
+            <button
+              key={city}
+              type="button"
+              onClick={() => {
+                setActiveCity(city);
+                setSuggestions([]);
+                setSuggestAttempted(false);
+              }}
+              data-active={activeCity === city}
+              className="m-chip pr-1.5"
+            >
+              {city}
+              <span
+                className="rounded-full px-1.5 text-[11px] font-normal"
+                style={{ opacity: 0.6 }}
+              >
+                {localityMap[city]?.length ?? 0}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveCity(city);
+                }}
+                disabled={saving}
+                className="rounded-full p-0.5 text-m-ink-3 transition-colors hover:bg-m-surface-2 hover:text-m-danger"
+                aria-label={`Remove ${city}`}
+              >
+                <X className="size-3" />
+              </button>
+            </button>
+          ))}
+        </div>
         <div className="flex gap-2">
           <Input
-            placeholder="Add a locality..."
-            value={newLocality}
-            onChange={(e) => setNewLocality(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAdd();
-              }
-            }}
+            placeholder="Add a city…"
+            value={newCity}
+            onChange={(e) => setNewCity(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCity())}
             className="max-w-xs"
           />
-          <Button onClick={handleAdd} disabled={saving || !newLocality.trim()} size="sm">
-            <Plus />
-            Add
+          <Button onClick={handleAddCity} disabled={saving || !newCity.trim()} size="sm">
+            <Plus /> Add city
           </Button>
         </div>
+      </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-
-        {localities.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No localities added yet.</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {localities.map((locality) => (
-              <Badge key={locality} variant="outline" className="gap-1 pr-1">
-                {locality}
-                <button
-                  type="button"
-                  onClick={() => handleRemove(locality)}
-                  disabled={saving}
-                  className="ml-1 rounded-full p-0.5 hover:bg-muted"
-                  aria-label={`Remove ${locality}`}
-                >
-                  <X className="size-3" />
-                </button>
-              </Badge>
-            ))}
+      {/* Localities for active city */}
+      {activeCity && (
+        <div className="m-card flex flex-col gap-4 p-4">
+          <div>
+            <p className="text-sm font-semibold text-m-ink">
+              Localities in {activeCity}
+            </p>
+            <p className="text-xs text-m-ink-2">
+              Areas members can pick when filling their address.
+            </p>
           </div>
-        )}
 
-        <div className="flex flex-col gap-3 border-t pt-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {!community.city && (
-              <Input
-                placeholder="Enter a city..."
-                value={manualCity}
-                onChange={(e) => setManualCity(e.target.value)}
-                className="max-w-xs"
-              />
-            )}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add a locality…"
+              value={newLocality}
+              onChange={(e) => setNewLocality(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddLocality())}
+              className="max-w-xs"
+            />
+            <Button onClick={handleAddLocality} disabled={saving || !newLocality.trim()} size="sm">
+              <Plus /> Add
+            </Button>
+          </div>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          {areas.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 rounded-xl bg-m-surface-2/60 px-6 py-8 text-center">
+              <div className="flex size-12 items-center justify-center rounded-full bg-m-brand/10 text-m-brand">
+                <MapPin className="size-5" />
+              </div>
+              <p className="text-sm font-semibold text-m-ink">No localities yet</p>
+              <p className="text-sm text-m-ink-2">Type one above, or pull suggestions.</p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {areas.map((loc) => (
+                <span key={loc} className="m-chip pr-1.5">
+                  {loc}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveLocality(loc)}
+                    disabled={saving}
+                    className="rounded-full p-0.5 text-m-ink-3 transition-colors hover:bg-m-surface-2 hover:text-m-danger"
+                    aria-label={`Remove ${loc}`}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Suggest from internet */}
+          <div className="flex flex-col gap-3 border-t border-m-line pt-4">
             <Button
               onClick={handleSuggest}
-              disabled={suggestLoading || !(community.city || manualCity).trim()}
+              disabled={suggestLoading}
               variant="outline"
               size="sm"
+              className="w-fit"
             >
               {suggestLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
               Suggest from internet
             </Button>
-          </div>
 
-          {suggestError && <p className="text-sm text-destructive">{suggestError}</p>}
+            {suggestError && <p className="text-sm text-destructive">{suggestError}</p>}
+            {!suggestLoading && suggestAttempted && !suggestError && suggestions.length === 0 && (
+              <p className="text-sm text-muted-foreground">No suggestions found.</p>
+            )}
 
-          {!suggestLoading && suggestAttempted && !suggestError && suggestions.length === 0 && (
-            <p className="text-sm text-muted-foreground">No suggestions found for this city.</p>
-          )}
-
-          {suggestions.length > 0 && (
-            <>
-              <div className="flex flex-wrap gap-2">
-                {suggestions.map((suggestion) => {
-                  const isSelected = selected.has(suggestion);
-                  return (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => toggleSelected(suggestion)}
-                      className="inline-flex"
-                    >
-                      <Badge variant={isSelected ? 'default' : 'outline'} className="gap-1">
+            {suggestions.length > 0 && (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {suggestions.map((s) => {
+                    const isSelected = selected.has(s);
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => toggleSelected(s)}
+                        data-active={isSelected}
+                        className="m-chip font-medium"
+                      >
                         {isSelected && <Check className="size-3" />}
-                        {suggestion}
-                      </Badge>
-                    </button>
-                  );
-                })}
-              </div>
-              <Button onClick={handleAddSelected} disabled={saving || selected.size === 0} size="sm" className="w-fit">
-                Add selected ({selected.size})
-              </Button>
-            </>
-          )}
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+                <Button onClick={handleAddSelected} disabled={saving || !selected.size} size="sm" className="w-fit">
+                  Add selected ({selected.size})
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-      </Card.Body>
-    </Card.Root>
+      )}
     </div>
   );
 }

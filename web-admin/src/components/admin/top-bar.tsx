@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { Bell, Settings, LogOut, Globe, ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
@@ -16,6 +17,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function TopBar() {
   const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -58,6 +61,15 @@ export function TopBar() {
   const handleCommunityChange = (communityId: string) => {
     localStorage.setItem('selectedCommunityId', communityId);
     setIsDropdownOpen(false);
+
+    // Navigate to the same section but for the new community
+    if (pathname.includes('/members')) {
+      router.push(`/admin/community/${communityId}/members`);
+    } else if (pathname.startsWith('/admin/communities/')) {
+      router.push(`/admin/communities/${communityId}`);
+    } else {
+      router.push(`/admin/communities/${communityId}`);
+    }
   };
 
   const communities = user?.communities ?? [];
@@ -76,28 +88,28 @@ export function TopBar() {
     : 'AU';
 
   return (
-    <header className="fixed top-0 right-0 left-[260px] h-16 bg-[#0b1c30] z-40 flex items-center justify-between px-6">
+    <header className="fixed left-[260px] right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-m-line bg-m-surface/85 px-6 backdrop-blur-md">
       {/* Left: Community selector */}
       <div className="relative" onMouseLeave={() => setIsDropdownOpen(false)}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg border border-white/20 transition-colors"
+          className="flex items-center gap-2 rounded-m-field border border-m-line-strong bg-m-surface px-3 py-1.5 transition-colors hover:bg-m-surface-2"
         >
-          <Globe className="size-[18px] text-white" />
-          <span className="font-body-md text-sm font-semibold text-white">{communityName}</span>
-          <ChevronDown className={`size-[18px] text-white transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          <Globe className="size-[18px] text-m-brand" />
+          <span className="max-w-[28rem] truncate text-sm font-semibold text-m-ink">{communityName}</span>
+          <ChevronDown className={`size-[18px] text-m-ink-2 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {isDropdownOpen && (
-          <div className="absolute top-full left-0 mt-1 bg-white border border-[#c7c4d7] rounded-lg shadow-md z-20 min-w-48 max-h-48 overflow-y-auto">
+          <div className="m-card-float absolute left-0 top-full z-20 mt-1 max-h-60 min-w-56 overflow-y-auto p-1">
             {communities.map(community => (
               <button
                 key={community._id}
                 onClick={() => handleCommunityChange(community._id)}
-                className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${
                   community._id === saved
-                    ? 'bg-[#e5eeff] text-[#0b1c30] font-semibold'
-                    : 'text-[#464555] hover:bg-[#f8f9ff]'
+                    ? 'bg-m-brand/10 font-semibold text-m-brand'
+                    : 'text-m-ink hover:bg-m-surface-2'
                 }`}
               >
                 {community.name}
@@ -110,7 +122,7 @@ export function TopBar() {
       {/* Right: Bell, divider, user */}
       <div className="flex items-center gap-4">
         <Link href="/admin/notifications">
-          <button className="p-2 text-white/80 hover:bg-white/10 hover:text-white rounded-full transition-colors relative">
+          <button className="relative rounded-full p-2 text-m-ink-2 transition-colors hover:bg-m-surface-2 hover:text-m-ink">
             <Bell className="size-5" />
             {unreadCount > 0 && (
               <Badge variant="destructive" className="absolute -right-1 -top-1 size-5 rounded-full p-0 flex items-center justify-center text-xs">
@@ -120,13 +132,13 @@ export function TopBar() {
           </button>
         </Link>
 
-        <div className="h-8 w-[1px] bg-white/20" />
+        <div className="h-8 w-px bg-m-line-strong" />
 
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-3 pl-2 outline-none">
             <div className="text-right hidden sm:block">
-              <div className="text-sm font-semibold text-white">{user?.fullName}</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-white/70">{user?.role.replace('_', ' ')}</div>
+              <div className="text-sm font-semibold text-m-ink">{user?.fullName}</div>
+              <div className="text-xs capitalize text-m-ink-2">{user?.role.replace('_', ' ')}</div>
             </div>
             <Avatar className="w-8 h-8">
               <AvatarImage src={user?.profilePicture} alt={user?.fullName} />

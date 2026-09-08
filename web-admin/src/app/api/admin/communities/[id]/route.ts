@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl } from '@/lib/api/backend-url';
+import { getAdminClient } from '@/lib/auth/admin-client';
+import { getCommunity, updateCommunity, deleteCommunity } from '@/lib/api/community';
+import { respondToAuthError } from '@/lib/api/route-error';
 
 export async function GET(
   _request: NextRequest,
@@ -7,30 +9,11 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const backendUrl = getBackendUrl();
-    const response = await fetch(`${backendUrl}/api/communities/${id}`, {
-      headers: {
-        'Authorization': 'Bearer dev-token',
-        'Content-Type': 'application/json',
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return NextResponse.json({ error: 'Community not found' }, { status: 404 });
-      }
-      throw new Error(`Backend returned ${response.status}`);
-    }
-
-    const data = await response.json();
-    return NextResponse.json({ success: true, community: data.community });
+    const client = await getAdminClient();
+    const community = await getCommunity(client, id);
+    return NextResponse.json({ success: true, community });
   } catch (e) {
-    console.error('Failed to fetch community:', e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Failed to load community' },
-      { status: 500 }
-    );
+    return respondToAuthError(e, 'Failed to load community');
   }
 }
 
@@ -40,34 +23,16 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json().catch(() => null);
-  if (!body) {
+  if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
   try {
-    const backendUrl = getBackendUrl();
-    const response = await fetch(`${backendUrl}/api/communities/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': 'Bearer dev-token',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend returned ${response.status}`);
-    }
-
-    const data = await response.json();
-    return NextResponse.json({ success: true, community: data.community });
+    const client = await getAdminClient();
+    const community = await updateCommunity(client, id, body);
+    return NextResponse.json({ success: true, community });
   } catch (e) {
-    console.error('Failed to update community:', e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Failed to update community' },
-      { status: 500 }
-    );
+    return respondToAuthError(e, 'Failed to update community');
   }
 }
 
@@ -77,26 +42,10 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const backendUrl = getBackendUrl();
-    const response = await fetch(`${backendUrl}/api/communities/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': 'Bearer dev-token',
-        'Content-Type': 'application/json',
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend returned ${response.status}`);
-    }
-
+    const client = await getAdminClient();
+    await deleteCommunity(client, id);
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error('Failed to delete community:', e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Failed to delete community' },
-      { status: 500 }
-    );
+    return respondToAuthError(e, 'Failed to delete community');
   }
 }

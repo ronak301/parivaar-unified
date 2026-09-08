@@ -1,7 +1,9 @@
 'use client';
 
 import { startTransition, useCallback, useEffect, useState } from 'react';
-import type { ApprovalRequest, ApprovalStatus } from '@parivaar/shared';
+import type { ApprovalRequest, ApprovalStatus, ProfileEditPayload } from '@parivaar/shared';
+import { BloodGroups, Gender } from '@parivaar/shared';
+import { formatDate } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -11,7 +13,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Card } from '@chakra-ui/react';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -130,6 +131,88 @@ function familyMembers(request: ApprovalRequest) {
   return list;
 }
 
+const PROFILE_FIELD_LABELS: Record<string, string> = {
+  firstName: 'First name',
+  lastName: 'Last name',
+  profilePicture: 'Profile photo',
+  guardianName: 'Guardian name',
+  dob: 'Date of birth',
+  weddingDate: 'Wedding date',
+  gender: 'Gender',
+  email: 'Email',
+  education: 'Education',
+  specialEducation: 'Special education',
+  bloodGroup: 'Blood group',
+  hobbies: 'Hobbies',
+  achievements: 'Achievements',
+  nativePlace: 'Native place',
+  nativeDistrict: 'Native district',
+  nanihaal: 'Nanihaal',
+  aadharLast4: 'Aadhar (last 4)',
+  address: 'Address',
+};
+
+function profileEditChanges(request: ApprovalRequest): { changes: Record<string, unknown>; previous: Record<string, unknown> } {
+  const payload = (request.payload ?? {}) as Partial<ProfileEditPayload> & Record<string, unknown>;
+  // Member-submitted requests carry {changes, previous}; older admin-made ones may be flat.
+  if (payload.changes && typeof payload.changes === 'object') {
+    return { changes: payload.changes, previous: payload.previous ?? {} };
+  }
+  return { changes: payload, previous: {} };
+}
+
+function displayProfileValue(field: string, value: unknown): React.ReactNode {
+  if (value === null || value === undefined || value === '') return <span className="text-muted-foreground">—</span>;
+  if (field === 'profilePicture' && typeof value === 'string') {
+    return <img src={value} alt="" className="size-12 rounded-full object-cover ring-1 ring-border" />;
+  }
+  if (field === 'bloodGroup' && typeof value === 'string') return BloodGroups.find((b) => b.id === value)?.label ?? value;
+  if (field === 'gender' && typeof value === 'string') return Gender.find((g) => g.id === value)?.label ?? value;
+  if (typeof value === 'string') return /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : value;
+  if (typeof value === 'object') {
+    const parts = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => `${k}: ${String(v)}`);
+    return parts.length ? parts.join(' · ') : <span className="text-muted-foreground">—</span>;
+  }
+  return String(value);
+}
+
+function ProfileEditDiff({ request }: { request: ApprovalRequest }) {
+  const { changes, previous } = profileEditChanges(request);
+  const fields = Object.keys(changes);
+  if (fields.length === 0) return <p className="text-sm text-muted-foreground">No field changes in this request.</p>;
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/50 text-xs text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2 text-left font-medium">Field</th>
+            <th className="px-3 py-2 text-left font-medium">Current</th>
+            <th className="px-3 py-2 text-left font-medium">Requested</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {fields.map((f) => (
+            <tr key={f}>
+              <td className="px-3 py-2 align-top font-medium text-foreground">{PROFILE_FIELD_LABELS[f] ?? f}</td>
+              <td className="px-3 py-2 align-top text-muted-foreground">{displayProfileValue(f, previous[f])}</td>
+              <td className="px-3 py-2 align-top font-semibold text-emerald-700">{displayProfileValue(f, changes[f])}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function summarizeProfileEdit(request: ApprovalRequest): string {
+  const names = Object.keys(profileEditChanges(request).changes).map((f) => PROFILE_FIELD_LABELS[f] ?? f);
+  if (names.length === 0) return '-';
+  return names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} +${names.length - 3} more`;
+}
+
 function DetailField({ label, value }: { label: string; value?: React.ReactNode }) {
   if (value === undefined || value === null || value === '') return null;
   return (
@@ -146,16 +229,21 @@ function RequestDetailsDialog({
   onOpenChange,
   onReview,
   acting,
+  remarks,
+  onRemarksChange,
 }: {
   request: ApprovalRequest | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onReview: (id: string, status: 'approved' | 'rejected') => void;
+  onReview: (id: string, status: 'approved' | 'rejected', remarks?: string) => void;
   acting: boolean;
+  remarks: string;
+  onRemarksChange: (v: string) => void;
 }) {
   if (!request) return null;
 
   const isNewFamily = request.entityType === 'new_family';
+  const isProfileEdit = request.entityType === 'profile_edit';
   const head = request.payload?.head as HeadPayload | undefined;
   const business = request.payload?.business as BusinessPayload | undefined;
   const members = (request.payload?.members as MemberPayload[] | undefined) ?? [];
@@ -177,10 +265,12 @@ function RequestDetailsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isNewFamily ? 'New Family Registration' : request.entityType.replace(/_/g, ' ')}</DialogTitle>
+          <DialogTitle>
+            {isNewFamily ? 'New Family Registration' : isProfileEdit ? 'Profile Edit Request' : request.entityType.replace(/_/g, ' ')}
+          </DialogTitle>
           <DialogDescription>
             Requested by {requesterName(request)}
-            {request.createdAt ? ` on ${new Date(request.createdAt).toLocaleDateString()}` : ''}
+            {request.createdAt ? ` on ${formatDate(request.createdAt) ?? ''}` : ''}
           </DialogDescription>
         </DialogHeader>
 
@@ -261,28 +351,35 @@ function RequestDetailsDialog({
             </>
           )}
 
-          {!isNewFamily && (
+          {isProfileEdit && <ProfileEditDiff request={request} />}
+
+          {!isNewFamily && !isProfileEdit && (
             <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 text-xs text-muted-foreground">
               {JSON.stringify(request.payload, null, 2)}
             </pre>
           )}
+
+          {request.status !== 'pending' && request.remarks && <DetailField label="Remarks" value={request.remarks} />}
         </div>
 
         {request.status === 'pending' && (
-          <DialogFooter>
-            <Button
-              variant="destructive"
-              disabled={acting}
-              onClick={() => onReview(request._id, 'rejected')}
-            >
-              Reject
-            </Button>
-            <Button
-              disabled={acting}
-              onClick={() => onReview(request._id, 'approved')}
-            >
-              Approve
-            </Button>
+          <DialogFooter className="flex-col gap-3 sm:flex-col">
+            <textarea
+              value={remarks}
+              onChange={(e) => onRemarksChange(e.target.value)}
+              maxLength={500}
+              rows={2}
+              placeholder="Remarks for the member (optional; recommended when rejecting)"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="destructive" disabled={acting} onClick={() => onReview(request._id, 'rejected', remarks)}>
+                Reject
+              </Button>
+              <Button disabled={acting} onClick={() => onReview(request._id, 'approved', remarks)}>
+                Approve
+              </Button>
+            </div>
           </DialogFooter>
         )}
       </DialogContent>
@@ -290,13 +387,20 @@ function RequestDetailsDialog({
   );
 }
 
-export function CommunityApprovalsTab({ communityId }: { communityId: string }) {
+export function CommunityApprovalsTab({
+  communityId,
+  onPendingCountChange,
+}: {
+  communityId: string;
+  onPendingCountChange?: (count: number) => void;
+}) {
   const [status, setStatus] = useState<ApprovalStatus>('pending');
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actingId, setActingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<ApprovalRequest | null>(null);
+  const [remarks, setRemarks] = useState('');
 
   const load = useCallback(() => {
     startTransition(() => {
@@ -310,7 +414,10 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
         if (!res.ok) throw new Error(json.error ?? 'Failed to load approval requests');
         return json.requests as ApprovalRequest[];
       })
-      .then(setRequests)
+      .then((reqs) => {
+        setRequests(reqs);
+        if (status === 'pending') onPendingCountChange?.(reqs.length);
+      })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load approval requests'))
       .finally(() => setLoading(false));
   }, [communityId, status]);
@@ -319,22 +426,27 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
     load();
   }, [load]);
 
-  async function handleReview(id: string, nextStatus: 'approved' | 'rejected') {
+  async function handleReview(id: string, nextStatus: 'approved' | 'rejected', reviewRemarks?: string) {
     setActingId(id);
     setError('');
     try {
       const res = await fetch(`/api/admin/approvals/${id}/review`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ status: nextStatus, remarks: reviewRemarks?.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? 'Failed to update request');
         return;
       }
-      setRequests((prev) => prev.filter((r) => r._id !== id));
+      setRequests((prev) => {
+        const next = prev.filter((r) => r._id !== id);
+        if (status === 'pending') onPendingCountChange?.(next.length);
+        return next;
+      });
       setSelected(null);
+      setRemarks('');
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -343,9 +455,7 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
   }
 
   return (
-    <div className="chakra-scope">
-    <Card.Root>
-      <Card.Body className="flex flex-col gap-4">
+    <div className="m-card flex flex-col gap-4 p-4">
         <Select value={status} onValueChange={(value) => setStatus(value as ApprovalStatus)}>
           <SelectTrigger size="lg" className="w-fit">
             <SelectValue>{(value: ApprovalStatus) => value.charAt(0).toUpperCase() + value.slice(1)}</SelectValue>
@@ -365,7 +475,7 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
           <TableHeader>
             <TableRow>
               <TableHead>Type</TableHead>
-              <TableHead>Members</TableHead>
+              <TableHead>Details</TableHead>
               <TableHead>Requested By</TableHead>
               <TableHead>Created</TableHead>
             </TableRow>
@@ -404,27 +514,34 @@ export function CommunityApprovalsTab({ communityId }: { communityId: string }) 
                         </Badge>
                       ))}
                     </div>
+                  ) : request.entityType === 'profile_edit' ? (
+                    <span className="text-sm text-muted-foreground">{summarizeProfileEdit(request)}</span>
                   ) : (
                     '-'
                   )}
                 </TableCell>
                 <TableCell>{requesterName(request)}</TableCell>
                 <TableCell>
-                  {request.createdAt ? new Date(request.createdAt).toLocaleDateString() : '-'}
+                  {formatDate(request.createdAt) ?? '-'}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </Card.Body>
-    </Card.Root>
 
     <RequestDetailsDialog
       request={selected}
       open={selected !== null}
-      onOpenChange={(open) => !open && setSelected(null)}
+      onOpenChange={(open) => {
+        if (!open) {
+          setSelected(null);
+          setRemarks('');
+        }
+      }}
       onReview={handleReview}
       acting={actingId === selected?._id}
+      remarks={remarks}
+      onRemarksChange={setRemarks}
     />
     </div>
   );

@@ -20,7 +20,7 @@ export const createCommunitySchema = z.object({
   city: z.string().max(100).optional(),
   status: z.string().optional(),
   designations: z.array(designationSchema).max(100).optional(),
-  localities: z.array(z.string().min(1).max(200)).max(500).optional(),
+  localities: z.record(z.string().max(100), z.array(z.string().min(1).max(200)).max(500)).optional(),
 });
 
 export const updateCommunitySchema = createCommunitySchema.partial();

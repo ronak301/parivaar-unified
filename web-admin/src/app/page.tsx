@@ -67,10 +67,12 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
+            <Label htmlFor="phone">Phone or Username</Label>
             <Input
               id="phone"
-              type="tel"
+              type="text"
+              autoCapitalize="none"
+              autoCorrect="off"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               disabled={loading}

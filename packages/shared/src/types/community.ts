@@ -20,7 +20,8 @@ export interface Community {
   status?: string;
 
   designations?: Designation[];
-  localities?: string[];
+  /** City → locality names. e.g. { "Bangalore": ["Koramangala", "HSR Layout"] } */
+  localities?: Record<string, string[]>;
 
   createdAt?: string;
   updatedAt?: string;

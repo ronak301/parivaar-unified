@@ -16,4 +16,10 @@ router.delete('/:id', authorize('super_admin'), asyncHandler(ctrl.deleteCommunit
 router.post('/:id/join', asyncHandler(ctrl.joinCommunity));
 router.post('/:id/leave', asyncHandler(ctrl.leaveCommunity));
 
+// Per-community admin login management (super-admin only).
+router.get('/:id/admin', authorize('super_admin'), asyncHandler(ctrl.getCommunityAdminInfo));
+router.post('/:id/admin', authorize('super_admin'), asyncHandler(ctrl.createCommunityAdmin));
+router.post('/:id/admin/regenerate', authorize('super_admin'), asyncHandler(ctrl.regenerateCommunityAdminPassword));
+router.delete('/:id/admin', authorize('super_admin'), asyncHandler(ctrl.deleteCommunityAdmin));
+
 export default router;

@@ -1,36 +1,48 @@
 import { NextResponse } from 'next/server';
-import { getBackendUrl } from '@/lib/api/backend-url';
+import { getAdminClient } from '@/lib/auth/admin-client';
+import { respondToAuthError } from '@/lib/api/route-error';
 
+interface CommunityRef {
+  _id: string;
+  name: string;
+}
+
+/**
+ * Resolves the real logged-in admin from their session token:
+ *  - super_admin  → sees every community
+ *  - community_admin → sees only the communities on their record
+ * The UI (switcher, sidebar, index redirect) scopes itself from this list.
+ */
 export async function GET() {
   try {
-    const backendUrl = getBackendUrl();
-    const res = await fetch(`${backendUrl}/api/communities`);
+    const client = await getAdminClient();
 
-    if (!res.ok) {
-      console.error('Failed to fetch communities:', res.status);
-      throw new Error(`Communities API error: ${res.status}`);
-    }
+    const { data: meData } = await client.get('/auth/me');
+    const me = meData.user;
+    const role: string = me?.role ?? 'member';
+    const myCommunityIds: string[] = (me?.communityIds ?? []).map((c: unknown) =>
+      typeof c === 'string' ? c : (c as { _id?: string })?._id ?? String(c),
+    );
 
-    const data = await res.json();
-    const communities = data.communities ?? [];
+    const { data: listData } = await client.get('/communities');
+    const all: CommunityRef[] = listData.communities ?? [];
+
+    const communities =
+      role === 'super_admin' ? all : all.filter((c) => myCommunityIds.includes(c._id));
 
     return NextResponse.json({
       success: true,
       user: {
-        _id: 'dev-admin-id',
-        firstName: 'Admin',
-        lastName: 'User',
-        fullName: 'Admin User',
-        role: 'super_admin',
-        profilePicture: undefined,
+        _id: me?._id,
+        firstName: me?.firstName ?? 'Admin',
+        lastName: me?.lastName ?? '',
+        fullName: [me?.firstName, me?.lastName].filter(Boolean).join(' ') || 'Admin',
+        role,
+        profilePicture: me?.profilePicture,
         communities,
       },
     });
   } catch (error) {
-    console.error('Auth error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Auth failed' },
-      { status: 500 }
-    );
+    return respondToAuthError(error, 'Auth failed');
   }
 }

@@ -12,8 +12,10 @@ export async function authenticate(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  // Dev mode: bypass auth and create a dev super_admin user
-  if (env.NODE_ENV === 'development') {
+  const header = req.headers.authorization;
+
+  // Dev mode: bypass auth only when no token is provided
+  if (env.NODE_ENV === 'development' && !header?.startsWith('Bearer ')) {
     const devUser = {
       _id: 'dev-admin-id',
       phone: '0000000000',
@@ -24,7 +26,6 @@ export async function authenticate(
     return;
   }
 
-  const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Missing or invalid authorization header' });
     return;

@@ -25,12 +25,17 @@ export async function updateCommunity(
   return res.data.community;
 }
 
+export interface AdminCredentials {
+  username: string;
+  password: string;
+}
+
 export async function createCommunity(
   client: AxiosInstance,
   data: Partial<Community>,
-): Promise<Community> {
+): Promise<{ community: Community; adminCredentials: AdminCredentials | null }> {
   const res = await client.post('/communities', data);
-  return res.data.community;
+  return { community: res.data.community, adminCredentials: res.data.adminCredentials ?? null };
 }
 
 export async function deleteCommunity(

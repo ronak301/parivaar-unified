@@ -19,9 +19,11 @@ import { Trash2 } from 'lucide-react';
 export function DeleteCommunityButton({
   communityId,
   communityName,
+  className,
 }: {
   communityId: string;
   communityName: string;
+  className?: string;
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -52,7 +54,7 @@ export function DeleteCommunityButton({
 
   return (
     <AlertDialog>
-      <AlertDialogTrigger render={<Button variant="destructive" size="sm" />}>
+      <AlertDialogTrigger render={<Button variant="destructive" size="sm" className={className} />}>
         <Trash2 />
         Delete
       </AlertDialogTrigger>

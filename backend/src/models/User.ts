@@ -55,6 +55,9 @@ export interface IUser extends Document {
   demiseDate?: Date;
   role: 'super_admin' | 'community_admin' | 'member';
   communityIds: mongoose.Types.ObjectId[];
+  adminUsername?: string;
+  adminPassword?: string;
+  adminPasswordHash?: string;
   showPhoneInCommunity: boolean;
   showBusinessInCommunity: boolean;
   isBlocked: boolean;
@@ -118,6 +121,9 @@ const userSchema = new Schema<IUser>(
       default: 'member',
     },
     communityIds: [{ type: Schema.Types.ObjectId, ref: 'Community' }],
+    adminUsername: { type: String, sparse: true, unique: true, lowercase: true, trim: true },
+    adminPassword: { type: String },
+    adminPasswordHash: { type: String },
     showPhoneInCommunity: { type: Boolean, default: true },
     showBusinessInCommunity: { type: Boolean, default: true },
     isBlocked: { type: Boolean, default: false },

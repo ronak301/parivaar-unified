@@ -18,8 +18,16 @@ function createClient(token?: string): AxiosInstance {
     (error) => {
       const message =
         error.response?.data?.error ?? error.message ?? 'Request failed';
-      const wrapped = new Error(message) as Error & { status?: number };
+      const wrapped = new Error(message) as Error & {
+        status?: number;
+        details?: unknown;
+        response?: typeof error.response;
+      };
       wrapped.status = error.response?.status;
+      // Preserve backend validation details (e.g. zod field errors) so API
+      // routes can surface a specific message instead of a generic one.
+      wrapped.details = error.response?.data?.details;
+      wrapped.response = error.response;
       return Promise.reject(wrapped);
     },
   );

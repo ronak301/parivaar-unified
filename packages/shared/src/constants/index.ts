@@ -4,3 +4,4 @@ export * from './business-types';
 export * from './relationship-types';
 export * from './community-types';
 export * from './image-config';
+export * from './business-synonyms';

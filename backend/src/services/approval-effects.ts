@@ -20,7 +20,13 @@ async function applyApproveEffect(
   switch (entityType) {
     case 'profile_edit': {
       if (!entityId || !payload) return;
-      await User.findByIdAndUpdate(entityId, payload, { runValidators: true });
+      // Member-submitted edits carry { changes, previous }; legacy/admin-created
+      // requests may carry the flat field map directly.
+      const changes =
+        payload.changes && typeof payload.changes === 'object'
+          ? (payload.changes as Record<string, unknown>)
+          : payload;
+      await User.findByIdAndUpdate(entityId, changes, { runValidators: true });
       break;
     }
 

@@ -134,7 +134,11 @@ export function EditCommunityDialog({
         }}
       >
         <Dialog.Trigger asChild>
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 rounded-m-field border-white/25 bg-white/10 px-3.5 text-white hover:bg-white/20 hover:text-white"
+          >
             <Pencil />
             Edit
           </Button>

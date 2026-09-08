@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { getCachedCommunities, setCachedCommunities, invalidateCommunityCache } from '@/lib/cache/communities-cache';
+import { getCachedAuthUser, setCachedAuthUser, invalidateCommunityCache } from '@/lib/cache/communities-cache';
 
 export interface AuthUser {
   _id: string;
@@ -31,37 +31,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUser = useCallback(async (bypassCache = false) => {
     try {
-      // Check cache first (unless bypassed)
+      // Fast path: replay the last real user (role + communities) from cache.
       if (!bypassCache) {
-        const cachedCommunities = getCachedCommunities();
-        if (cachedCommunities) {
-          setState({
-            user: {
-              _id: 'dev-admin-id',
-              firstName: 'Admin',
-              lastName: 'User',
-              fullName: 'Admin User',
-              role: 'super_admin',
-              profilePicture: undefined,
-              communities: cachedCommunities,
-            },
-            loading: false,
-            error: null,
-          });
+        const cachedUser = getCachedAuthUser<AuthUser>();
+        if (cachedUser) {
+          setState({ user: cachedUser, loading: false, error: null });
           return;
         }
       }
 
-      // Cache miss or bypass - fetch from API
+      // Cache miss or bypass - fetch the real identity from the API.
       const res = await fetch('/api/admin/auth/me');
       if (!res.ok) {
         throw new Error(`Failed to fetch user: ${res.status}`);
       }
       const data = await res.json();
 
-      // Cache the communities
-      if (data.user?.communities) {
-        setCachedCommunities(data.user.communities);
+      if (data.user) {
+        setCachedAuthUser(data.user);
       }
 
       setState({ user: data.user, loading: false, error: null });
@@ -81,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUser]);
 
   useEffect(() => {
-    fetchUser();
+    fetchUser(); // eslint-disable-line react-hooks/set-state-in-effect
   }, [fetchUser]);
 
   const contextValue: AuthContextValue = {

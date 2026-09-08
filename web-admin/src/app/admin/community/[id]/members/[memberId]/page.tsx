@@ -2,10 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Gender } from '@parivaar/shared';
+import { BloodGroups } from '@parivaar/shared';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { ClickableAvatar } from '@/components/ui/clickable-image';
 import {
   AlertDialog,
@@ -18,31 +16,33 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Pencil, ShieldOff, ShieldCheck, Trash2, UserPlus, UserRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  Pencil,
+  ShieldOff,
+  ShieldCheck,
+  Trash2,
+  UserPlus,
+  Phone,
+  MessageCircle,
+  Users2,
+  Crown,
+} from 'lucide-react';
 import { EditMemberSheet } from '@/components/admin/edit-member-sheet';
 import { AddFamilyMemberDialog } from '@/components/admin/add-family-member-dialog';
+import { MemberDetailTabs } from '@/components/admin/member-detail-tabs';
+import { FamilyMembersList } from '@/components/member/family-section';
 import type { UserData, FamilyTreeMember } from '@/components/admin/member-detail-types';
 import { readCache, writeCache, clearCache } from '@/lib/cache/local-cache';
+import { getAvatarColor } from '@/lib/member/avatar-color';
+import { telLink, whatsappLink } from '@/lib/member/contact-links';
+import { formatDate } from '@/lib/utils';
 
-function InfoField({ label, value }: { label: string; value?: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs text-[#464555]">{label}</span>
-      <span className="text-sm text-[#0b1c30]">{value || '—'}</span>
-    </div>
-  );
-}
-
-function formatDate(value?: string) {
-  if (!value) return undefined;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-function genderLabel(value?: string) {
-  if (!value) return undefined;
-  return Gender.find((g) => g.id === value)?.label ?? value;
+function getAge(dob?: string) {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  if (Number.isNaN(birth.getTime())) return null;
+  return Math.floor((Date.now() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
 }
 
 export default function MemberDetailPage() {
@@ -85,6 +85,7 @@ export default function MemberDetailPage() {
   const fetchUser = useCallback(async () => {
     const cacheKey = `member_${memberId}`;
     const cached = readCache<UserData>(cacheKey);
+    setError('');
     if (cached) {
       setUser(cached);
       setLoading(false);
@@ -220,286 +221,306 @@ export default function MemberDetailPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>;
+    return (
+      <div className="flex flex-col pb-8" role="status" aria-label="Loading member">
+        <div className="m-banner -mx-6 -mt-6 h-40 animate-pulse opacity-80" />
+        <div className="relative z-10 -mt-14 md:px-4">
+          <div className="m-card-float flex items-center gap-4 p-5">
+            <div className="size-20 animate-pulse rounded-full bg-m-surface-2" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/3 animate-pulse rounded-md bg-m-surface-2" />
+              <div className="h-3 w-1/4 animate-pulse rounded-md bg-m-surface-2" />
+              <div className="h-3 w-1/5 animate-pulse rounded-md bg-m-surface-2" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!user) {
-    return <div className="flex items-center justify-center h-64 text-destructive">{error || 'Member not found'}</div>;
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="m-card max-w-sm p-6 text-center">
+          <p className="font-semibold text-m-ink">{error || 'Member not found'}</p>
+          <button
+            type="button"
+            onClick={() => router.push(`/admin/community/${communityId}/members`)}
+            className="mt-3 text-sm font-medium text-m-brand hover:underline"
+          >
+            Back to members
+          </button>
+        </div>
+      </div>
+    );
   }
 
+  const fullName = user.fullName || `${user.firstName} ${user.lastName ?? ''}`.trim();
   const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase();
+  const avatar = getAvatarColor(fullName);
+  const tel = telLink(user.phone);
+  const wa = whatsappLink(user.phone);
+  const age = getAge(user.dob);
+  const dob = formatDate(user.dob);
+  const bloodGroup = BloodGroups.find((bg) => bg.id === user.bloodGroup)?.label ?? user.bloodGroup;
+  const place = user.address?.locality || user.address?.city;
+  const bannerBtn =
+    'inline-flex h-10 items-center gap-2 rounded-m-field border border-white/25 bg-white/10 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50';
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto py-6 px-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push(`/admin/community/${communityId}/members`)}>
+    <div className="flex w-full flex-col pb-8">
+      {/* Banner */}
+      <div className="m-banner relative -mx-6 -mt-6 overflow-hidden px-6 pb-20 pt-6 md:px-10">
+        <div className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-white/10" />
+        <div className="pointer-events-none absolute -bottom-20 right-40 size-44 rounded-full bg-white/10" />
+
+        <div className="relative flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => router.push(`/admin/community/${communityId}/members`)}
+            className="inline-flex items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/15 hover:text-white"
+          >
             <ArrowLeft className="size-4" />
-            Back
-          </Button>
-          <Separator orientation="vertical" className="h-6" />
-          <div className="flex items-center gap-3">
-            <ClickableAvatar
-              src={user.profilePicture}
-              alt={user.fullName}
-              size="lg"
-              fallback={<UserRound className="size-6 text-[#3230c4]" />}
-              className="bg-[#dce9ff]"
-            />
-            <div>
-              <h1 className="text-xl font-bold text-[#0b1c30]">{user.fullName || user.firstName}</h1>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                <span>ID: {user.enrollmentId}</span>
-                {user.isFamilyHead && <Badge variant="secondary">Head</Badge>}
-                {user.isAlive === false && <Badge variant="outline">Deceased</Badge>}
-                {user.isBlocked && <Badge variant="destructive">Blocked</Badge>}
-              </div>
-            </div>
-          </div>
-        </div>
+            Members
+          </button>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {user.isFamilyHead && (
-            <Button variant="outline" size="sm" onClick={() => setAddMemberOpen(true)}>
-              <UserPlus className="size-4" />
-              Add Family Member
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {user.isFamilyHead && (
+              <button type="button" onClick={() => setAddMemberOpen(true)} className={bannerBtn}>
+                <UserPlus className="size-4" />
+                Add family member
+              </button>
+            )}
 
-          {user.isBlocked ? (
-            <Button variant="outline" size="sm" onClick={handleBlockToggle} disabled={blockActionLoading}>
-              <ShieldCheck className="size-4" />
-              {blockActionLoading ? 'Unblocking...' : 'Unblock'}
-            </Button>
-          ) : (
-            <AlertDialog>
-              <AlertDialogTrigger render={<Button variant="outline" size="sm" />}>
-                <ShieldOff className="size-4" />
-                Block
+            {user.isBlocked ? (
+              <button type="button" onClick={handleBlockToggle} disabled={blockActionLoading} className={bannerBtn}>
+                <ShieldCheck className="size-4" />
+                {blockActionLoading ? 'Unblocking…' : 'Unblock'}
+              </button>
+            ) : (
+              <AlertDialog>
+                <AlertDialogTrigger className={bannerBtn}>
+                  <ShieldOff className="size-4" />
+                  Block
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Block this member?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {fullName} will no longer be able to access their account or appear in active member listings.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleBlockToggle} disabled={blockActionLoading}>
+                      {blockActionLoading ? 'Blocking…' : 'Block'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+
+            <AlertDialog open={showDeleteDialog && !deleteWarning} onOpenChange={setShowDeleteDialog}>
+              <AlertDialogTrigger className={bannerBtn}>
+                <Trash2 className="size-4" />
+                Delete
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Block this member?</AlertDialogTitle>
+                  <AlertDialogTitle>Delete this member?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {user.fullName || user.firstName} will no longer be able to access their account or appear in active member listings.
+                    {fullName} will be permanently removed and unlinked from the family tree. This cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                {deleteError && (
+                  <div className="my-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                    <p className="text-sm font-medium text-destructive">{deleteError}</p>
+                  </div>
+                )}
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleBlockToggle} disabled={blockActionLoading}>
-                    {blockActionLoading ? 'Blocking...' : 'Block'}
+                  <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteClick} disabled={deleteLoading} className="bg-destructive hover:bg-destructive/90">
+                    {deleteLoading ? 'Checking…' : 'Delete'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          )}
 
-          <AlertDialog open={showDeleteDialog && !deleteWarning} onOpenChange={setShowDeleteDialog}>
-            <AlertDialogTrigger render={<Button variant="outline" size="sm" className="text-destructive hover:text-destructive" />}>
-              <Trash2 className="size-4" />
-              Delete
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this member?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {user.fullName || user.firstName} will be permanently removed and unlinked from the family tree. This cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              {deleteError && (
-                <div className="bg-destructive/10 border border-destructive/30 rounded p-3 my-2">
-                  <p className="text-sm text-destructive font-medium">{deleteError}</p>
-                </div>
-              )}
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteClick} disabled={deleteLoading} className="bg-destructive hover:bg-destructive/90">
-                  {deleteLoading ? 'Checking...' : 'Delete'}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          {deleteWarning && (
-            <AlertDialog open={true} onOpenChange={() => !deleteLoading && setDeleteWarning(null)}>
-              <AlertDialogContent className="max-w-md">
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="text-destructive text-lg">⚠️ User has dependents</AlertDialogTitle>
-                </AlertDialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="bg-destructive/10 border-l-4 border-destructive rounded p-3">
-                    <p className="text-sm font-semibold text-destructive mb-2">
-                      Cannot delete directly. This member has {deleteWarning.dependentsCount} dependent{deleteWarning.dependentsCount !== 1 ? 's' : ''}.
-                    </p>
-                    <p className="text-xs text-destructive/80">
-                      Deleting <strong>{user.fullName || user.firstName}</strong> will permanently remove all family members and relations listed below.
-                    </p>
+            {deleteWarning && (
+              <AlertDialog open={true} onOpenChange={() => !deleteLoading && setDeleteWarning(null)}>
+                <AlertDialogContent className="max-w-md">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-destructive">This member has dependents</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Deleting {fullName} also removes the {deleteWarning.dependentsCount} family member
+                      {deleteWarning.dependentsCount !== 1 ? 's' : ''} linked to them. This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="max-h-64 space-y-1.5 overflow-y-auto rounded-xl bg-m-surface-2 p-3">
+                    <p className="text-sm font-semibold text-m-ink">{fullName}</p>
+                    {deleteWarning.dependents.map((dep) => (
+                      <p key={dep.id} className="pl-3 text-sm text-m-ink-2">
+                        └ {dep.name}
+                      </p>
+                    ))}
                   </div>
-
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase">Members that will be deleted:</p>
-                    <div className="bg-slate-50 border rounded p-3 max-h-64 overflow-y-auto space-y-1.5">
-                      <div className="flex items-start gap-2 text-sm font-semibold text-destructive">
-                        <span className="text-destructive">●</span>
-                        <span>{user.fullName || user.firstName}</span>
-                      </div>
-                      {deleteWarning.dependents.map((dep) => (
-                        <div key={dep.id} className="flex items-start gap-2 text-sm text-destructive/80 ml-3">
-                          <span className="text-destructive/60">└─</span>
-                          <span>{dep.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                   {deleteError && (
-                    <div className="bg-destructive/10 border border-destructive/30 rounded p-3">
-                      <p className="text-sm text-destructive font-medium">{deleteError}</p>
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                      <p className="text-sm font-medium text-destructive">{deleteError}</p>
                     </div>
                   )}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deleteLoading} onClick={() => setDeleteWarning(null)}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleCascadeDelete}
+                      disabled={deleteLoading}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      {deleteLoading ? 'Deleting…' : `Delete all ${deleteWarning.dependentsCount + 1}`}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
 
-                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2.5">
-                    <p className="text-xs text-yellow-900">
-                      <strong>⚠️ Warning:</strong> This action cannot be undone. All data will be permanently deleted.
-                    </p>
-                  </div>
-                </div>
-
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={deleteLoading} onClick={() => setDeleteWarning(null)}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleCascadeDelete}
-                    disabled={deleteLoading}
-                    className="bg-destructive hover:bg-destructive/90"
-                  >
-                    {deleteLoading ? 'Deleting...' : 'Delete All'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-
-          <Button size="sm" onClick={() => setEditOpen(true)} className="bg-[#0b1c30] hover:bg-[#1c2f47]">
-            <Pencil className="size-4" />
-            Edit
-          </Button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
-          <p className="text-sm text-destructive font-medium">{error}</p>
-        </div>
-      )}
-      {blockError && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
-          <p className="text-sm text-destructive font-medium">{blockError}</p>
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl border p-6 flex flex-col gap-6">
-        <h2 className="text-sm font-semibold text-[#464555] uppercase tracking-wider">Personal Information</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <InfoField label="First Name" value={user.firstName} />
-          <InfoField label="Last Name" value={user.lastName} />
-          <InfoField label="Phone" value={user.phone} />
-          <InfoField label="Email" value={user.email} />
-          <InfoField label="Gender" value={genderLabel(user.gender)} />
-          <InfoField label="Date of Birth" value={formatDate(user.dob)} />
-          <InfoField label="Father's Name / Guardian Name" value={user.guardianName} />
-          <InfoField label="Blood Group" value={user.bloodGroup} />
-          <InfoField label="Wedding Date" value={formatDate(user.weddingDate)} />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border p-6 flex flex-col gap-6">
-        <h2 className="text-sm font-semibold text-[#464555] uppercase tracking-wider">Education & Background</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <InfoField label="Education" value={user.education} />
-          <InfoField label="Special Education" value={user.specialEducation} />
-          <InfoField label="Native Place" value={user.nativePlace} />
-          <InfoField label="Native District" value={user.nativeDistrict} />
-          <InfoField label="Nanihaal Gotra" value={user.nanihaal} />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border p-6 flex flex-col gap-6">
-        <h2 className="text-sm font-semibold text-[#464555] uppercase tracking-wider">Address</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="sm:col-span-2 lg:col-span-3">
-            <InfoField label="Full Address" value={user.address?.fullAddress} />
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-m-field bg-white px-4 text-sm font-semibold text-m-brand shadow-m-card transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+              <Pencil className="size-4" />
+              Edit
+            </button>
           </div>
-          <InfoField label="State" value={user.address?.state} />
-          <InfoField label="City" value={user.address?.city} />
-          <InfoField label="District" value={user.address?.district} />
-          <InfoField label="Locality" value={user.address?.locality} />
-          <InfoField label="Pincode" value={user.address?.pincode} />
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border p-6 flex flex-col gap-6">
-        <h2 className="text-sm font-semibold text-[#464555] uppercase tracking-wider">Identity & Privacy</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <InfoField label="Aadhaar" value={user.aadharLast4 ? `•••• •••• ${user.aadharLast4}` : undefined} />
-          <InfoField label="Life Status" value={user.isAlive === false ? `Deceased${user.demiseDate ? ` (${formatDate(user.demiseDate)})` : ''}` : 'Alive'} />
-        </div>
-        {user.communityIds && user.communityIds.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <span className="text-xs text-[#464555]">Communities</span>
-            <div className="flex flex-wrap gap-2">
-              {user.communityIds.map((c) => (
-                <Badge key={c._id} variant="secondary" className="bg-[#dce9ff] text-[#3230c4]">{c.name}</Badge>
-              ))}
+      {/* Floating profile card */}
+      <div className="relative z-10 -mt-14 md:px-4">
+        <div className="m-card-float p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            {user.profilePicture ? (
+              <ClickableAvatar
+                src={user.profilePicture}
+                alt={fullName}
+                fallback={<span className="text-2xl font-bold">{initials}</span>}
+                className="size-20 shrink-0 border-2 border-m-surface shadow-sm"
+              />
+            ) : (
+              <div
+                className="flex size-20 shrink-0 items-center justify-center rounded-full text-2xl font-bold"
+                style={{ backgroundColor: avatar.bg, color: avatar.text }}
+              >
+                {initials}
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-bold text-m-ink">{fullName}</h1>
+                {age != null && <span className="text-sm text-m-ink-2">· {age} yr</span>}
+                {user.isFamilyHead && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-m-tone-amber-bg px-2 py-0.5 text-[11px] font-semibold text-m-tone-amber-fg">
+                    <Crown className="size-3" />
+                    Family head
+                  </span>
+                )}
+                {user.isAlive === false && (
+                  <span className="rounded-full bg-m-surface-2 px-2 py-0.5 text-[11px] font-semibold text-m-ink-2">Late</span>
+                )}
+                {user.isBlocked && (
+                  <span className="rounded-full bg-m-tone-rose-bg px-2 py-0.5 text-[11px] font-semibold text-m-tone-rose-fg">Blocked</span>
+                )}
+              </div>
+              <p className="mt-0.5 text-sm text-m-ink-2">
+                {[user.guardianName, user.enrollmentId ? `ID ${user.enrollmentId}` : null, place].filter(Boolean).join(' · ')}
+              </p>
+              {user.phone && <p className="mt-0.5 text-sm text-m-ink-2">{user.phone}</p>}
             </div>
-          </div>
-        )}
-      </div>
 
-      <div className="bg-white rounded-xl border p-6 flex flex-col gap-6">
-        <h2 className="text-sm font-semibold text-[#464555] uppercase tracking-wider">Other</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <InfoField label="Hobbies" value={user.hobbies} />
-          <InfoField label="Achievements" value={user.achievements} />
-        </div>
-      </div>
-
-      {user.familyId?._id && (
-        <div className="bg-white rounded-xl border p-6 flex flex-col gap-4">
-          <h2 className="text-sm font-semibold text-[#464555] uppercase tracking-wider">Family Members</h2>
-          {familyLoading ? (
-            <p className="text-sm text-muted-foreground">Loading family members...</p>
-          ) : familyMembers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No other family members yet.</p>
-          ) : (
-            <div className="flex flex-col divide-y">
-              {familyMembers.map((m) => (
-                <button
-                  key={m._id}
-                  type="button"
-                  onClick={() => router.push(`/admin/community/${communityId}/members/${m._id}`)}
-                  className="flex items-center gap-3 py-3 text-left hover:bg-[#e5eeff]/30 transition-colors -mx-2 px-2 rounded-lg"
+            <div className="flex shrink-0 items-center gap-2">
+              {tel && (
+                <a
+                  href={tel}
+                  className="flex size-10 items-center justify-center rounded-full bg-m-brand/10 text-m-brand transition-colors hover:bg-m-brand/20"
+                  aria-label="Call"
                 >
-                  <ClickableAvatar
-                    src={m.profilePicture}
-                    alt={m.fullName}
-                    fallback={<span className="text-xs">{`${m.firstName?.[0] ?? ''}${m.lastName?.[0] ?? ''}`.toUpperCase()}</span>}
-                    className="bg-[#dce9ff] text-[#3230c4]"
-                  />
-                  <div className="flex-1 flex flex-col">
-                    <span className="text-sm font-semibold text-[#0b1c30]">{m.fullName || m.firstName}</span>
-                    <span className="text-xs text-[#464555]">
-                      {m._id === user._id ? 'Self' : m.isFamilyHead ? 'Head' : genderLabel(m.gender) || 'Member'}
-                      {m.dob ? ` • ${formatDate(m.dob)}` : ''}
-                    </span>
-                  </div>
-                  {m.isFamilyHead && <Badge variant="secondary">Head</Badge>}
-                  {m.isAlive === false && <Badge variant="outline">Deceased</Badge>}
-                </button>
-              ))}
+                  <Phone className="size-4" />
+                </a>
+              )}
+              {wa && (
+                <a
+                  href={wa}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex size-10 items-center justify-center rounded-full bg-m-wa/12 text-m-wa-ink transition-colors hover:bg-m-wa/20"
+                  aria-label="WhatsApp"
+                >
+                  <MessageCircle className="size-4" />
+                </a>
+              )}
+            </div>
+          </div>
+
+          {(dob || bloodGroup) && (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-sm">
+              {dob && (
+                <div className="rounded-xl bg-m-tone-emerald-bg px-3 py-2.5 text-center">
+                  <p className="text-[11px] text-m-tone-emerald-fg">Date of birth</p>
+                  <p className="mt-0.5 text-sm font-bold text-m-ink">{dob}</p>
+                </div>
+              )}
+              {bloodGroup && (
+                <div className="rounded-xl bg-m-tone-rose-bg px-3 py-2.5 text-center">
+                  <p className="text-[11px] text-m-tone-rose-fg">Blood group</p>
+                  <p className="mt-0.5 text-sm font-bold text-m-ink">{bloodGroup}</p>
+                </div>
+              )}
             </div>
           )}
         </div>
+      </div>
+
+      {(error || blockError) && (
+        <p role="alert" className="mt-3 text-sm text-m-danger md:px-4">
+          {error || blockError}
+        </p>
       )}
+
+      {/* Family first — only members belonging to this community */}
+      {user.familyId?._id && (() => {
+        const communityFamily = familyMembers.filter(
+          (m) => !m.communityIds || m.communityIds.includes(communityId),
+        );
+        return (
+          <div className="mt-6 md:px-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Users2 className="size-4 text-m-brand" />
+              <h2 className="text-sm font-bold text-m-ink">Family</h2>
+              {communityFamily.length > 0 && (
+                <span className="text-xs text-m-ink-2">{communityFamily.length} members</span>
+              )}
+            </div>
+            <div className="m-card px-4">
+              <FamilyMembersList
+                members={communityFamily}
+                viewed={communityFamily.find((m) => m._id === user._id) ?? { _id: user._id, gender: user.gender }}
+                headId={user.familyId.headId}
+                loading={familyLoading}
+                emptyText="No other family members yet"
+                hrefFor={(id) => `/admin/community/${communityId}/members/${id}`}
+              />
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Then personal / business */}
+      <div className="mt-6 md:px-4">
+        <MemberDetailTabs user={user} />
+      </div>
 
       <EditMemberSheet
         open={editOpen}

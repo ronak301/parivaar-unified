@@ -50,24 +50,32 @@ export default function CommunityDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="flex flex-col pb-8" role="status" aria-label="Loading community">
+        <div className="m-banner -mx-6 -mt-6 h-48 animate-pulse opacity-80" />
+        <div className="relative z-10 -mt-12 md:px-4">
+          <div className="m-card-float grid grid-cols-2 gap-2 p-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3">
+                <div className="size-11 animate-pulse rounded-full bg-m-surface-2" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-1/2 animate-pulse rounded-md bg-m-surface-2" />
+                  <div className="h-4 w-1/3 animate-pulse rounded-md bg-m-surface-2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !community) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-destructive">{error}</p>
-      </div>
-    );
-  }
-
-  if (!community) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Community not found</p>
+      <div className="flex items-center justify-center py-16">
+        <div className="m-card max-w-sm p-6 text-center">
+          <p className="font-semibold text-m-ink">{error || 'Community not found'}</p>
+          <p className="mt-1 text-sm text-m-ink-2">Pick another community from the switcher above.</p>
+        </div>
       </div>
     );
   }

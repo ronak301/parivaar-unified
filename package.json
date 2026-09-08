@@ -5,8 +5,7 @@
   "workspaces": [
     "packages/*",
     "backend",
-    "web-admin",
-    "mobile"
+    "web-admin"
   ],
   "scripts": {
     "backend:dev": "npm run dev --workspace=backend",

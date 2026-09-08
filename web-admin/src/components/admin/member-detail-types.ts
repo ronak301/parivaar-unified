@@ -55,4 +55,5 @@ export interface FamilyTreeMember {
   isFamilyHead?: boolean;
   isAlive?: boolean;
   demiseDate?: string;
+  communityIds?: string[];
 }

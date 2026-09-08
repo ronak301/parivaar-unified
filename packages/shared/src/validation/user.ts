@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+/** Query-string boolean: "true"/"false" (or real booleans). Unlike z.coerce.boolean(),
+ *  the string "false" becomes false instead of true. */
+const queryBoolean = z.preprocess((v) => {
+  if (v === 'true' || v === true) return true;
+  if (v === 'false' || v === false) return false;
+  return undefined;
+}, z.boolean().optional());
+
 const addressSchema = z.object({
   fullAddress: z.string().max(500).optional(),
   state: z.string().max(100).optional(),
@@ -64,10 +72,18 @@ export const searchUsersSchema = z.object({
       sampradaya: z.string().optional(),
       city: z.string().optional(),
       district: z.string().optional(),
-      isFamilyHead: z.coerce.boolean().optional(),
-      isMarried: z.coerce.boolean().optional(),
+      isFamilyHead: queryBoolean,
+      isMarried: queryBoolean,
     })
     .optional(),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
+});
+
+/** Member-initiated profile edit. Goes through admin approval, never applied directly. */
+export const submitProfileEditSchema = z.object({
+  changes: updateUserSchema
+    .omit({ isFamilyHead: true, familyId: true, communityIds: true, showPhoneInCommunity: true, showBusinessInCommunity: true })
+    .refine((v) => Object.keys(v).length > 0, { message: 'No changes submitted' }),
+  actionToken: z.string().min(1, 'Verification required'),
 });

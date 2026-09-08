@@ -31,7 +31,7 @@ export interface ICommunity extends Document {
     designation: string;
     year: string;
   }>;
-  localities: string[];
+  localities: Record<string, string[]>;
 }
 
 const communitySchema = new Schema<ICommunity>(
@@ -45,7 +45,7 @@ const communitySchema = new Schema<ICommunity>(
     city: String,
     status: { type: String, default: 'Pending' },
     designations: [designationSchema],
-    localities: [String],
+    localities: { type: Schema.Types.Mixed, default: {} },
   },
   { timestamps: true },
 );

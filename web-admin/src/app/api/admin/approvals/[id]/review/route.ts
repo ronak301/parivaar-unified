@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/auth/admin-client';
-import { reviewApproval } from '@/lib/api/approval';
+import { respondToAuthError } from '@/lib/api/route-error';
 
 export async function PUT(
   request: NextRequest,
@@ -9,20 +9,17 @@ export async function PUT(
   const { id } = await params;
   const body = await request.json().catch(() => null);
   const status = body?.status;
+  const remarks = typeof body?.remarks === 'string' ? body.remarks.slice(0, 500) : undefined;
 
   if (status !== 'approved' && status !== 'rejected') {
-    return NextResponse.json(
-      { error: 'Status must be approved or rejected' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Status must be approved or rejected' }, { status: 400 });
   }
 
   try {
     const client = await getAdminClient();
-    const request_ = await reviewApproval(client, id, status);
-    return NextResponse.json({ success: true, request: request_ });
+    const res = await client.put(`/approvals/${id}/review`, { status, remarks });
+    return NextResponse.json({ success: true, request: res.data.request });
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to review approval request';
-    return NextResponse.json({ error: message }, { status: 502 });
+    return respondToAuthError(e, 'Failed to review approval request');
   }
 }

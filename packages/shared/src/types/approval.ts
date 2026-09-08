@@ -19,6 +19,14 @@ export interface ApprovalRequest {
   reviewedBy?: string;
   status: ApprovalStatus;
   payload?: Record<string, unknown>;
+  remarks?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+/** Shape of `payload` for a `profile_edit` approval request. */
+export interface ProfileEditPayload {
+  changes: Record<string, unknown>;
+  /** Snapshot of the same fields at submission time, for the admin diff view. */
+  previous: Record<string, unknown>;
 }

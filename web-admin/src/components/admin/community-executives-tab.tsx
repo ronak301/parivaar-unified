@@ -5,17 +5,8 @@ import type { Community, Designation, UserListItem } from '@parivaar/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card } from '@chakra-ui/react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ClickableAvatar } from '@/components/ui/clickable-image';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, User, X } from 'lucide-react';
+import { Plus, Trash2, User, X, Award } from 'lucide-react';
 
 type DesignationForm = Omit<Designation, 'id'>;
 
@@ -173,13 +164,12 @@ export function CommunityExecutivesTab({
   }
 
   return (
-    <div className="chakra-scope">
-    <Card.Root>
-      <Card.Body className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Executive designations for this community.
-          </p>
+    <div className="m-card flex flex-col gap-4 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-m-ink">Executive committee</p>
+            <p className="text-xs text-m-ink-2">Office bearers shown to members in the app.</p>
+          </div>
           <Dialog
             open={dialogOpen}
             onOpenChange={(next) => {
@@ -315,67 +305,56 @@ export function CommunityExecutivesTab({
 
         {error && !dialogOpen && <p className="text-sm text-destructive">{error}</p>}
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Designation</TableHead>
-              <TableHead>Sansthan</TableHead>
-              <TableHead>Year</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {designations.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  No executives added yet.
-                </TableCell>
-              </TableRow>
-            )}
+        {designations.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-xl bg-m-surface-2/60 px-6 py-10 text-center">
+            <div className="flex size-12 items-center justify-center rounded-full bg-m-brand/10 text-m-brand">
+              <Award className="size-5" />
+            </div>
+            <p className="text-sm font-semibold text-m-ink">No executives yet</p>
+            <p className="text-sm text-m-ink-2">Add the president, secretary and other office bearers.</p>
+          </div>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {designations.map((d, index) => (
-              <TableRow key={d.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <ClickableAvatar
-                      src={d.photo}
-                      alt={d.name}
-                      fallback={<User className="size-3" />}
-                      size="sm"
-                    />
-                    {d.name}
-                  </div>
-                </TableCell>
-                <TableCell>{d.designation}</TableCell>
-                <TableCell>{d.sansthan ?? '-'}</TableCell>
-                <TableCell>{d.year}</TableCell>
-                <TableCell>
-                  <AlertDialog>
-                    <AlertDialogTrigger render={<Button variant="ghost" size="icon-sm" />}>
-                      <Trash2 className="text-destructive" />
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remove executive?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will remove {d.name} ({d.designation}) from the executives list.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleRemove(index)}>
-                          Remove
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
-              </TableRow>
+              <li key={d.id} className="group relative flex items-center gap-3 rounded-xl border border-m-line bg-m-surface p-3 transition-shadow hover:shadow-m-card">
+                <ClickableAvatar
+                  src={d.photo}
+                  alt={d.name}
+                  fallback={<User className="size-4" />}
+                  className="size-12 shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-m-ink">{d.name}</p>
+                  <p className="truncate text-xs font-medium text-m-brand">{d.designation}</p>
+                  <p className="truncate text-xs text-m-ink-2">
+                    {[d.sansthan, d.year].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger
+                    render={<Button variant="ghost" size="icon-sm" className="shrink-0 text-m-ink-3 hover:text-m-danger" aria-label={`Remove ${d.name}`} />}
+                  >
+                    <Trash2 />
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove executive?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove {d.name} ({d.designation}) from the executives list.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleRemove(index)}>
+                        Remove
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </li>
             ))}
-          </TableBody>
-        </Table>
-      </Card.Body>
-    </Card.Root>
+          </ul>
+        )}
     </div>
   );
 }

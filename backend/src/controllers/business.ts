@@ -3,6 +3,7 @@ import { createBusinessSchema, updateBusinessSchema, createEnquirySchema, create
 import type { AuthRequest } from '../middleware';
 import { User, Business, BusinessEnquiry, BusinessPromotion, ApprovalRequest } from '../models';
 import { notifyCommunityAdmins } from '../services/notification';
+import { searchBusinesses } from '../services/business-search';
 
 export async function createBusiness(req: AuthRequest, res: Response): Promise<void> {
   const parsed = createBusinessSchema.safeParse(req.body);
@@ -62,16 +63,35 @@ export async function createBusiness(req: AuthRequest, res: Response): Promise<v
   }
 }
 
+const OWNER_PUBLIC_FIELDS = 'firstName lastName fullName profilePicture phone showPhoneInCommunity';
+
+/**
+ * Members may opt out of sharing their phone with the community. When a
+ * business has no phone of its own the UI falls back to the owner's, so the
+ * owner's number must be removed here whenever they have hidden it.
+ */
+function redactOwnerPhone(doc: { toObject(): unknown } | Record<string, unknown>): Record<string, unknown> {
+  const obj = (typeof (doc as { toObject?: unknown }).toObject === 'function'
+    ? (doc as { toObject(): unknown }).toObject()
+    : { ...(doc as Record<string, unknown>) }) as Record<string, unknown>;
+  // Copy the populated owner so we never mutate a shared/lean object in place.
+  if (obj.ownerId && typeof obj.ownerId === 'object') obj.ownerId = { ...(obj.ownerId as Record<string, unknown>) };
+  const owner = obj.ownerId as Record<string, unknown> | null | undefined;
+  if (owner && typeof owner === 'object' && owner.showPhoneInCommunity === false) {
+    delete owner.phone;
+  }
+  return obj;
+}
+
 export async function getBusiness(req: AuthRequest, res: Response): Promise<void> {
-  const business = await Business.findById(req.params.id)
-    .populate('ownerId', 'firstName lastName fullName profilePicture phone');
+  const business = await Business.findById(req.params.id).populate('ownerId', OWNER_PUBLIC_FIELDS);
 
   if (!business) {
     res.status(404).json({ error: 'Business not found' });
     return;
   }
 
-  res.json({ success: true, business });
+  res.json({ success: true, business: redactOwnerPhone(business) });
 }
 
 export async function updateBusiness(req: AuthRequest, res: Response): Promise<void> {
@@ -149,12 +169,42 @@ export async function getBusinessesByCommunity(req: AuthRequest, res: Response):
 
   const filter: Record<string, unknown> = { communityId };
   if (req.query.category) filter.category = req.query.category;
-  if (req.query.q) filter.$text = { $search: req.query.q as string };
+
+  const rawQuery = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 200) : '';
+
+  if (rawQuery) {
+    // Ranked in-process search over the community's businesses: matches name,
+    // category (label + synonyms, Hinglish), description, owner and address,
+    // with typo tolerance. Community lists are small enough to score fully.
+    const MAX_SCAN = 2000;
+    const candidates = await Business.find(filter)
+      .populate('ownerId', OWNER_PUBLIC_FIELDS)
+      .limit(MAX_SCAN)
+      .lean();
+
+    const { results, inferredCategories } = searchBusinesses(
+      candidates as unknown as Array<Record<string, unknown> & { _id: unknown }>,
+      rawQuery,
+    );
+    const total = results.length;
+    const pageItems = results.slice(skip, skip + limit).map((r) => ({
+      ...redactOwnerPhone(r.business as Record<string, unknown>),
+      _match: { score: Math.round(r.score * 10) / 10, on: r.matchedOn },
+    }));
+
+    res.json({
+      success: true,
+      businesses: pageItems,
+      inferredCategories,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+    return;
+  }
 
   const [businesses, total] = await Promise.all([
     Business.find(filter)
-      .populate('ownerId', 'firstName lastName fullName')
-      .sort(req.query.q ? { score: { $meta: 'textScore' } } : { name: 1 })
+      .populate('ownerId', OWNER_PUBLIC_FIELDS)
+      .sort({ name: 1 })
       .skip(skip)
       .limit(limit),
     Business.countDocuments(filter),
@@ -162,7 +212,7 @@ export async function getBusinessesByCommunity(req: AuthRequest, res: Response):
 
   res.json({
     success: true,
-    businesses,
+    businesses: businesses.map(redactOwnerPhone),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   });
 }

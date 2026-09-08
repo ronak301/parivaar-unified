@@ -1093,7 +1093,7 @@ export function AddFamilyDialog({
               photoPreview={photoPreview}
               onPhotoFileReady={handlePhotoFileReady}
               uploadingPhoto={uploadingPhoto}
-              localities={community.localities ?? []}
+              localities={community.localities ? Object.values(community.localities).flat().sort() : []}
               phoneReadOnly
               businessEnabled={businessEnabled}
               onToggleBusiness={() => setBusinessEnabled((v) => !v)}

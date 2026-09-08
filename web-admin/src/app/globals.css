@@ -3,6 +3,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./m/theme.css"; /* member-app (/m) design tokens */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -53,7 +54,7 @@
 
 /* Kinship & Legacy — Deep Indigo theme */
 :root {
-  --background: oklch(0.98 0.01 280);
+  --background: #ffffff;
   --foreground: oklch(0.18 0.03 260);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.03 260);

@@ -14,9 +14,18 @@ router.get(
 router.use(authenticate);
 
 router.get('/search', asyncHandler(ctrl.searchUsers));
+// Must be registered before '/:id' so 'me' is not treated as an id.
+router.get('/me/profile-edit', asyncHandler(ctrl.getMyProfileEditStatus));
+router.post('/me/profile-edit', asyncHandler(ctrl.submitProfileEdit));
 router.get('/check-phone', asyncHandler(ctrl.checkPhone));
 router.get('/orphans', authorize('super_admin'), asyncHandler(ctrl.getOrphanMembers));
 router.get('/community/:communityId', communityScope(), asyncHandler(ctrl.getUsersByCommunity));
+router.get(
+  '/community/:communityId/export',
+  authorize('super_admin', 'community_admin'),
+  communityScope(),
+  asyncHandler(ctrl.exportUsersByCommunity),
+);
 router.get('/events/:communityId', communityScope(), asyncHandler(ctrl.getUserEvents));
 router.get('/:id', asyncHandler(ctrl.getUser));
 router.post('/', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.createUser));

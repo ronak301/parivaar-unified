@@ -1,27 +1,41 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useDebounce } from '@/hooks/use-debounce';
 import { readCache, writeCache } from '@/lib/cache/local-cache';
+import { getAvatarColor } from '@/lib/member/avatar-color';
+import { telLink, whatsappLink } from '@/lib/member/contact-links';
+import { downloadMembersPdf, type ExportMember, type ExportColumnConfig, DEFAULT_EXPORT_COLUMNS } from '@/lib/export/members-pdf';
+import { downloadMembersCsv } from '@/lib/export/members-csv';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { ClickableImage } from '@/components/ui/clickable-image';
 import { AddFamilyDialog } from '@/components/admin/add-family-dialog';
 import { Gender, BloodGroups, BusinessTypes, type Community } from '@parivaar/shared';
 import {
   Search,
   Download,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Filter,
-  Store,
-  BookOpen,
+  SlidersHorizontal,
   ExternalLink,
-  Users2,
+  UserPlus,
+  Users,
+  Phone,
+  MessageCircle,
+  FileText,
+  FileSpreadsheet,
   X,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { UserPlus } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input as TextInput } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -32,6 +46,12 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 interface User {
   _id: string;
@@ -71,7 +91,7 @@ interface MembersResponse {
 interface MemberFilters {
   gender: string;
   bloodGroup: string;
-  locality: string;
+  locality: string[];
   isMarried: string;
   businessCategory: string;
   ageMin: string;
@@ -81,36 +101,48 @@ interface MemberFilters {
 const EMPTY_FILTERS: MemberFilters = {
   gender: '',
   bloodGroup: '',
-  locality: '',
+  locality: [],
   isMarried: '',
   businessCategory: '',
   ageMin: '',
   ageMax: '',
 };
 
+const PAGE_SIZE = 20;
+
+/**
+ * Columns for the wide layout. Driven by the *card's* width (container query),
+ * not the viewport, so it also behaves next to the 260px sidebar.
+ */
+const ROW_GRID =
+  '@4xl:grid @4xl:grid-cols-[minmax(200px,2fr)_minmax(100px,1fr)_minmax(120px,1.3fr)_minmax(120px,1.3fr)_6rem] @4xl:items-center @4xl:gap-3';
+
 export function MembersDirectoryView({ communityId: propCommunityId }: { communityId?: string } = {}) {
+  const router = useRouter();
   const { user } = useAuth();
   const [members, setMembers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationData | null>(null);
-  const [openImageId, setOpenImageId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filters, setFilters] = useState<MemberFilters>(EMPTY_FILTERS);
   const [familyHeadOnly, setFamilyHeadOnly] = useState(false);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [exporting, setExporting] = useState<'pdf' | 'csv' | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'csv'>('pdf');
+  const [exportColumns, setExportColumns] = useState<ExportColumnConfig>({ ...DEFAULT_EXPORT_COLUMNS });
 
   const debouncedSearch = useDebounce(searchQuery, 300);
   const saved = typeof window !== 'undefined' ? localStorage.getItem('selectedCommunityId') : null;
   const communityId = propCommunityId || (user?.communities?.some(c => c._id === saved) ? saved : user?.communities?.[0]?._id) || '';
   const currentCommunity = user?.communities?.find((c) => c._id === communityId);
 
-  const [localities, setLocalities] = useState<string[]>(
-    () => readCache<{ localities?: string[] }>(`community_detail_${communityId}`)?.localities ?? [],
-  );
+  const [localities, setLocalities] = useState<string[]>([]);
 
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const activeFilterCount = Object.values(filters).filter((v) => Array.isArray(v) ? v.length > 0 : Boolean(v)).length;
   const hasActiveFilters = activeFilterCount > 0 || familyHeadOnly;
 
   useEffect(() => {
@@ -126,13 +158,34 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
     })
       .then((res) => res.json())
       .then((data: { community?: Community }) => {
-        if (data.community?.localities) setLocalities(data.community.localities);
+        if (data.community?.localities) {
+          const map = data.community.localities;
+          setLocalities(
+            typeof map === 'object' && !Array.isArray(map)
+              ? Object.values(map as Record<string, string[]>).flat().sort()
+              : [],
+          );
+        }
       })
       .catch(() => {});
   }, [communityId]);
 
   if (!user?.communities?.length) {
-    return <div className="text-center py-8 text-[#464555]">No communities available</div>;
+    return <div className="py-8 text-center text-m-ink-2">No communities available</div>;
+  }
+
+  function buildFilterParams(): URLSearchParams {
+    const params = new URLSearchParams({ communityId });
+    if (debouncedSearch) params.set('query', debouncedSearch);
+    if (filters.gender) params.set('gender', filters.gender);
+    if (filters.bloodGroup) params.set('bloodGroup', filters.bloodGroup);
+    if (filters.locality.length) params.set('locality', filters.locality.join(','));
+    if (filters.isMarried) params.set('isMarried', filters.isMarried);
+    if (filters.businessCategory) params.set('businessCategory', filters.businessCategory);
+    if (filters.ageMin) params.set('ageMin', filters.ageMin);
+    if (filters.ageMax) params.set('ageMax', filters.ageMax);
+    if (familyHeadOnly) params.set('isFamilyHead', 'true');
+    return params;
   }
 
   async function fetchMembers(pageNum: number) {
@@ -156,23 +209,9 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
     }
 
     try {
-      const params = new URLSearchParams({
-        communityId,
-        page: String(pageNum),
-        limit: '20',
-      });
-
-      if (debouncedSearch) {
-        params.set('query', debouncedSearch);
-      }
-      if (filters.gender) params.set('gender', filters.gender);
-      if (filters.bloodGroup) params.set('bloodGroup', filters.bloodGroup);
-      if (filters.locality) params.set('locality', filters.locality);
-      if (filters.isMarried) params.set('isMarried', filters.isMarried);
-      if (filters.businessCategory) params.set('businessCategory', filters.businessCategory);
-      if (filters.ageMin) params.set('ageMin', filters.ageMin);
-      if (filters.ageMax) params.set('ageMax', filters.ageMax);
-      if (familyHeadOnly) params.set('isFamilyHead', 'true');
+      const params = buildFilterParams();
+      params.set('page', String(pageNum));
+      params.set('limit', String(PAGE_SIZE));
 
       const res = await fetch(`/api/admin/members?${params}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
@@ -192,376 +231,760 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
     }
   }
 
-  const getInitials = (user: User) => {
-    return `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase();
-  };
+  /** Human-readable chips for whatever is currently narrowing the list. */
+  function activeFilterChips(): Array<{ key: string; label: string; clear: () => void }> {
+    const chips: Array<{ key: string; label: string; clear: () => void }> = [];
+    const set = (patch: Partial<MemberFilters>) => setFilters((f) => ({ ...f, ...patch }));
+    if (filters.gender) chips.push({ key: 'gender', label: Gender.find((g) => g.id === filters.gender)?.label ?? filters.gender, clear: () => set({ gender: '' }) });
+    if (filters.bloodGroup) chips.push({ key: 'bloodGroup', label: `Blood ${BloodGroups.find((b) => b.id === filters.bloodGroup)?.label ?? filters.bloodGroup}`, clear: () => set({ bloodGroup: '' }) });
+    for (const loc of filters.locality) {
+      chips.push({ key: `locality:${loc}`, label: loc, clear: () => setFilters((f) => ({ ...f, locality: f.locality.filter((l) => l !== loc) })) });
+    }
+    if (filters.isMarried) chips.push({ key: 'isMarried', label: filters.isMarried === 'true' ? 'Married' : 'Unmarried', clear: () => set({ isMarried: '' }) });
+    if (filters.businessCategory) chips.push({ key: 'businessCategory', label: BusinessTypes.find((b) => b.id === filters.businessCategory)?.label ?? filters.businessCategory, clear: () => set({ businessCategory: '' }) });
+    if (filters.ageMin || filters.ageMax) chips.push({ key: 'age', label: `Age ${filters.ageMin || '0'}–${filters.ageMax || 'any'}`, clear: () => set({ ageMin: '', ageMax: '' }) });
+    return chips;
+  }
+
+  function describeActiveFilters(): string {
+    const parts = activeFilterChips().map((c) => c.label);
+    if (familyHeadOnly) parts.unshift('Family heads only');
+    if (debouncedSearch) parts.unshift(`Search: "${debouncedSearch}"`);
+    return parts.length ? `Filters: ${parts.join(', ')}` : 'All members';
+  }
+
+  function clearAllFilters() {
+    setFilters(EMPTY_FILTERS);
+    setFamilyHeadOnly(false);
+    setSearchQuery('');
+  }
+
+  function openExportDialog(format: 'pdf' | 'csv') {
+    setExportFormat(format);
+    setExportDialogOpen(true);
+  }
+
+  async function handleExport(format: 'pdf' | 'csv', columns: ExportColumnConfig) {
+    if (!communityId || exporting) return;
+    setExportDialogOpen(false);
+    setExporting(format);
+    setExportError(null);
+
+    try {
+      const res = await fetch(`/api/admin/members/export?${buildFilterParams()}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
+      });
+      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+
+      const data: { users: ExportMember[]; truncated?: boolean } = await res.json();
+      if (!data.users?.length) {
+        setExportError('No members match the current filters.');
+        return;
+      }
+
+      const communityName = currentCommunity?.name ?? 'Community';
+      if (format === 'csv') {
+        downloadMembersCsv({ communityName, members: data.users, columns });
+      } else {
+        await downloadMembersPdf({ communityName, members: data.users, filterSummary: describeActiveFilters(), columns });
+      }
+      if (data.truncated) {
+        setExportError('Export capped at 10,000 rows. Narrow the filters to include everyone.');
+      }
+    } catch (error) {
+      console.error('Failed to export members:', error);
+      setExportError(`Could not export ${format.toUpperCase()}. Please try again.`);
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  const getInitials = (u: User) => `${u.firstName?.[0] ?? ''}${u.lastName?.[0] ?? ''}`.toUpperCase();
+  const chips = activeFilterChips();
+  const total = pagination?.total ?? 0;
+  const rangeStart = pagination ? (pagination.page - 1) * pagination.limit + 1 : 0;
+  const rangeEnd = pagination ? Math.min(pagination.page * pagination.limit, pagination.total) : 0;
 
   return (
     <>
-      <div className="flex flex-col w-full h-full gap-6">
-        {/* Page Header */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#3230c4] rounded-xl flex items-center justify-center text-white shrink-0">
-              <svg
-                className="w-7 h-7"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm8 0c1.66 0 2.99-1.34 2.99-3S25.66 5 24 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5zM9 11c1.66 0 2.99-1.34 2.99-3S10.66 5 9 5C7.34 5 6 6.34 6 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-3xl font-bold text-[#0b1c30] truncate">{currentCommunity?.name ?? 'Community'}</h1>
-              <p className="text-sm text-[#464555]">
-                {pagination ? `${pagination.total} Members` : 'Loading...'}
+      <div className="flex w-full flex-col pb-8">
+        {/* Banner: the one bold element on the page */}
+        <div className="m-banner @container relative -mx-6 -mt-6 overflow-hidden px-6 pb-16 pt-7 md:px-10 md:pt-9">
+          <div className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-white/10" />
+          <div className="pointer-events-none absolute -bottom-20 right-40 size-44 rounded-full bg-white/10" />
+
+          <div className="relative flex flex-col gap-5 @3xl:flex-row @3xl:items-end @3xl:justify-between">
+            <div className="min-w-0 max-w-3xl">
+              <p className="text-sm font-medium text-white/75">Members directory</p>
+              <h1 className="mt-1 text-balance text-2xl font-bold leading-tight @3xl:text-3xl">
+                {currentCommunity?.name ?? 'Community'}
+              </h1>
+              <p className="mt-1.5 text-sm text-white/80">
+                {pagination
+                  ? hasActiveFilters || debouncedSearch
+                    ? `${total} of ${total === 1 ? 'the community' : 'all members'} match`
+                    : `${total} ${total === 1 ? 'member' : 'members'}`
+                  : 'Loading…'}
               </p>
             </div>
-          </div>
 
-          {/* Action buttons */}
-          <div className="flex flex-wrap items-center gap-3 w-full">
-            <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#464555] size-4" />
-              <input
-                type="text"
-                placeholder="Search members..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-10 pr-4 bg-white border border-[#c7c4d7] rounded-lg focus:ring-2 focus:ring-[#3230c4]/20 focus:outline-none text-sm text-[#0b1c30] placeholder:text-[#464555] transition-all"
-              />
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {currentCommunity && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => window.open('/m', '_blank')}
+                    className="inline-flex h-10 items-center gap-2 rounded-m-field border border-white/25 bg-white/10 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  >
+                    <Users className="size-4" />
+                    Member view
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.open(`/community/${currentCommunity._id}/form`, '_blank')}
+                    className="inline-flex h-10 items-center gap-2 rounded-m-field border border-white/25 bg-white/10 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  >
+                    <ExternalLink className="size-4" />
+                    Open form
+                  </button>
+                </>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  disabled={!!exporting || loading || !total}
+                  className="inline-flex h-10 items-center gap-2 rounded-m-field border border-white/25 bg-white/10 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50"
+                >
+                  <Download className="size-4" />
+                  {exporting ? `Exporting ${exporting.toUpperCase()}…` : 'Export'}
+                  <ChevronDown className="size-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={() => openExportDialog('pdf')}>
+                    <FileText />
+                    Export as PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openExportDialog('csv')}>
+                    <FileSpreadsheet />
+                    Export as CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <button
+                type="button"
+                onClick={() => setDialogOpen(true)}
+                className="inline-flex h-10 items-center gap-2 rounded-m-field bg-white px-4 text-sm font-semibold text-m-brand shadow-m-card transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                <UserPlus className="size-4" />
+                Add family
+              </button>
             </div>
-            <Button
-              variant={familyHeadOnly ? 'default' : 'outline'}
-              onClick={() => setFamilyHeadOnly((v) => !v)}
-              className={familyHeadOnly ? 'bg-[#0b1c30] hover:bg-[#1c2f47]' : ''}
-            >
-              <Users2 className="size-4" />
-              Family Heads Only
-            </Button>
+          </div>
+        </div>
 
-            <Popover open={filterPanelOpen} onOpenChange={setFilterPanelOpen}>
-              <PopoverTrigger render={<Button variant="outline" className="relative" />}>
-                <Filter className="size-4" />
-                Filters
-                {activeFilterCount > 0 && (
-                  <Badge className="bg-[#0b1c30] text-white">{activeFilterCount}</Badge>
+        {/* Floating search + filter card, overlapping the banner */}
+        <div className="relative z-10 -mt-9 md:px-4">
+          <div className="m-card-float flex flex-col gap-3 p-3">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-m-ink-3" />
+                <input
+                  type="text"
+                  placeholder="Search by name or number"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="m-field pl-9 pr-9"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear search"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-m-ink-3 hover:bg-m-surface-2 hover:text-m-ink"
+                  >
+                    <X className="size-4" />
+                  </button>
                 )}
-              </PopoverTrigger>
+              </div>
 
-              <PopoverContent align="end" className="w-80">
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-[#0b1c30]">Filters</p>
-                    {hasActiveFilters && (
+              <label className="hidden cursor-pointer items-center gap-2 pl-2 text-sm font-medium text-m-ink sm:flex">
+                Family heads only
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={familyHeadOnly}
+                  onClick={() => setFamilyHeadOnly((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-m-brand/40 ${
+                    familyHeadOnly ? 'bg-m-brand' : 'bg-m-ink-3/40'
+                  }`}
+                >
+                  <span
+                    className={`inline-block size-4 rounded-full bg-white shadow-sm transition-transform ${
+                      familyHeadOnly ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </label>
+
+              <Popover open={filterPanelOpen} onOpenChange={setFilterPanelOpen}>
+                <PopoverTrigger className="m-field-btn relative hover:bg-m-surface-2" aria-label="Filters">
+                  <SlidersHorizontal className="size-4" />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-m-brand text-[10px] font-semibold text-m-on-brand">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </PopoverTrigger>
+
+                <PopoverContent align="end" className="w-[22rem] rounded-m-card border-m-line p-4 shadow-m-float">
+                  <div className="flex flex-col gap-5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-m-ink">Filter members</p>
+                      {hasActiveFilters && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilters(EMPTY_FILTERS);
+                            setFamilyHeadOnly(false);
+                          }}
+                          className="text-xs font-medium text-m-brand hover:underline"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2 sm:hidden">
+                      <Label>Family heads only</Label>
                       <button
-                        onClick={() => {
-                          setFilters(EMPTY_FILTERS);
-                          setFamilyHeadOnly(false);
-                        }}
-                        className="flex items-center gap-1 text-xs text-[#464555] hover:text-[#0b1c30]"
+                        type="button"
+                        onClick={() => setFamilyHeadOnly((v) => !v)}
+                        data-active={familyHeadOnly}
+                        className="m-chip w-fit"
                       >
-                        <X className="size-3.5" />
-                        Clear all
+                        {familyHeadOnly ? 'On' : 'Off'}
                       </button>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="flex flex-col gap-2">
-                    <Label>Gender</Label>
-                    <Select
-                      value={filters.gender}
-                      onValueChange={(v) => setFilters((f) => ({ ...f, gender: v ?? '' }))}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Any" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Gender.map((g) => (
-                          <SelectItem key={g.id} value={g.id}>
-                            {g.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="flex flex-col gap-2">
+                      <Label>Blood group</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {BloodGroups.map((bg) => {
+                          const active = filters.bloodGroup === bg.id;
+                          return (
+                            <button
+                              key={bg.id}
+                              type="button"
+                              data-active={active}
+                              onClick={() => setFilters((f) => ({ ...f, bloodGroup: active ? '' : bg.id }))}
+                              className="m-chip font-medium"
+                            >
+                              {bg.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                  <div className="flex flex-col gap-2">
-                    <Label>Blood Group</Label>
-                    <Select
-                      value={filters.bloodGroup}
-                      onValueChange={(v) => setFilters((f) => ({ ...f, bloodGroup: v ?? '' }))}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Any">
-                          {(value: string) => BloodGroups.find((bg) => bg.id === value)?.label ?? value}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BloodGroups.map((bg) => (
-                          <SelectItem key={bg.id} value={bg.id}>
-                            {bg.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="flex flex-col gap-2">
+                      <Label>Gender</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {Gender.map((g) => {
+                          const active = filters.gender === g.id;
+                          return (
+                            <button
+                              key={g.id}
+                              type="button"
+                              data-active={active}
+                              onClick={() => setFilters((f) => ({ ...f, gender: active ? '' : g.id }))}
+                              className="m-chip font-medium"
+                            >
+                              {g.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                  <div className="flex flex-col gap-2">
-                    <Label>Locality</Label>
-                    {localities.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      <Label>Marital status</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { id: 'true', label: 'Married' },
+                          { id: 'false', label: 'Unmarried' },
+                        ].map((opt) => {
+                          const active = filters.isMarried === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              data-active={active}
+                              onClick={() => setFilters((f) => ({ ...f, isMarried: active ? '' : opt.id }))}
+                              className="m-chip font-medium"
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label>Locality</Label>
+                      {localities.length > 0 ? (
+                        <div className="flex max-h-36 flex-col gap-1 overflow-y-auto rounded-md border border-input p-2">
+                          {localities.map((loc) => {
+                            const checked = filters.locality.includes(loc);
+                            return (
+                              <label key={loc} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-m-surface-2">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() =>
+                                    setFilters((f) => ({
+                                      ...f,
+                                      locality: checked
+                                        ? f.locality.filter((l) => l !== loc)
+                                        : [...f.locality, loc],
+                                    }))
+                                  }
+                                  className="size-3.5 rounded border-gray-300 accent-[var(--m-brand)]"
+                                />
+                                {loc}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <TextInput
+                          placeholder="Any locality"
+                          value={filters.locality.join(', ')}
+                          onChange={(e) => setFilters((f) => ({ ...f, locality: e.target.value ? [e.target.value] : [] }))}
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label>Business category</Label>
                       <Select
-                        value={filters.locality}
-                        onValueChange={(v) => setFilters((f) => ({ ...f, locality: v ?? '' }))}
+                        value={filters.businessCategory}
+                        onValueChange={(v) => setFilters((f) => ({ ...f, businessCategory: v ?? '' }))}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Any" />
+                          <SelectValue placeholder="Any category">
+                            {(value: string) => BusinessTypes.find((bt) => bt.id === value)?.label ?? value}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          {localities.map((loc) => (
-                            <SelectItem key={loc} value={loc}>
-                              {loc}
+                          {BusinessTypes.map((bt) => (
+                            <SelectItem key={bt.id} value={bt.id}>
+                              {bt.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                    ) : (
-                      <TextInput
-                        placeholder="Any"
-                        value={filters.locality}
-                        onChange={(e) => setFilters((f) => ({ ...f, locality: e.target.value }))}
-                      />
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="flex flex-col gap-2">
-                    <Label>Married</Label>
-                    <Select
-                      value={filters.isMarried}
-                      onValueChange={(v) => setFilters((f) => ({ ...f, isMarried: v ?? '' }))}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Any">
-                          {(value: string) => (value === 'true' ? 'Married' : 'Unmarried')}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="true">Married</SelectItem>
-                        <SelectItem value="false">Unmarried</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Label>Business Category</Label>
-                    <Select
-                      value={filters.businessCategory}
-                      onValueChange={(v) => setFilters((f) => ({ ...f, businessCategory: v ?? '' }))}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Any">
-                          {(value: string) => BusinessTypes.find((bt) => bt.id === value)?.label ?? value}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BusinessTypes.map((bt) => (
-                          <SelectItem key={bt.id} value={bt.id}>
-                            {bt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Label>Age</Label>
-                    <div className="flex items-center gap-2">
-                      <TextInput
-                        type="number"
-                        min={0}
-                        placeholder="Min"
-                        value={filters.ageMin}
-                        onChange={(e) => setFilters((f) => ({ ...f, ageMin: e.target.value }))}
-                      />
-                      <span className="text-[#464555]">–</span>
-                      <TextInput
-                        type="number"
-                        min={0}
-                        placeholder="Max"
-                        value={filters.ageMax}
-                        onChange={(e) => setFilters((f) => ({ ...f, ageMax: e.target.value }))}
-                      />
+                    <div className="flex flex-col gap-2">
+                      <Label>Age</Label>
+                      <div className="flex items-center gap-2">
+                        <TextInput
+                          type="number"
+                          min={0}
+                          placeholder="From"
+                          value={filters.ageMin}
+                          onChange={(e) => setFilters((f) => ({ ...f, ageMin: e.target.value }))}
+                        />
+                        <span className="text-m-ink-3">to</span>
+                        <TextInput
+                          type="number"
+                          min={0}
+                          placeholder="Any"
+                          value={filters.ageMax}
+                          onChange={(e) => setFilters((f) => ({ ...f, ageMax: e.target.value }))}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+            </div>
 
-            <Button variant="outline">
-              <Download className="size-4" />
-              Export CSV
-            </Button>
-            {currentCommunity && (
-              <Button
-                variant="outline"
-                onClick={() => window.open(`/community/${currentCommunity._id}/form`, '_blank')}
-              >
-                <ExternalLink className="size-4" />
-                Open Form
-              </Button>
+            {(chips.length > 0 || familyHeadOnly) && (
+              <div className="flex flex-wrap items-center gap-2 px-0.5">
+                {familyHeadOnly && (
+                  <button type="button" data-active="true" className="m-chip" onClick={() => setFamilyHeadOnly(false)}>
+                    Family heads only
+                    <X className="size-3" />
+                  </button>
+                )}
+                {chips.map((chip) => (
+                  <button key={chip.key} type="button" data-active="true" className="m-chip" onClick={chip.clear}>
+                    {chip.label}
+                    <X className="size-3" />
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="ml-1 text-xs font-medium text-m-ink-2 hover:text-m-ink"
+                >
+                  Clear all
+                </button>
+              </div>
             )}
-            <Button
-              onClick={() => setDialogOpen(true)}
-              className="bg-[#0b1c30] hover:bg-[#1c2f47]"
-            >
-              <UserPlus className="size-4" />
-              Add Family
-            </Button>
           </div>
         </div>
 
+        {exportError && (
+          <p role="alert" className="mt-3 text-sm text-m-danger md:px-4">
+            {exportError}
+          </p>
+        )}
 
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-[#c7c4d7]/30 flex flex-col flex-1 overflow-hidden">
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center text-[#464555]">Loading members...</div>
-        ) : (
-          <>
-            <div className="overflow-x-auto flex-1">
-              <table className="w-full text-left border-collapse whitespace-nowrap">
-                <thead className="bg-[#0b1c30] sticky top-0 z-10">
-                  <tr>
-                    <th className="py-4 px-6 text-xs text-white/90 font-semibold uppercase tracking-wide w-[90px]">Profile</th>
-                    <th className="py-4 px-6 text-xs text-white/90 font-semibold uppercase tracking-wide min-w-[220px]">Name</th>
-                    <th className="py-4 px-6 text-xs text-white/90 font-semibold uppercase tracking-wide min-w-[200px]">Father&apos;s Name</th>
-                    <th className="py-4 px-6 text-xs text-white/90 font-semibold uppercase tracking-wide min-w-[250px]">Business / Education</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#c7c4d7]/20">
-                  {members.map((member, i) => (
-                    <tr
-                      key={member._id}
-                      className={`hover:bg-[#e5eeff]/50 transition-colors cursor-pointer ${
-                        i % 2 === 1 ? 'bg-[#e5eeff]/25' : 'bg-white'
-                      }`}
-                      onClick={() => window.location.href = `/admin/community/${communityId}/members/${member._id}`}
-                    >
-                      <td className="py-4 px-6">
-                        {member.profilePicture ? (
-                          <ClickableImage
-                            src={member.profilePicture}
-                            alt={member.fullName}
-                            className="w-11 h-11 rounded-full object-cover shadow-sm cursor-pointer"
-                          />
-                        ) : (
-                          <div className="w-11 h-11 rounded-full bg-[#dce9ff] flex items-center justify-center text-[#3230c4] text-sm font-semibold">
-                            {getInitials(member)}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex flex-col">
-                          <span className="text-base font-bold text-[#0b1c30]">{member.fullName}</span>
-                          <span className="text-sm text-[#464555]">{member.enrollmentId}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="text-sm text-[#0b1c30]">{member.guardianName || '—'}</span>
-                      </td>
-                      <td className="py-4 px-6">
-                        {member.businessName ? (
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-[#0b1c30]">{member.businessName}</span>
-                            {member.businessCategory && (
-                              <span className="text-sm text-[#464555]">{member.businessCategory}</span>
-                            )}
-                          </div>
-                        ) : member.education ? (
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-[#0b1c30]">{member.education}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-[#464555]">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Members list */}
+        <div className="mt-5 md:px-4">
+          <div className="m-card @container overflow-hidden">
+            <div className={`hidden border-b border-m-line px-4 py-2.5 text-xs font-semibold text-m-ink-2 ${ROW_GRID}`}>
+              <span>Member</span>
+              <span>Phone</span>
+              <span>Father&apos;s name</span>
+              <span>Business or education</span>
+              <span className="w-24" />
             </div>
 
-            {/* Pagination */}
-            {pagination && (
-              <div className="border-t border-[#c7c4d7]/30 px-4 py-3 bg-white flex items-center justify-between">
-                <span className="text-xs text-[#464555]">
-                  Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                  {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} members
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => fetchMembers(page - 1)}
-                    disabled={page === 1}
-                    className="p-1.5 rounded hover:bg-[#e5eeff] text-[#464555] transition-colors disabled:opacity-50"
-                  >
-                    <ChevronLeft className="size-5" />
-                  </button>
-
-                  {Array.from({ length: pagination.totalPages }).map((_, i) => {
-                    const pageNum = i + 1;
-                    if (
-                      pageNum === 1 ||
-                      pageNum === pagination.totalPages ||
-                      (pageNum >= page - 1 && pageNum <= page + 1)
-                    ) {
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => fetchMembers(pageNum)}
-                          className={`w-8 h-8 rounded text-xs font-semibold transition-colors ${
-                            pageNum === page
-                              ? 'bg-[#0b1c30] text-white'
-                              : 'hover:bg-[#e5eeff] text-[#0b1c30]'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    }
-
-                    if ((i === 1 && page > 3) || (i === pagination.totalPages - 2 && page < pagination.totalPages - 2)) {
-                      return (
-                        <span key={`ellipsis-${i}`} className="text-[#464555] px-1">
-                          ...
-                        </span>
-                      );
-                    }
-
-                    return null;
-                  })}
-
-                  <button
-                    onClick={() => fetchMembers(page + 1)}
-                    disabled={page === pagination.totalPages}
-                    className="p-1.5 rounded hover:bg-[#e5eeff] text-[#464555] transition-colors disabled:opacity-50"
-                  >
-                    <ChevronRight className="size-5" />
-                  </button>
+            {loading ? (
+              <MembersSkeleton />
+            ) : members.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+                <div className="flex size-14 items-center justify-center rounded-full bg-m-brand/10 text-m-brand">
+                  <Users className="size-6" />
                 </div>
+                <div>
+                  <p className="text-sm font-semibold text-m-ink">
+                    {hasActiveFilters || debouncedSearch ? 'No members match these filters' : 'No members yet'}
+                  </p>
+                  <p className="mt-1 text-sm text-m-ink-2">
+                    {hasActiveFilters || debouncedSearch
+                      ? 'Try a different name or remove a filter.'
+                      : 'Add the first family to start the directory.'}
+                  </p>
+                </div>
+                {hasActiveFilters || debouncedSearch ? (
+                  <button type="button" onClick={clearAllFilters} className="m-chip" data-active="true">
+                    Clear filters
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => setDialogOpen(true)} className="m-chip" data-active="true">
+                    <UserPlus className="size-3.5" />
+                    Add family
+                  </button>
+                )}
+              </div>
+            ) : (
+              <ul className="divide-y divide-m-line">
+                {members.map((member) => (
+                  <MemberRow
+                    key={member._id}
+                    member={member}
+                    initials={getInitials(member)}
+                    onOpen={() => router.push(`/admin/community/${communityId}/members/${member._id}`)}
+                  />
+                ))}
+              </ul>
+            )}
+
+            {pagination && pagination.total > 0 && !loading && (
+              <div className="flex flex-col gap-3 border-t border-m-line bg-m-surface-2/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-xs text-m-ink-2">
+                  Showing {rangeStart}–{rangeEnd} of {pagination.total}
+                </span>
+                {pagination.totalPages > 1 && (
+                  <nav className="flex items-center gap-1" aria-label="Pagination">
+                    <button
+                      type="button"
+                      onClick={() => fetchMembers(page - 1)}
+                      disabled={page === 1}
+                      aria-label="Previous page"
+                      className="rounded-full p-1.5 text-m-ink-2 transition-colors hover:bg-m-surface-2 disabled:opacity-40"
+                    >
+                      <ChevronLeft className="size-5" />
+                    </button>
+
+                    {Array.from({ length: pagination.totalPages }).map((_, i) => {
+                      const pageNum = i + 1;
+                      if (
+                        pageNum === 1 ||
+                        pageNum === pagination.totalPages ||
+                        (pageNum >= page - 1 && pageNum <= page + 1)
+                      ) {
+                        return (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            onClick={() => fetchMembers(pageNum)}
+                            aria-current={pageNum === page ? 'page' : undefined}
+                            className={`size-8 rounded-full text-xs font-semibold transition-colors ${
+                              pageNum === page
+                                ? 'bg-m-brand text-m-on-brand'
+                                : 'text-m-ink hover:bg-m-surface-2'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      }
+                      if ((i === 1 && page > 3) || (i === pagination.totalPages - 2 && page < pagination.totalPages - 2)) {
+                        return (
+                          <span key={`ellipsis-${i}`} className="px-1 text-m-ink-3">
+                            …
+                          </span>
+                        );
+                      }
+                      return null;
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={() => fetchMembers(page + 1)}
+                      disabled={page === pagination.totalPages}
+                      aria-label="Next page"
+                      className="rounded-full p-1.5 text-m-ink-2 transition-colors hover:bg-m-surface-2 disabled:opacity-40"
+                    >
+                      <ChevronRight className="size-5" />
+                    </button>
+                  </nav>
+                )}
               </div>
             )}
-          </>
-        )}
-      </div>
+          </div>
+        </div>
       </div>
 
-        {currentCommunity && (
-          <AddFamilyDialog
-            community={currentCommunity}
-            onMemberAdded={() => fetchMembers(page)}
-            open={dialogOpen}
-            onOpenChange={setDialogOpen}
-          />
-        )}
+      {currentCommunity && (
+        <AddFamilyDialog
+          community={currentCommunity}
+          onMemberAdded={() => fetchMembers(page)}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+        />
+      )}
+
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Export Options</DialogTitle>
+            <DialogDescription>Choose which columns to include in the {exportFormat.toUpperCase()} export.</DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">Columns</p>
+              <div className="flex flex-col gap-1.5">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input type="checkbox" checked disabled className="size-3.5 rounded" />
+                  Name
+                </label>
+                {([['phone', 'Phone'], ['address', 'Address'], ['locality', 'Locality']] as const).map(([key, label]) => (
+                  <label key={key} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={exportColumns[key]}
+                      onChange={() => setExportColumns((c) => ({ ...c, [key]: !c[key] }))}
+                      className="size-3.5 rounded border-gray-300 accent-[var(--m-brand)]"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">Name format</p>
+              <div className="flex flex-col gap-1.5">
+                {([['firstLast', 'FirstName LastName'], ['lastFirst', 'LastName, FirstName (sorted by last name)']] as const).map(([value, label]) => (
+                  <label key={value} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="nameFormat"
+                      checked={exportColumns.nameFormat === value}
+                      onChange={() => setExportColumns((c) => ({ ...c, nameFormat: value }))}
+                      className="size-3.5 accent-[var(--m-brand)]"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setExportDialogOpen(false)}
+              className="inline-flex h-9 items-center justify-center rounded-md border px-4 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExport(exportFormat, exportColumns)}
+              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Export {exportFormat.toUpperCase()}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+  );
+}
+
+function MemberRow({ member, initials, onOpen }: { member: User; initials: string; onOpen: () => void }) {
+  const avatar = getAvatarColor(member.fullName || `${member.firstName} ${member.lastName}`);
+  const tel = telLink(member.phone);
+  const wa = whatsappLink(member.phone);
+  const place = member.address?.locality || member.address?.city;
+  const work = member.businessName || member.education;
+  const workSub = member.businessName ? member.businessCategory : undefined;
+
+  return (
+    <li
+      className={`group relative cursor-pointer px-4 py-3 pr-28 transition-colors hover:bg-m-surface-2/70 @4xl:pr-4 ${ROW_GRID}`}
+      onClick={onOpen}
+    >
+      {/* Member: avatar + name + enrollment / place */}
+      <div className="flex min-w-0 items-center gap-3">
+        {member.profilePicture ? (
+          <ClickableImage
+            src={member.profilePicture}
+            alt={member.fullName}
+            className="size-11 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <div
+            className="flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+            style={{ backgroundColor: avatar.bg, color: avatar.text }}
+          >
+            {initials}
+          </div>
+        )}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpen();
+              }}
+              className="truncate text-left text-sm font-semibold text-m-ink focus-visible:outline-none focus-visible:underline"
+            >
+              {member.fullName}
+            </button>
+            {member.isFamilyHead && (
+              <span className="shrink-0 rounded-full bg-m-tone-amber-bg px-2 py-0.5 text-[10px] font-semibold text-m-tone-amber-fg">
+                Head
+              </span>
+            )}
+            {member.isAlive === false && (
+              <span className="shrink-0 rounded-full bg-m-surface-2 px-2 py-0.5 text-[10px] font-semibold text-m-ink-2">
+                Late
+              </span>
+            )}
+          </div>
+          <p className="truncate text-xs text-m-ink-2">
+            {[member.enrollmentId, place].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+      </div>
+
+      {/* Compact: one meta line under the name (hidden once the grid kicks in) */}
+      <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 pl-14 text-xs text-m-ink-2 @4xl:hidden">
+        {member.phone && <span className="text-m-ink">{member.phone}</span>}
+        {member.guardianName && <span>Father: {member.guardianName}</span>}
+        {work && (
+          <span>
+            {work}
+            {workSub ? ` · ${workSub}` : ''}
+          </span>
+        )}
+      </p>
+
+      {/* Wide: phone */}
+      <div className="hidden truncate text-sm tabular-nums text-m-ink @4xl:block">
+        {member.phone || <span className="text-m-ink-3">—</span>}
+      </div>
+
+      {/* Wide: father's name */}
+      <div className="hidden truncate text-sm text-m-ink @4xl:block">
+        {member.guardianName || <span className="text-m-ink-3">—</span>}
+      </div>
+
+      {/* Wide: business / education */}
+      <div className="hidden min-w-0 @4xl:block">
+        {work ? (
+          <>
+            <p className="truncate text-sm text-m-ink">{work}</p>
+            {workSub && <p className="truncate text-xs text-m-ink-2">{workSub}</p>}
+          </>
+        ) : (
+          <span className="text-sm text-m-ink-3">—</span>
+        )}
+      </div>
+
+      {/* Quick actions */}
+      <div className="absolute right-4 top-3 flex items-center gap-1.5 @4xl:static">
+        {tel && (
+          <a
+            href={tel}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Call ${member.fullName}`}
+            className="flex size-9 items-center justify-center rounded-full bg-m-brand/10 text-m-brand transition-colors hover:bg-m-brand/20"
+          >
+            <Phone className="size-4" />
+          </a>
+        )}
+        {wa && (
+          <a
+            href={wa}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`WhatsApp ${member.fullName}`}
+            className="flex size-9 items-center justify-center rounded-full bg-m-wa/12 text-m-wa-ink transition-colors hover:bg-m-wa/20"
+          >
+            <MessageCircle className="size-4" />
+          </a>
+        )}
+        <ChevronRight className="hidden size-4 text-m-ink-3 transition-transform group-hover:translate-x-0.5 @4xl:block" />
+      </div>
+    </li>
+  );
+}
+
+function MembersSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <ul className="divide-y divide-m-line" role="status" aria-label="Loading members">
+      {Array.from({ length: count }).map((_, i) => (
+        <li key={i} className={`px-4 py-3 ${ROW_GRID}`}>
+          <div className="flex items-center gap-3">
+            <div className="size-11 shrink-0 animate-pulse rounded-full bg-m-surface-2" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3.5 w-2/5 animate-pulse rounded-md bg-m-surface-2" />
+              <div className="h-3 w-1/3 animate-pulse rounded-md bg-m-surface-2" />
+            </div>
+          </div>
+          <div className="mt-2 h-3 w-3/5 animate-pulse rounded-md bg-m-surface-2 pl-14 @4xl:hidden" />
+          <div className="hidden h-3.5 w-24 animate-pulse rounded-md bg-m-surface-2 @4xl:block" />
+          <div className="hidden h-3.5 w-28 animate-pulse rounded-md bg-m-surface-2 @4xl:block" />
+          <div className="hidden h-3.5 w-32 animate-pulse rounded-md bg-m-surface-2 @4xl:block" />
+          <div className="hidden gap-1.5 @4xl:flex">
+            <div className="size-9 animate-pulse rounded-full bg-m-surface-2" />
+            <div className="size-9 animate-pulse rounded-full bg-m-surface-2" />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -3,6 +3,7 @@ import { localitySuggestQuerySchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
 import { Community } from '../models';
 import { fetchLocalitySuggestions } from '../services/localitySuggestions';
+import { normalizeLocalities } from '../utils/normalizeLocalities';
 
 export async function suggestLocalities(req: AuthRequest, res: Response): Promise<void> {
   const parsed = localitySuggestQuerySchema.safeParse(req.query);
@@ -18,8 +19,11 @@ export async function suggestLocalities(req: AuthRequest, res: Response): Promis
 
     if (excludeCommunityId) {
       const community = await Community.findById(excludeCommunityId).select('localities');
-      if (community?.localities?.length) {
-        const existing = new Set(community.localities.map((l) => l.toLowerCase()));
+      if (community?.localities) {
+        const map = normalizeLocalities(community.localities);
+        const existing = new Set(
+          Object.values(map).flat().map((l) => l.toLowerCase()),
+        );
         suggestions = suggestions.filter((s) => !existing.has(s.toLowerCase()));
       }
     }

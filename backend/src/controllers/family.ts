@@ -53,7 +53,7 @@ export async function getFamilyTree(req: AuthRequest, res: Response): Promise<vo
   }
 
   const members = await User.find({ familyId: family._id, isBlocked: { $ne: true } })
-    .select('enrollmentId firstName lastName fullName profilePicture dob gender phone fatherId motherId spouseId childrenIds siblingIds isFamilyHead isAlive demiseDate');
+    .select('enrollmentId firstName lastName fullName profilePicture dob gender phone fatherId motherId spouseId childrenIds siblingIds isFamilyHead isAlive demiseDate communityIds');
 
   res.json({ success: true, family, members });
 }

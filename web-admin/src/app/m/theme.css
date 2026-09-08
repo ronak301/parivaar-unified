@@ -1,0 +1,172 @@
+/* ============================================================================
+   MEMBER APP DESIGN TOKENS  (/m/*)
+   ----------------------------------------------------------------------------
+   This is the ONE place to change how the member-facing app looks.
+   Every member component reads from these variables — nothing is hardcoded
+   in TSX. Change a value here → whole app updates.
+
+   Usage in components:
+     • Tailwind utilities:  bg-m-surface  text-m-ink-2  border-m-line  shadow-m-card
+                            bg-m-tone-rose-bg  text-m-tone-rose-fg  bg-m-brand/10
+     • Component classes:   m-banner  m-card  m-card-float  m-field  m-chip
+     • Inline styles (JS):  var(--m-tone-indigo-bg)  — see lib/member/theme.ts
+   ========================================================================== */
+
+.member-app {
+  /* ---- Surfaces -------------------------------------------------------- */
+  /* Page background. Accepts a flat colour or a gradient, e.g.
+     linear-gradient(170deg, #e4e1ff 0%, #f3f0ff 35%, #eef4ff 65%, #dcf5e9 100%) */
+  --m-page: #ffffff;
+  --m-page-solid: #ffffff;                 /* fallback where a gradient can't be used */
+  --m-surface: #ffffff;                    /* cards, sheets, tab bar        */
+  --m-surface-2: #f5f5f9;                  /* inputs, subtle fills, chips   */
+  --m-line: rgba(20, 20, 60, 0.08);        /* hairlines, card borders       */
+  --m-line-strong: rgba(20, 20, 60, 0.14);
+
+  /* ---- Text ------------------------------------------------------------ */
+  --m-ink: #1a1a2e;                        /* primary text                  */
+  --m-ink-2: #6b6b80;                      /* secondary / muted text        */
+  --m-ink-3: #9d9db0;                      /* placeholders, disabled        */
+
+  /* ---- Brand ----------------------------------------------------------- */
+  --m-brand: var(--primary);               /* inherits app primary (indigo) */
+  --m-brand-2: var(--secondary);           /* gradient end (violet)         */
+  --m-on-brand: #ffffff;
+  --m-banner: linear-gradient(135deg, var(--m-brand) 0%, var(--m-brand) 55%, var(--m-brand-2) 100%);
+
+  /* ---- Semantic -------------------------------------------------------- */
+  --m-wa: #25d366;                         /* WhatsApp green                */
+  --m-wa-ink: #1da851;
+  --m-danger: #d64545;
+
+  /* ---- Elevation ------------------------------------------------------- */
+  --m-shadow-card: 0 1px 3px rgba(20, 20, 60, 0.08), 0 4px 14px rgba(20, 20, 60, 0.10);
+  --m-shadow-float: 0 4px 24px rgba(20, 20, 60, 0.14);
+  --m-shadow-bar: 0 -2px 14px rgba(20, 20, 60, 0.08);
+
+  /* ---- Shape ----------------------------------------------------------- */
+  --m-radius-card: 1rem;                   /* 16px                          */
+  --m-radius-field: 0.75rem;               /* 12px                          */
+
+  /* ---- Tone palette ---------------------------------------------------- */
+  /* Shared by avatars, business categories, badges, stat tiles.            */
+  --m-tone-indigo-bg: #e8eaff;  --m-tone-indigo-fg: #4f52c9;
+  --m-tone-violet-bg: #efe6fb;  --m-tone-violet-fg: #7b3fe4;
+  --m-tone-pink-bg:   #fbe6f2;  --m-tone-pink-fg:   #c4308a;
+  --m-tone-rose-bg:   #ffe4e6;  --m-tone-rose-fg:   #d14d72;
+  --m-tone-amber-bg:  #fef3dc;  --m-tone-amber-fg:  #c27a00;
+  --m-tone-emerald-bg:#e3f7ea;  --m-tone-emerald-fg:#178a55;
+  --m-tone-sky-bg:    #e0f2fe;  --m-tone-sky-fg:    #0284c7;
+  --m-tone-teal-bg:   #ccfbf1;  --m-tone-teal-fg:   #0d9488;
+}
+
+/* Expose tokens as Tailwind utilities (bg-m-*, text-m-*, border-m-*, shadow-m-*) */
+@theme inline {
+  --color-m-page: var(--m-page-solid);      /* solid: for sticky bars / backdrops */
+  --color-m-surface: var(--m-surface);
+  --color-m-surface-2: var(--m-surface-2);
+  --color-m-line: var(--m-line);
+  --color-m-line-strong: var(--m-line-strong);
+  --color-m-ink: var(--m-ink);
+  --color-m-ink-2: var(--m-ink-2);
+  --color-m-ink-3: var(--m-ink-3);
+  --color-m-brand: var(--m-brand);
+  --color-m-brand-2: var(--m-brand-2);
+  --color-m-on-brand: var(--m-on-brand);
+  --color-m-wa: var(--m-wa);
+  --color-m-wa-ink: var(--m-wa-ink);
+  --color-m-danger: var(--m-danger);
+
+  --color-m-tone-indigo-bg: var(--m-tone-indigo-bg);
+  --color-m-tone-indigo-fg: var(--m-tone-indigo-fg);
+  --color-m-tone-violet-bg: var(--m-tone-violet-bg);
+  --color-m-tone-violet-fg: var(--m-tone-violet-fg);
+  --color-m-tone-pink-bg: var(--m-tone-pink-bg);
+  --color-m-tone-pink-fg: var(--m-tone-pink-fg);
+  --color-m-tone-rose-bg: var(--m-tone-rose-bg);
+  --color-m-tone-rose-fg: var(--m-tone-rose-fg);
+  --color-m-tone-amber-bg: var(--m-tone-amber-bg);
+  --color-m-tone-amber-fg: var(--m-tone-amber-fg);
+  --color-m-tone-emerald-bg: var(--m-tone-emerald-bg);
+  --color-m-tone-emerald-fg: var(--m-tone-emerald-fg);
+  --color-m-tone-sky-bg: var(--m-tone-sky-bg);
+  --color-m-tone-sky-fg: var(--m-tone-sky-fg);
+  --color-m-tone-teal-bg: var(--m-tone-teal-bg);
+  --color-m-tone-teal-fg: var(--m-tone-teal-fg);
+
+  --shadow-m-card: var(--m-shadow-card);
+  --shadow-m-float: var(--m-shadow-float);
+  --shadow-m-bar: var(--m-shadow-bar);
+
+  --radius-m-card: var(--m-radius-card);
+  --radius-m-field: var(--m-radius-field);
+}
+
+/* Reusable building blocks. Tailwind utilities still win over these. */
+@layer components {
+  /* Page background. Uses background-image so --m-page may be a gradient. */
+  .m-page {
+    background-color: var(--m-page-solid);
+    background-image: var(--m-page);
+    background-attachment: fixed;   /* gradient stays put while content scrolls */
+  }
+
+  .m-banner {
+    background-image: var(--m-banner);
+    color: var(--m-on-brand);
+  }
+
+  .m-card {
+    background: var(--m-surface);
+    border: 1px solid var(--m-line);
+    border-radius: var(--m-radius-card);
+    box-shadow: var(--m-shadow-card);
+  }
+
+  .m-card-float {
+    background: var(--m-surface);
+    border-radius: var(--m-radius-card);
+    box-shadow: var(--m-shadow-float);
+  }
+
+  .m-field {
+    height: 2.5rem;
+    width: 100%;
+    background: var(--m-surface);
+    border: 1px solid var(--m-line-strong);
+    border-radius: var(--m-radius-field);
+    font-size: 0.875rem;
+    color: var(--m-ink);
+    outline: none;
+  }
+  .m-field::placeholder { color: var(--m-ink-3); }
+  .m-field:focus {
+    border-color: color-mix(in oklab, var(--m-brand) 45%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--m-brand) 10%, transparent);
+  }
+
+  /* Square icon button that sits next to a .m-field (filter / refresh) */
+  .m-field-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 2.5rem; height: 2.5rem; flex-shrink: 0;
+    background: var(--m-surface);
+    border: 1px solid var(--m-line-strong);
+    border-radius: var(--m-radius-field);
+    color: var(--m-ink);
+  }
+
+  .m-chip {
+    display: inline-flex; align-items: center; gap: 0.375rem;
+    border-radius: 9999px; padding: 0.375rem 0.75rem;
+    font-size: 0.75rem; font-weight: 600; white-space: nowrap;
+    background: var(--m-surface);
+    border: 1px solid var(--m-line-strong);
+    color: var(--m-ink);
+    transition: background-color 150ms, color 150ms, border-color 150ms;
+  }
+  .m-chip[data-active="true"] {
+    background: var(--m-brand);
+    border-color: var(--m-brand);
+    color: var(--m-on-brand);
+  }
+}

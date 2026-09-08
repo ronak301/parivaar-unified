@@ -141,17 +141,25 @@ export function buildUserPayload(form: PersonForm, profilePicture: string | unde
   };
 }
 
+/** Trim a URL field and prepend https:// when the user omitted the scheme (e.g. "www.example.com"). */
+export function normalizeUrlField(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export function buildBusinessPayload(form: BusinessForm, logo: string | undefined, photos: string[]) {
   return {
     name: form.name.trim(),
     category: form.category || undefined,
     phone: form.phone || undefined,
-    website: form.website || undefined,
+    website: normalizeUrlField(form.website),
     description: form.description || undefined,
     address: form.address || undefined,
     instagramProfile: form.instagramProfile || undefined,
     linkedinProfile: form.linkedinProfile || undefined,
-    googleMapsLink: form.googleMapsLink || undefined,
+    googleMapsLink: normalizeUrlField(form.googleMapsLink),
     logo: logo || undefined,
     photos: photos.length > 0 ? photos : undefined,
   };
