@@ -86,3 +86,29 @@ jobs:
             docker exec caddy wget -qO- --header="Host: api.parivaarapp.in" http://localhost:80/health 2>&1 || true
             echo "=== caddy container mounts (to find host path of Caddyfile) ==="
             docker inspect caddy --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'
+
+      - name: Fix Caddy routing (api.parivaarapp.in -> parivaar-api-v2)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            CF=/home/ubuntu/apps/caddy/data/Caddyfile
+            SUDO=""
+            [ -w "$CF" ] || SUDO="sudo -n"
+            echo "=== before ==="
+            $SUDO cat "$CF"
+            $SUDO cp "$CF" "$CF.bak.$(date +%s)"
+            $SUDO sed -i 's/^    reverse_proxy backend:80$/    reverse_proxy parivaar-api-v2:3001/' "$CF"
+            echo "=== after ==="
+            $SUDO cat "$CF"
+            echo "=== validate ==="
+            docker exec caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+            echo "=== reload ==="
+            docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+            echo "=== verify locally on VM ==="
+            sleep 2
+            curl -sS -i --max-time 10 -X POST https://api.parivaarapp.in/api/auth/admin-login \
+              -H "Content-Type: application/json" \
+              -d '{"phone":"9999999999","password":"12345"}' || true
