@@ -196,3 +196,15 @@ jobs:
             docker exec caddy wget -qO- -S --no-check-certificate --header="Host: api.parivaarapp.in" https://127.0.0.1/health 2>&1 || true
             echo "=== what does parivaar-api-v2 app.js actually mount (double-check root vs prefixed) ==="
             docker exec parivaar-api-v2 cat /app/backend/dist/app.js 2>&1
+            echo "=== FULL Caddyfile with line numbers (check for leading global block / admin off) ==="
+            cat -n /home/ubuntu/apps/caddy/data/Caddyfile 2>&1 || sudo cat -n /home/ubuntu/apps/caddy/data/Caddyfile 2>&1 || true
+            echo "=== test the explicit /v2/health path (handle_path block) via direct caddy HTTPS ==="
+            curl -sS -i -k --resolve api.parivaarapp.in:443:127.0.0.1 --max-time 10 https://api.parivaarapp.in/v2/health || true
+            echo "=== caddy process full command line and admin listen check ==="
+            docker top caddy
+            docker exec caddy sh -c "cat /proc/1/cmdline | tr '\0' ' '; echo" 2>&1 || true
+            echo "=== try admin API via unix socket (default caddy admin.sock path) ==="
+            docker exec caddy wget -qO- --unix-socket /run/caddy/admin.sock http://localhost/config/ 2>&1 || true
+            docker exec caddy sh -c "find / -name 'admin.sock' 2>/dev/null" 2>&1 || true
+            echo "=== is 2019 actually listening inside caddy container? ==="
+            docker exec caddy sh -c "cat /proc/net/tcp | awk 'NR>1{print \$2}'" 2>&1 || true
