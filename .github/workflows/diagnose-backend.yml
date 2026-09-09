@@ -44,7 +44,14 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd /home/ubuntu/apps/ronak/parivaar-web-unified/backend
+            cd /home/ubuntu/apps/ronak/parivaar-web-unified
+            echo "=== git log (VM checkout) ==="
+            git log --oneline -5
+            echo "=== git status (VM checkout) ==="
+            git status
+            cd backend
+            echo "=== routes file inside running container ==="
+            docker exec parivaar-api-v2 sh -c "grep -rn 'admin-login' /app/dist/routes/ 2>&1 || grep -rn 'admin-login' /app/src/routes/ 2>&1 || echo NOT_FOUND"
             echo "=== docker compose ps ==="
             docker compose -f docker-compose.prod.yml ps
             echo "=== docker ps -a (all containers) ==="
