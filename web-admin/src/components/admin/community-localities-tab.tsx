@@ -128,37 +128,34 @@ export function CommunityLocalitiesTab({
         <p className="text-sm font-semibold text-m-ink">Cities</p>
         <div className="flex flex-wrap gap-2">
           {cities.map((city) => (
-            <button
-              key={city}
-              type="button"
-              onClick={() => {
-                setActiveCity(city);
-                setSuggestions([]);
-                setSuggestAttempted(false);
-              }}
-              data-active={activeCity === city}
-              className="m-chip pr-1.5"
-            >
-              {city}
-              <span
-                className="rounded-full px-1.5 text-[11px] font-normal"
-                style={{ opacity: 0.6 }}
-              >
-                {localityMap[city]?.length ?? 0}
-              </span>
+            <div key={city} data-active={activeCity === city} className="m-chip pr-1.5">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveCity(city);
+                onClick={() => {
+                  setActiveCity(city);
+                  setSuggestions([]);
+                  setSuggestAttempted(false);
                 }}
+                className="flex items-center gap-1.5"
+              >
+                {city}
+                <span
+                  className="rounded-full px-1.5 text-[11px] font-normal"
+                  style={{ opacity: 0.6 }}
+                >
+                  {localityMap[city]?.length ?? 0}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRemoveCity(city)}
                 disabled={saving}
                 className="rounded-full p-0.5 text-m-ink-3 transition-colors hover:bg-m-surface-2 hover:text-m-danger"
                 aria-label={`Remove ${city}`}
               >
                 <X className="size-3" />
               </button>
-            </button>
+            </div>
           ))}
         </div>
         <div className="flex gap-2">
