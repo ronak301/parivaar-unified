@@ -546,7 +546,7 @@ export function EditProfileForm({ user, actionToken }: EditProfileFormProps) {
         <div className="flex flex-col gap-2">
           <Label>Locality</Label>
           {availableLocalities.length > 0 ? (
-            <Select value={form.locality} onValueChange={(v) => setField('locality', v)}>
+            <Select value={form.locality ?? ''} onValueChange={(v) => setField('locality', v ?? '')}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select locality" />
               </SelectTrigger>
