@@ -8,19 +8,13 @@ import {
   Dialog,
   Field,
   Input,
+  NativeSelect,
   Portal,
   Textarea,
 } from '@chakra-ui/react';
 import { Button } from '@/components/ui/button';
 import { ClickableAvatar } from '@/components/ui/clickable-image';
 import { ImageUploadField } from '@/components/ui/image-upload-field';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Building2, Pencil } from 'lucide-react';
 import { uploadCommunityLogo } from '@/lib/firebase/storage';
 
@@ -192,18 +186,22 @@ export function EditCommunityDialog({
 
                   <Field.Root>
                     <Field.Label>Status</Field.Label>
-                    <Select value={form.status} onValueChange={(v) => set('status', v ?? '')}>
-                      <SelectTrigger id="edit-status" size="lg" className="w-full">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
+                    {/* Native select: popup-based selects get blocked by the modal's focus trap. */}
+                    <NativeSelect.Root size="lg">
+                      <NativeSelect.Field
+                        id="edit-status"
+                        value={form.status}
+                        onChange={(e) => set('status', e.target.value)}
+                      >
+                        <option value="">Select status</option>
                         {CommunityStatus.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
+                          <option key={s.id} value={s.id}>
                             {s.label}
-                          </SelectItem>
+                          </option>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </NativeSelect.Field>
+                      <NativeSelect.Indicator />
+                    </NativeSelect.Root>
                   </Field.Root>
 
                   <Field.Root>
