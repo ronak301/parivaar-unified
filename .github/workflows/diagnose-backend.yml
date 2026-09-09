@@ -179,3 +179,10 @@ jobs:
               -d '{"phone":"9999999999","password":"12345"}' || true
             echo "=== is there another caddy/nginx/process listening on 443 outside docker? ==="
             sudo ss -tlnp 2>&1 | grep -E ':443|:80 ' || netstat -tlnp 2>&1 | grep -E ':443|:80 ' || true
+            echo "=== caddy live compiled JSON config via admin API (ground truth, not just Caddyfile source) ==="
+            docker exec caddy wget -qO- http://localhost:2019/config/ 2>&1 || true
+            echo "=== force a fresh reload just in case previous reload didn't fully apply ==="
+            docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+            sleep 2
+            echo "=== retest after forced reload ==="
+            curl -sS -i -k --resolve api.parivaarapp.in:443:127.0.0.1 --max-time 10 https://api.parivaarapp.in/health || true
