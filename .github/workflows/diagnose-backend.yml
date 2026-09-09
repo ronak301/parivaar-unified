@@ -13,6 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check public URLs from GitHub runner (outside Groww network)
+        run: |
+          echo "=== api.parivaarapp.in/health from GH runner ==="
+          curl -sS -i --max-time 10 https://api.parivaarapp.in/health || true
+          echo ""
+          echo "=== parivaardirectory.netlify.app from GH runner ==="
+          curl -sS -i --max-time 10 https://parivaardirectory.netlify.app || true
+
       - name: SSH to VM and inspect (read-only)
         uses: appleboy/ssh-action@master
         with:
