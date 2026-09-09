@@ -13,6 +13,8 @@ export interface ImageFieldConfig {
   maxWidthOrHeight: number;
   cropShape: 'round' | 'rect';
   cropAspect: number | undefined;
+  /** Upload the whole image without showing the cropper (documents like biodata). */
+  skipCrop?: boolean;
 }
 
 export const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
@@ -59,6 +61,7 @@ export const IMAGE_FIELD_CONFIGS: Record<ImageFieldKey, ImageFieldConfig> = {
     maxWidthOrHeight: 2048,
     cropShape: 'rect',
     cropAspect: undefined,
+    skipCrop: true,
   },
   default: {
     maxSizeMB: 2,

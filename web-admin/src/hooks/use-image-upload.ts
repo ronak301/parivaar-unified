@@ -35,13 +35,21 @@ export function useImageUpload({ fieldKey, onComplete, onError }: UseImageUpload
         onError?.(validation.error!);
         return;
       }
+      if (config.skipCrop) {
+        setIsProcessing(true);
+        compressImage(file, config.compressTargetMB, config.maxWidthOrHeight)
+          .then(onComplete)
+          .catch(() => onError?.('Failed to process image. Please try again.'))
+          .finally(() => setIsProcessing(false));
+        return;
+      }
       revokeUrl();
       const url = URL.createObjectURL(file);
       objectUrlRef.current = url;
       setImageSrc(url);
       setCropModalOpen(true);
     },
-    [config, onError],
+    [config, onComplete, onError],
   );
 
   const handleCropComplete = useCallback(
