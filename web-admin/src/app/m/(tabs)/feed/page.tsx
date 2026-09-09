@@ -18,7 +18,6 @@ const FILTERS: Array<{ id: FeedItemType | 'all'; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'matrimonial', label: 'Matrimonial' },
   { id: 'business_enquiry', label: 'Enquiries' },
-  { id: 'business', label: 'Businesses' },
 ];
 
 export default function MemberFeedPage() {
