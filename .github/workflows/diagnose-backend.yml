@@ -132,3 +132,32 @@ jobs:
             docker inspect parivaar-api-v2 --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
             docker inspect caddy --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
             docker inspect backend --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
+
+      - name: Fix cloudflared tunnel ingress (route api.parivaarapp.in -> caddy -> parivaar-api-v2)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            CFG=/home/ubuntu/apps/cloudflared/data/config/config.yml
+            SUDO=""
+            [ -w "$CFG" ] || SUDO="sudo -n"
+            echo "=== attach cloudflared-tunnel to caddynet so it can reach caddy by name ==="
+            docker network connect caddynet cloudflared-tunnel 2>&1 || true
+            docker inspect cloudflared-tunnel --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
+            echo "=== before ==="
+            $SUDO cat "$CFG"
+            $SUDO cp "$CFG" "$CFG.bak.$(date +%s)"
+            $SUDO sed -i '/hostname: api.parivaarapp.in/{n;s#service: http://backend:80#service: http://caddy:80#}' "$CFG"
+            echo "=== after ==="
+            $SUDO cat "$CFG"
+            echo "=== restart cloudflared-tunnel to pick up new ingress config ==="
+            docker restart cloudflared-tunnel
+            echo "=== wait for tunnel to reconnect ==="
+            sleep 12
+            docker logs cloudflared-tunnel --tail 30 2>&1 || true
+            echo "=== verify from VM ==="
+            curl -sS -i --max-time 15 -X POST https://api.parivaarapp.in/api/auth/admin-login \
+              -H "Content-Type: application/json" \
+              -d '{"phone":"9999999999","password":"12345"}' || true
