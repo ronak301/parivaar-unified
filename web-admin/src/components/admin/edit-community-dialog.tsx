@@ -9,19 +9,20 @@ import {
   Field,
   Input,
   Portal,
-  Select,
   Textarea,
-  createListCollection,
 } from '@chakra-ui/react';
 import { Button } from '@/components/ui/button';
 import { ClickableAvatar } from '@/components/ui/clickable-image';
 import { ImageUploadField } from '@/components/ui/image-upload-field';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Building2, Pencil } from 'lucide-react';
 import { uploadCommunityLogo } from '@/lib/firebase/storage';
-
-const statusCollection = createListCollection({
-  items: CommunityStatus.map((s) => ({ label: s.label, value: s.id })),
-});
 
 export function EditCommunityDialog({
   community,
@@ -191,34 +192,18 @@ export function EditCommunityDialog({
 
                   <Field.Root>
                     <Field.Label>Status</Field.Label>
-                    <Select.Root
-                      collection={statusCollection}
-                      value={form.status ? [form.status] : []}
-                      onValueChange={(e) => set('status', e.value[0] ?? '')}
-                      size="lg"
-                    >
-                      <Select.HiddenSelect />
-                      <Select.Control>
-                        <Select.Trigger id="edit-status">
-                          <Select.ValueText placeholder="Select status" />
-                        </Select.Trigger>
-                        <Select.IndicatorGroup>
-                          <Select.Indicator />
-                        </Select.IndicatorGroup>
-                      </Select.Control>
-                      <Portal container={scopeRef}>
-                        <Select.Positioner>
-                          <Select.Content>
-                            {statusCollection.items.map((item) => (
-                              <Select.Item item={item} key={item.value}>
-                                {item.label}
-                                <Select.ItemIndicator />
-                              </Select.Item>
-                            ))}
-                          </Select.Content>
-                        </Select.Positioner>
-                      </Portal>
-                    </Select.Root>
+                    <Select value={form.status} onValueChange={(v) => set('status', v ?? '')}>
+                      <SelectTrigger id="edit-status" size="lg" className="w-full">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CommunityStatus.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field.Root>
 
                   <Field.Root>
