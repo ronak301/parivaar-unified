@@ -249,7 +249,13 @@ export async function getBusinessesByCommunity(req: AuthRequest, res: Response):
     ]),
     Business.countDocuments(filter),
   ]);
-  const businesses = await Business.populate(rows, { path: 'ownerId', select: OWNER_PUBLIC_FIELDS });
+  // `lean` so the populated owner is a plain object; a hydrated document would
+  // serialise its internal wrapper instead of the selected fields.
+  const businesses = await Business.populate(rows, {
+    path: 'ownerId',
+    select: OWNER_PUBLIC_FIELDS,
+    options: { lean: true },
+  });
 
   res.json({
     success: true,
