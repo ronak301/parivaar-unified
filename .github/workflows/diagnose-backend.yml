@@ -186,3 +186,13 @@ jobs:
             sleep 2
             echo "=== retest after forced reload ==="
             curl -sS -i -k --resolve api.parivaarapp.in:443:127.0.0.1 --max-time 10 https://api.parivaarapp.in/health || true
+            echo "=== DNS resolution of parivaar-api-v2 as seen INSIDE caddy container ==="
+            docker exec caddy getent hosts parivaar-api-v2 2>&1 || true
+            echo "=== actual IP of parivaar-api-v2 container on caddynet ==="
+            docker inspect parivaar-api-v2 --format '{{json .NetworkSettings.Networks}}'
+            echo "=== is there ANY other container also using name/alias parivaar-api-v2 or resolvable on caddynet ==="
+            docker network inspect caddynet --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{"\n"}}{{end}}'
+            echo "=== curl caddy's HTTPS loopback from INSIDE the caddy container itself ==="
+            docker exec caddy wget -qO- -S --no-check-certificate --header="Host: api.parivaarapp.in" https://127.0.0.1/health 2>&1 || true
+            echo "=== what does parivaar-api-v2 app.js actually mount (double-check root vs prefixed) ==="
+            docker exec parivaar-api-v2 cat /app/backend/dist/app.js 2>&1
