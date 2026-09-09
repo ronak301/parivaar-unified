@@ -45,6 +45,23 @@ export async function getCommunity(req: AuthRequest, res: Response): Promise<voi
     await community.save();
   }
 
+  // Populate designation photos from linked member profilePictures.
+  if (community.designations?.length) {
+    const memberIds = community.designations
+      .filter((d) => d.memberId && !d.photo)
+      .map((d) => d.memberId);
+    if (memberIds.length > 0) {
+      const members = await User.find({ _id: { $in: memberIds } }).select('_id profilePicture');
+      const photoMap = new Map(members.map((m) => [m._id.toString(), m.profilePicture]));
+      for (const d of community.designations) {
+        if (d.memberId && !d.photo) {
+          const pic = photoMap.get(d.memberId.toString());
+          if (pic) d.photo = pic;
+        }
+      }
+    }
+  }
+
   res.json({ success: true, community });
 }
 
