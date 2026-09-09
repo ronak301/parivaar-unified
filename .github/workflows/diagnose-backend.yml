@@ -1,0 +1,30 @@
+name: Diagnose Backend
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH to VM and inspect (read-only)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/apps/ronak/parivaar-web-unified/backend
+            echo "=== docker compose ps ==="
+            docker compose -f docker-compose.prod.yml ps
+            echo "=== docker ps -a (all containers) ==="
+            docker ps -a
+            echo "=== app logs (last 100 lines) ==="
+            docker compose -f docker-compose.prod.yml logs app --tail 100
+            echo "=== local health check ==="
+            curl -sS -i http://localhost:3002/health --max-time 5 || true
+            echo "=== caddy container status (if present) ==="
+            docker ps -a --filter "name=caddy"
+            echo "=== caddy logs (last 60 lines, if present) ==="
+            docker logs $(docker ps -aq --filter "name=caddy") --tail 60 2>&1 || true
