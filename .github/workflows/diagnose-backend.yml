@@ -161,3 +161,11 @@ jobs:
             curl -sS -i --max-time 15 -X POST https://api.parivaarapp.in/api/auth/admin-login \
               -H "Content-Type: application/json" \
               -d '{"phone":"9999999999","password":"12345"}' || true
+            echo "=== caddy: can it reach parivaar-api-v2 by name? ==="
+            docker exec caddy wget -qO- --header="Host: api.parivaarapp.in" http://parivaar-api-v2:3001/health 2>&1 || true
+            echo "=== hit caddy directly on port 80 with Host header (bypass cloudflared) - GET /health ==="
+            docker exec caddy wget -qO- -S --header="Host: api.parivaarapp.in" http://localhost:80/health 2>&1 || true
+            echo "=== hit caddy directly on port 80 with Host header - POST admin-login ==="
+            docker exec caddy wget -qO- -S --header="Host: api.parivaarapp.in" --header="Content-Type: application/json" --post-data='{"phone":"9999999999","password":"12345"}' http://localhost:80/api/auth/admin-login 2>&1 || true
+            echo "=== current live Caddyfile on disk ==="
+            cat /home/ubuntu/apps/caddy/data/Caddyfile 2>&1 || sudo cat /home/ubuntu/apps/caddy/data/Caddyfile 2>&1 || true
