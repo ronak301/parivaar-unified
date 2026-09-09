@@ -112,3 +112,14 @@ jobs:
             curl -sS -i --max-time 10 -X POST https://api.parivaarapp.in/api/auth/admin-login \
               -H "Content-Type: application/json" \
               -d '{"phone":"9999999999","password":"12345"}' || true
+            echo "=== cloudflared tunnel config (ingress rules) ==="
+            docker inspect cloudflared-tunnel --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'
+            docker exec cloudflared-tunnel cat /etc/cloudflared/config.yml 2>&1 || true
+            docker exec cloudflared-tunnel find /etc/cloudflared -type f 2>&1 || true
+            echo "=== cloudflared inspect Config/Cmd/Env ==="
+            docker inspect cloudflared-tunnel --format '{{.Config.Cmd}}'
+            docker inspect cloudflared-tunnel --format '{{.Config.Env}}'
+            echo "=== curl VM's own public IP directly (bypass DNS/CF proxy), if reachable ==="
+            curl -sS -i --max-time 10 -X POST http://localhost:3002/api/auth/admin-login \
+              -H "Content-Type: application/json" \
+              -d '{"phone":"9999999999","password":"12345"}' || true
