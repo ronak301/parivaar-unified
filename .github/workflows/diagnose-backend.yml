@@ -20,6 +20,12 @@ jobs:
           echo ""
           echo "=== parivaardirectory.netlify.app from GH runner ==="
           curl -sS -i --max-time 10 https://parivaardirectory.netlify.app || true
+          echo ""
+          echo "=== api.parivaarapp.in/api/communities from GH runner ==="
+          curl -sS -i --max-time 10 https://api.parivaarapp.in/api/communities || true
+          echo ""
+          echo "=== api.parivaarapp.in/ (root) from GH runner ==="
+          curl -sS -i --max-time 10 https://api.parivaarapp.in/ || true
 
       - name: SSH to VM and inspect (read-only)
         uses: appleboy/ssh-action@master
@@ -45,3 +51,7 @@ jobs:
             docker ps -a --filter "name=cloudflared"
             echo "=== cloudflared logs (last 80 lines, if present) ==="
             docker logs $(docker ps -aq --filter "name=cloudflared") --tail 80 2>&1 || true
+            echo "=== caddy config (running, via API if available) ==="
+            docker exec caddy cat /etc/caddy/Caddyfile 2>&1 || true
+            echo "=== curl localhost via caddy container name network (internal) ==="
+            docker exec caddy wget -qO- --header="Host: api.parivaarapp.in" http://localhost:80/health 2>&1 || true
