@@ -50,12 +50,20 @@ jobs:
             echo "=== git status (VM checkout) ==="
             git status
             cd backend
-            echo "=== container /app layout ==="
-            docker exec parivaar-api-v2 sh -c "find /app -maxdepth 2 -type d 2>&1"
-            echo "=== search whole /app for admin-login ==="
-            docker exec parivaar-api-v2 sh -c "grep -rln 'admin-login' /app 2>&1 || echo NOT_FOUND"
-            echo "=== search whole /app for auth route registration ==="
-            docker exec parivaar-api-v2 sh -c "grep -rln \"'/auth'\" /app 2>&1 || echo NOT_FOUND"
+            echo "=== dist/routes/index.js content ==="
+            docker exec parivaar-api-v2 cat /app/backend/dist/routes/index.js 2>&1
+            echo "=== dist/routes/auth.js grep admin-login ==="
+            docker exec parivaar-api-v2 grep -n "admin-login" /app/backend/dist/routes/auth.js 2>&1
+            echo "=== dist/app.js grep app.use ==="
+            docker exec parivaar-api-v2 grep -n "app.use" /app/backend/dist/app.js 2>&1
+            echo "=== container entrypoint / actual running process ==="
+            docker exec parivaar-api-v2 sh -c "cat /app/backend/package.json | grep -A3 '\"scripts\"'"
+            docker exec parivaar-api-v2 ps aux 2>&1
+            echo "=== dist/routes/index.js file mtime vs auth.js mtime ==="
+            docker exec parivaar-api-v2 sh -c "ls -la /app/backend/dist/routes/ /app/backend/dist/*.js"
+            echo "=== image build time / container created time ==="
+            docker inspect parivaar-api-v2 --format '{{.Created}}'
+            docker inspect parivaar-api-v2 --format '{{.Image}}'
             echo "=== docker compose ps ==="
             docker compose -f docker-compose.prod.yml ps
             echo "=== docker ps -a (all containers) ==="
