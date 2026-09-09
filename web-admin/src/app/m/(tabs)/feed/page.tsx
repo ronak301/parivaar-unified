@@ -3,16 +3,12 @@
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Newspaper, RefreshCw } from 'lucide-react';
-import type { Business, FeedItem, FeedItemType } from '@parivaar/shared';
+import type { FeedItem, FeedItemType } from '@parivaar/shared';
 import { useMemberAuth } from '@/context/member-auth-context';
-import { useCachedFetch } from '@/lib/member/use-cached-fetch';
 import { useCommunityFeatures } from '@/lib/member/use-community-features';
 import { PageBanner } from '@/components/member/page-banner';
 import { FeedCard } from '@/components/member/feed-card';
-import { FeedFab, type FeedAction } from '@/components/member/feed-fab';
-import { AddMatrimonialSheet } from '@/components/member/add-matrimonial-sheet';
-import { AddEnquirySheet } from '@/components/member/add-enquiry-sheet';
-import { AddBusinessSheet } from '@/components/member/add-business-sheet';
+import { FEED_SUBMITTED_EVENT } from '@/components/member/feed-composer';
 import { MySubmissions } from '@/components/member/my-submissions';
 import { BusinessListSkeleton } from '@/components/member/skeleton';
 
@@ -37,15 +33,15 @@ export default function MemberFeedPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
-  const [sheet, setSheet] = useState<FeedAction | null>(null);
   const pageRef = useRef(1);
   const busyRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const { data: mineData } = useCachedFetch<{ business: Business | null }>(
-    user ? `business-owner:${user._id}:${refreshTick}` : null,
-    () => fetch(`/api/member/business/owner/${user!._id}`).then((r) => r.json()),
-  );
+  useEffect(() => {
+    const bump = () => setRefreshTick((t) => t + 1);
+    window.addEventListener(FEED_SUBMITTED_EVENT, bump);
+    return () => window.removeEventListener(FEED_SUBMITTED_EVENT, bump);
+  }, []);
 
   useEffect(() => {
     if (!loadingFlags && !feedEnabled && communityId) router.replace('/m');
@@ -177,27 +173,6 @@ export default function MemberFeedPage() {
           </>
         )}
       </div>
-
-      <FeedFab onAction={setSheet} hideBusiness={!!mineData?.business} />
-
-      <AddMatrimonialSheet
-        open={sheet === 'matrimonial'}
-        onOpenChange={(o) => !o && setSheet(null)}
-        user={user}
-        onSubmitted={() => setRefreshTick((t) => t + 1)}
-      />
-      <AddEnquirySheet
-        open={sheet === 'enquiry'}
-        onOpenChange={(o) => !o && setSheet(null)}
-        user={user}
-        onSubmitted={() => setRefreshTick((t) => t + 1)}
-      />
-      <AddBusinessSheet
-        open={sheet === 'business'}
-        onOpenChange={(o) => !o && setSheet(null)}
-        user={user}
-        onSubmitted={() => setRefreshTick((t) => t + 1)}
-      />
     </div>
   );
 }

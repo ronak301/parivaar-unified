@@ -1,4 +1,5 @@
 import { BottomTabBar } from '@/components/member/bottom-tab-bar';
+import { FeedComposer } from '@/components/member/feed-composer';
 import { MemberAuthGuard } from '@/components/member/member-auth-guard';
 
 export default function MemberTabsLayout({ children }: { children: React.ReactNode }) {
@@ -6,6 +7,7 @@ export default function MemberTabsLayout({ children }: { children: React.ReactNo
     <MemberAuthGuard>
       <div className="min-h-dvh pb-16">
         {children}
+        <FeedComposer />
         <BottomTabBar />
       </div>
     </MemberAuthGuard>
