@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { createMatrimonialSchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
-import { MatrimonialProfile, ApprovalRequest, User } from '../models';
+import { MatrimonialProfile, ApprovalRequest } from '../models';
 import { notifyCommunityAdmins } from '../services/notification';
 import { requireFeedEnabled } from '../services/community-features';
 
@@ -12,47 +12,23 @@ export async function createMatrimonialProfile(req: AuthRequest, res: Response):
     return;
   }
 
-  const { userId, communityId, biodataFile } = parsed.data;
+  const { communityId, userId, dob, ...fields } = parsed.data;
   if (!(await requireFeedEnabled(req, res, communityId))) return;
 
-  const candidate = await User.findById(userId).select('firstName lastName fullName familyId communityIds isAlive');
-  if (!candidate) {
-    res.status(404).json({ error: 'Member not found' });
-    return;
-  }
+  const profile = await MatrimonialProfile.create({
+    ...fields,
+    communityId,
+    userId: userId || undefined,
+    dob: dob ? new Date(dob) : undefined,
+    postedBy: req.user?._id,
+  });
 
-  // Members may only list themselves or someone in their own family.
-  const isAdmin = req.user?.role === 'super_admin' || req.user?.role === 'community_admin';
-  if (!isAdmin) {
-    const isSelf = candidate._id.toString() === req.user?._id.toString();
-    const sameFamily =
-      !!candidate.familyId && !!req.user?.familyId && candidate.familyId.toString() === req.user.familyId.toString();
-    if (!isSelf && !sameFamily) {
-      res.status(403).json({ error: 'You can only add members of your own family' });
-      return;
-    }
-  }
-
-  const existing = await MatrimonialProfile.findOne({ userId, communityId });
-  if (existing && existing.status !== 'rejected') {
-    res.status(409).json({
-      error: existing.status === 'pending'
-        ? 'This member already has a matrimonial profile waiting for approval'
-        : 'This member already has a matrimonial profile in the feed',
-    });
-    return;
-  }
-  if (existing) await existing.deleteOne();
-
-  const profile = await MatrimonialProfile.create({ userId, communityId, biodataFile });
-
-  const candidateName = candidate.fullName ?? [candidate.firstName, candidate.lastName].filter(Boolean).join(' ');
   const approval = await ApprovalRequest.create({
     entityType: 'matrimonial',
     entityId: profile._id.toString(),
     communityId,
     requestedBy: req.user?._id,
-    payload: { userId, biodataFile, candidateName },
+    payload: { ...parsed.data, candidateName: parsed.data.name },
   });
 
   const requesterName = req.user?.fullName ?? req.user?.firstName ?? 'A member';
@@ -60,7 +36,7 @@ export async function createMatrimonialProfile(req: AuthRequest, res: Response):
     communityId,
     'approval_request',
     'New matrimonial profile request',
-    `${requesterName} submitted a matrimonial profile for review`,
+    `${requesterName} submitted a matrimonial profile for ${parsed.data.name}`,
     { approvalRequestId: approval._id.toString(), entityType: 'matrimonial' },
     approval._id.toString(),
   );
@@ -76,10 +52,11 @@ export async function getMatrimonialProfiles(req: AuthRequest, res: Response): P
 
   const filter: Record<string, unknown> = { communityId };
   if (req.query.status) filter.status = req.query.status;
+  if (req.query.gender) filter.gender = req.query.gender;
 
   const [profiles, total] = await Promise.all([
     MatrimonialProfile.find(filter)
-      .populate('userId', 'firstName lastName fullName profilePicture phone gender dob')
+      .populate('postedBy', 'firstName lastName fullName')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -95,7 +72,7 @@ export async function getMatrimonialProfiles(req: AuthRequest, res: Response): P
 
 export async function getMatrimonialProfile(req: AuthRequest, res: Response): Promise<void> {
   const profile = await MatrimonialProfile.findById(req.params.id)
-    .populate('userId', 'firstName lastName fullName profilePicture phone gender dob education address');
+    .populate('postedBy', 'firstName lastName fullName');
 
   if (!profile) {
     res.status(404).json({ error: 'Matrimonial profile not found' });
@@ -112,7 +89,7 @@ export async function deleteMatrimonialProfile(req: AuthRequest, res: Response):
     return;
   }
 
-  const isOwner = profile.userId.toString() === req.user?._id.toString();
+  const isOwner = profile.postedBy?.toString() === req.user?._id.toString();
   const isAdmin = req.user?.role === 'super_admin' || req.user?.role === 'community_admin';
   if (!isOwner && !isAdmin) {
     res.status(403).json({ error: 'Not authorized' });

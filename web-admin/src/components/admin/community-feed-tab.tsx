@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { startTransition, useCallback, useEffect, useState } from 'react';
 import { Heart, Search, Store, Trash2 } from 'lucide-react';
 import type { FeedItem, FeedItemType } from '@parivaar/shared';
 import { BusinessTypes } from '@parivaar/shared';
@@ -38,8 +38,8 @@ function personName(p?: { fullName?: string; firstName?: string; lastName?: stri
 
 function summary(item: FeedItem): { title: string; sub?: string } {
   if (item.type === 'matrimonial' && item.matrimonial) {
-    const u = item.matrimonial.user;
-    return { title: personName(u), sub: [u.gender, u.education, u.address?.city].filter(Boolean).join(' · ') };
+    const m = item.matrimonial;
+    return { title: m.name, sub: [m.gender, m.dob?.slice(0, 10), m.qualification].filter(Boolean).join(' · ') };
   }
   if (item.type === 'business_enquiry' && item.enquiry) {
     return { title: item.enquiry.requirement, sub: [personName(item.enquiry.user), item.enquiry.place].filter(Boolean).join(' · ') };
@@ -62,8 +62,10 @@ export function CommunityFeedTab({ communityId, feedEnabled }: { communityId: st
   const [removing, setRemoving] = useState(false);
 
   const load = useCallback(() => {
-    setLoading(true);
-    setError('');
+    startTransition(() => {
+      setLoading(true);
+      setError('');
+    });
     const params = new URLSearchParams({ limit: '50' });
     if (type !== 'all') params.set('type', type);
     fetch(`/api/admin/communities/${communityId}/feed?${params}`)

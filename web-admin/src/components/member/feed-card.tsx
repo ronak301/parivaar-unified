@@ -108,45 +108,53 @@ function ContactButtons({ phone }: { phone?: string }) {
 
 function MatrimonialCard({ item }: { item: FeedItem }) {
   const m = item.matrimonial!;
-  const u = m.user;
-  const name = nameOf(u);
-  const age = ageOf(u.dob);
-  const place = u.address?.city || u.nativePlace;
-  const meta = [age ? `${age} yrs` : undefined, u.gender, u.education, place].filter(Boolean).join(' · ');
-  const postedBy = nameOf(item.postedBy);
-  const postedBySelf = item.postedBy?._id === u._id;
+  const age = ageOf(m.dob);
+  const meta = [age ? `${age} yrs` : undefined, m.gender, m.qualification].filter(Boolean).join(' · ');
+  const poster = item.postedBy;
+  const posterName = nameOf(poster);
+  const color = getAvatarColor(m.name);
 
   return (
     <article className="m-card overflow-hidden">
       <Header icon={Heart} tone="bg-m-tone-pink-bg text-m-tone-pink-fg" label="Matrimonial" when={item.createdAt} />
       <div className="flex items-start gap-3 p-4">
-        <Link href={`/m/member/${u._id}`} className="shrink-0">
-          <Avatar person={u} size="size-14" />
-        </Link>
+        {m.photo ? (
+          <ClickableImage src={m.photo} alt={m.name} className="size-14 shrink-0 rounded-full object-cover ring-1 ring-m-line" />
+        ) : (
+          <span
+            className="flex size-14 shrink-0 items-center justify-center rounded-full text-base font-bold"
+            style={{ backgroundColor: color.bg, color: color.text }}
+          >
+            {m.name.trim().charAt(0).toUpperCase() || '?'}
+          </span>
+        )}
         <div className="min-w-0 flex-1">
-          <Link href={`/m/member/${u._id}`} className="block truncate text-[15px] font-bold text-m-ink">
-            {name}
-          </Link>
+          <p className="truncate text-[15px] font-bold text-m-ink">{m.name}</p>
           {meta && <p className="mt-0.5 text-xs text-m-ink-2">{meta}</p>}
-          {postedBy && !postedBySelf && (
-            <p className="mt-1 text-[11px] text-m-ink-3">Posted by {postedBy} · contact via family</p>
-          )}
-          {postedBySelf && <p className="mt-1 text-[11px] text-m-ink-3">Contact via family</p>}
         </div>
         {m.biodataFile && (
           <ClickableImage
             src={m.biodataFile}
-            alt={`${name} biodata`}
+            alt={`${m.name} biodata`}
             className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-m-line"
           />
         )}
       </div>
-      <div className="flex items-center justify-between border-t border-m-line px-4 py-2.5">
-        <Link href={`/m/member/${u._id}`} className="text-xs font-semibold text-m-brand">
-          View profile & family
-        </Link>
-        {m.biodataFile && (
-          <a href={m.biodataFile} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-m-ink-2">
+      <div className="flex items-center gap-3 border-t border-m-line px-4 py-2.5">
+        {poster ? (
+          <Link href={`/m/member/${poster._id}`} className="flex min-w-0 flex-1 items-center gap-2">
+            <Avatar person={poster} size="size-8" />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-m-ink">{posterName}</span>
+              <span className="block text-[11px] text-m-ink-2">Posted by · contact via family</span>
+            </span>
+          </Link>
+        ) : (
+          <span className="flex-1 text-[11px] text-m-ink-3">Contact via family</span>
+        )}
+        <ContactButtons phone={poster?.phone} />
+        {m.biodataFile && !poster?.phone && (
+          <a href={m.biodataFile} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-m-brand">
             Open biodata
           </a>
         )}

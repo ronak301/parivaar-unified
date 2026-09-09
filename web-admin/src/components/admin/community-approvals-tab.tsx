@@ -236,14 +236,17 @@ function FeedRequestDetails({ request }: { request: ApprovalRequest }) {
 
   if (request.entityType === 'matrimonial') {
     const biodata = str('biodataFile');
+    const photo = str('photo');
     return (
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-3">
-          <DetailField label="Candidate" value={str('candidateName')} />
-          <DetailField
-            label="Profile"
-            value={str('userId') ? <a href={`/admin/community/${request.communityId}/members/${str('userId')}`} target="_blank" rel="noreferrer" className="text-primary underline">Open member</a> : undefined}
-          />
+        <div className="flex items-start gap-4">
+          {photo && <img src={photo} alt="" className="size-20 shrink-0 rounded-full border border-border object-cover" />}
+          <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3">
+            <DetailField label="Candidate" value={str('name') ?? str('candidateName')} />
+            <DetailField label="Date of birth" value={str('dob')} />
+            <DetailField label="Gender" value={str('gender')} />
+            <DetailField label="Qualification" value={str('qualification')} />
+          </div>
         </div>
         {biodata ? (
           <a href={biodata} target="_blank" rel="noopener noreferrer" className="block w-fit">

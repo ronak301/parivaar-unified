@@ -1,20 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, FileImage, Loader2, Upload } from 'lucide-react';
+import { FileImage, Loader2, Upload, UserRound } from 'lucide-react';
 import type { User } from '@parivaar/shared';
-import { useCachedFetch } from '@/lib/member/use-cached-fetch';
-import { uploadBiodata } from '@/lib/firebase/storage';
+import { Gender } from '@parivaar/shared';
+import { uploadBiodata, uploadUserPhoto } from '@/lib/firebase/storage';
 import { extractApiErrorMessage } from '@/lib/api/error-message';
-import { getAvatarColor } from '@/lib/member/avatar-color';
 import { ImageUploadField } from '@/components/ui/image-upload-field';
 import { ClickableImage } from '@/components/ui/clickable-image';
-import { relationLabel, type FamilyMember } from './family-section';
 import { FeedSheet, FieldLabel, SubmittedState } from './feed-sheet';
-
-interface FamilyTreeResponse {
-  members: FamilyMember[];
-}
 
 interface Props {
   open: boolean;
@@ -23,73 +17,52 @@ interface Props {
   onSubmitted?: () => void;
 }
 
-function resolveFamilyId(familyId: User['familyId']): string | undefined {
-  if (!familyId) return undefined;
-  if (typeof familyId === 'string') return familyId;
-  return (familyId as { _id?: string })._id;
-}
-
-function displayName(m: { firstName?: string; lastName?: string; fullName?: string }) {
-  return m.fullName ?? `${m.firstName ?? ''} ${m.lastName ?? ''}`.trim();
-}
-
-function ageOf(dob?: string): number | undefined {
-  if (!dob) return undefined;
-  const d = new Date(dob);
-  if (Number.isNaN(d.getTime())) return undefined;
-  return Math.floor((Date.now() - d.getTime()) / (365.25 * 86_400_000));
-}
-
 function Body({ user, onDone }: { user: User; onDone: () => void }) {
-  const familyId = resolveFamilyId(user.familyId);
   const communityId = user.communityIds?.[0];
-
-  const { data, loading } = useCachedFetch<FamilyTreeResponse>(
-    familyId ? `family-tree:${familyId}` : null,
-    () => fetch(`/api/member/families/${familyId}/tree`).then((r) => r.json()),
-  );
-
-  const [candidateId, setCandidateId] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: '', dob: '', gender: '', qualification: '' });
+  const [photo, setPhoto] = useState('');
   const [biodata, setBiodata] = useState('');
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<'photo' | 'biodata' | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
 
-  const self: FamilyMember = {
-    _id: user._id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    fullName: user.fullName,
-    profilePicture: user.profilePicture,
-    gender: user.gender,
-    dob: user.dob,
-    isAlive: user.isAlive,
-  };
-  const others = (data?.members ?? []).filter((m) => m._id !== user._id && m.isAlive !== false);
-  const candidates = [self, ...others];
+  function set<K extends keyof typeof form>(k: K, v: string) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
 
-  async function handleFile(file: File) {
-    setUploading(true);
+  async function handleUpload(kind: 'photo' | 'biodata', file: File) {
+    setUploading(kind);
     setError('');
     try {
-      setBiodata(await uploadBiodata(file, candidateId ?? user._id));
+      const key = `${user._id}-${kind}`;
+      if (kind === 'photo') setPhoto(await uploadUserPhoto(file, key));
+      else setBiodata(await uploadBiodata(file, key));
     } catch {
-      setError('Failed to upload biodata. Please try again.');
+      setError(`Failed to upload ${kind}. Please try again.`);
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   }
 
-  async function submit() {
-    if (!candidateId || !communityId) return;
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!communityId || !form.name.trim()) return;
     setSubmitting(true);
     setError('');
     try {
       const res = await fetch('/api/member/matrimonial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: candidateId, communityId, biodataFile: biodata || undefined }),
+        body: JSON.stringify({
+          communityId,
+          name: form.name.trim(),
+          dob: form.dob || undefined,
+          gender: form.gender || undefined,
+          qualification: form.qualification.trim() || undefined,
+          photo: photo || undefined,
+          biodataFile: biodata || undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -114,66 +87,68 @@ function Body({ user, onDone }: { user: User; onDone: () => void }) {
     );
   }
 
+  const today = new Date().toISOString().slice(0, 10);
+
   return (
-    <div className="flex flex-col gap-5 pt-2">
+    <form onSubmit={submit} className="flex flex-col gap-4 pt-2">
       <p className="rounded-xl bg-m-tone-pink-bg px-3 py-2 text-xs text-m-tone-pink-fg">
-        Phone numbers are never shown on matrimonial posts. Interested families reach out through your family.
+        Phone numbers are never shown on matrimonial posts. Interested families reach out through you.
       </p>
 
-      <div>
-        <FieldLabel>Who is this profile for?</FieldLabel>
-        {loading && !data ? (
-          <div className="flex items-center gap-2 py-4 text-sm text-m-ink-2">
-            <Loader2 className="size-4 animate-spin" /> Loading family…
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {candidates.map((m) => {
-              const name = displayName(m);
-              const selected = candidateId === m._id;
-              const color = getAvatarColor(name);
-              const rel = m._id === user._id ? 'You' : relationLabel(user, m);
-              const meta = [rel, ageOf(m.dob) ? `${ageOf(m.dob)} yrs` : undefined].filter(Boolean).join(' · ');
-              return (
-                <button
-                  key={m._id}
-                  type="button"
-                  onClick={() => setCandidateId(m._id)}
-                  className={`flex items-center gap-3 rounded-xl border p-2.5 text-left transition-colors ${
-                    selected ? 'border-m-brand bg-m-brand/5' : 'border-m-line bg-m-surface'
-                  }`}
-                >
-                  {m.profilePicture ? (
-                    <img src={m.profilePicture} alt="" className="size-10 rounded-full object-cover" />
-                  ) : (
-                    <span
-                      className="flex size-10 items-center justify-center rounded-full text-sm font-bold"
-                      style={{ backgroundColor: color.bg, color: color.text }}
-                    >
-                      {`${m.firstName?.[0] ?? ''}${m.lastName?.[0] ?? ''}`.toUpperCase()}
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-m-ink">{name}</span>
-                    {meta && <span className="block text-xs text-m-ink-2">{meta}</span>}
-                  </span>
-                  <span
-                    className={`flex size-5 items-center justify-center rounded-full border ${
-                      selected ? 'border-m-brand bg-m-brand text-m-on-brand' : 'border-m-line-strong'
-                    }`}
-                  >
-                    {selected && <Check className="size-3" strokeWidth={3} />}
-                  </span>
-                </button>
-              );
-            })}
+      <ImageUploadField fieldKey="profilePhoto" onFileReady={(f) => handleUpload('photo', f)} onError={setError}>
+        {({ openFilePicker }) => (
+          <div className="flex items-center gap-3">
+            {photo ? (
+              <ClickableImage src={photo} alt="Candidate photo" className="size-16 rounded-full object-cover ring-1 ring-m-line" />
+            ) : (
+              <span className="flex size-16 items-center justify-center rounded-full bg-m-surface-2 text-m-ink-3">
+                <UserRound className="size-7" />
+              </span>
+            )}
+            <button type="button" onClick={openFilePicker} disabled={uploading !== null} className="m-chip h-9 px-3.5 text-[13px]">
+              {uploading === 'photo' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+              {uploading === 'photo' ? 'Uploading…' : photo ? 'Change photo' : 'Add photo'}
+            </button>
           </div>
         )}
+      </ImageUploadField>
+
+      <div>
+        <FieldLabel>Candidate name</FieldLabel>
+        <input value={form.name} onChange={(e) => set('name', e.target.value.slice(0, 200))} className="m-field px-3" required />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <FieldLabel>Date of birth</FieldLabel>
+          <input type="date" value={form.dob} max={today} onChange={(e) => set('dob', e.target.value)} className="m-field px-3" />
+        </div>
+        <div>
+          <FieldLabel>Gender</FieldLabel>
+          <select value={form.gender} onChange={(e) => set('gender', e.target.value)} className="m-field px-3">
+            <option value="">Select</option>
+            {Gender.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <FieldLabel hint="Optional">Qualification</FieldLabel>
+        <input
+          value={form.qualification}
+          onChange={(e) => set('qualification', e.target.value.slice(0, 200))}
+          placeholder="e.g. B.Com, CA, MBBS"
+          className="m-field px-3"
+        />
       </div>
 
       <div>
         <FieldLabel hint="Image, up to 3 MB">Biodata</FieldLabel>
-        <ImageUploadField fieldKey="biodata" onFileReady={handleFile} onError={setError}>
+        <ImageUploadField fieldKey="biodata" onFileReady={(f) => handleUpload('biodata', f)} onError={setError}>
           {({ openFilePicker }) => (
             <div className="flex items-center gap-3">
               {biodata ? (
@@ -183,14 +158,9 @@ function Body({ user, onDone }: { user: User; onDone: () => void }) {
                   <FileImage className="size-6" />
                 </span>
               )}
-              <button
-                type="button"
-                onClick={openFilePicker}
-                disabled={uploading}
-                className="m-chip h-9 px-3.5 text-[13px]"
-              >
-                {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                {uploading ? 'Uploading…' : biodata ? 'Replace' : 'Upload biodata'}
+              <button type="button" onClick={openFilePicker} disabled={uploading !== null} className="m-chip h-9 px-3.5 text-[13px]">
+                {uploading === 'biodata' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                {uploading === 'biodata' ? 'Uploading…' : biodata ? 'Replace' : 'Upload biodata'}
               </button>
             </div>
           )}
@@ -199,16 +169,11 @@ function Body({ user, onDone }: { user: User; onDone: () => void }) {
 
       {error && <p className="text-sm text-m-danger">{error}</p>}
 
-      <button
-        type="button"
-        onClick={submit}
-        disabled={!candidateId || submitting || uploading}
-        className="m-primary-btn"
-      >
+      <button type="submit" disabled={!form.name.trim() || submitting || uploading !== null} className="m-primary-btn">
         {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
         Send for approval
       </button>
-    </div>
+    </form>
   );
 }
 
@@ -218,7 +183,7 @@ export function AddMatrimonialSheet({ open, onOpenChange, user, onSubmitted }: P
       open={open}
       onOpenChange={onOpenChange}
       title="Add matrimonial candidate"
-      description="Pick a family member and attach their biodata"
+      description="Name, photo, biodata and basic details"
     >
       <Body
         user={user}

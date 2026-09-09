@@ -14,14 +14,14 @@ export interface FeedPerson {
 
 export interface FeedMatrimonial {
   _id: string;
+  name: string;
+  photo?: string;
   biodataFile?: string;
-  user: FeedPerson & {
-    dob?: string;
-    gender?: string;
-    education?: string;
-    nativePlace?: string;
-    address?: { city?: string; locality?: string };
-  };
+  dob?: string;
+  gender?: string;
+  qualification?: string;
+  /** Set when the candidate is linked to a member record. */
+  userId?: string;
 }
 
 export interface FeedEnquiry {

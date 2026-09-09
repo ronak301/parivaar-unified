@@ -7,7 +7,6 @@ import { requireFeedEnabled } from '../services/community-features';
 
 const FEED_TYPES: FeedItemType[] = ['matrimonial', 'business_enquiry', 'business'];
 const PERSON_FIELDS = 'firstName lastName fullName profilePicture phone showPhoneInCommunity';
-const CANDIDATE_FIELDS = `${PERSON_FIELDS} dob gender education nativePlace address`;
 
 type Person = Record<string, unknown> & { showPhoneInCommunity?: boolean; phone?: string };
 
@@ -48,7 +47,7 @@ export async function getFeed(req: AuthRequest, res: Response): Promise<void> {
 
   const [profiles, enquiries, businesses] = await Promise.all([
     MatrimonialProfile.find({ _id: { $in: idsOf('matrimonial') }, status: 'approved' })
-      .populate('userId', CANDIDATE_FIELDS)
+      .select('name photo biodataFile dob gender qualification userId')
       .lean(),
     BusinessEnquiry.find({ _id: { $in: idsOf('business_enquiry') }, status: 'approved' })
       .populate('userId', PERSON_FIELDS)
@@ -77,8 +76,8 @@ export async function getFeed(req: AuthRequest, res: Response): Promise<void> {
     if (item.type === 'matrimonial') {
       const p = profileMap.get(key);
       if (!p) return [];
-      // Matrimonial candidates are contacted through family, never directly.
-      return [{ ...base, matrimonial: { _id: p._id, biodataFile: p.biodataFile, user: publicPerson(p.userId, { hidePhone: true }) } }];
+      // Candidates carry no phone by design — contact goes through the poster's family.
+      return [{ ...base, matrimonial: p }];
     }
     if (item.type === 'business_enquiry') {
       const e = enquiryMap.get(key);
