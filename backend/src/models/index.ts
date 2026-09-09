@@ -7,6 +7,7 @@ export { default as BusinessEnquiry } from './BusinessEnquiry';
 export { default as BusinessPromotion } from './BusinessPromotion';
 export { default as ApprovalRequest } from './ApprovalRequest';
 export { default as Notification } from './Notification';
+export { default as FeedItem } from './FeedItem';
 
 export type { IUser } from './User';
 export type { IFamily } from './Family';
@@ -17,3 +18,4 @@ export type { IBusinessEnquiry } from './BusinessEnquiry';
 export type { IBusinessPromotion } from './BusinessPromotion';
 export type { IApprovalRequest } from './ApprovalRequest';
 export type { INotification } from './Notification';
+export type { IFeedItem, FeedItemType } from './FeedItem';

@@ -50,3 +50,7 @@ export async function uploadBusinessLogo(file: File, keyHint: string): Promise<s
 export async function uploadBusinessPhoto(file: File, keyHint: string): Promise<string> {
   return uploadImage(file, 'business-photos', keyHint, 'businessPhoto');
 }
+
+export async function uploadBiodata(file: File, keyHint: string): Promise<string> {
+  return uploadImage(file, 'matrimonial-biodata', keyHint, 'biodata');
+}

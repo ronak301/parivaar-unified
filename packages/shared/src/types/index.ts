@@ -5,5 +5,6 @@ export * from './locality';
 export * from './business';
 export * from './matrimonial';
 export * from './approval';
+export * from './feed';
 export * from './notification';
 export * from './auth';

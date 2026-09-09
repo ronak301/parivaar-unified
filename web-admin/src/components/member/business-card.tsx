@@ -36,6 +36,9 @@ export function BusinessCard({ business, matchHint }: BusinessCardProps) {
   const { icon: Icon, color, bg } = getBusinessCategoryStyle(business.category);
   const categoryLabel = getCategoryLabel(business.category);
   const ownerName = getOwnerName(business);
+  // Some migrated records have no business name; the category stands in as the title.
+  const title = business.name?.trim() || categoryLabel || 'Business';
+  const showCategoryChip = Boolean(categoryLabel) && title !== categoryLabel;
   const area = shortAddress(business.address);
   const contactPhone = getBusinessContactPhone(business);
   const tel = telLink(contactPhone);
@@ -47,7 +50,7 @@ export function BusinessCard({ business, matchHint }: BusinessCardProps) {
       <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: color }} aria-hidden />
       <Link
         href={`/m/business/${business._id}`}
-        aria-label={`Open ${business.name ?? 'business'}`}
+        aria-label={`Open ${title}`}
         className="absolute inset-0 rounded-m-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-m-brand/40"
       />
 
@@ -65,11 +68,11 @@ export function BusinessCard({ business, matchHint }: BusinessCardProps) {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <p className="truncate text-[15px] font-bold leading-tight text-m-ink">{business.name}</p>
+            <p className="truncate text-[15px] font-bold leading-tight text-m-ink">{title}</p>
             <ChevronRight className="mt-0.5 size-4 shrink-0 text-m-ink-3" />
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-            {categoryLabel && (
+            {showCategoryChip && (
               <span
                 className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
                 style={{ backgroundColor: bg, color }}

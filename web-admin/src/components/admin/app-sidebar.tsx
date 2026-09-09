@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { Users, LogOut, Building2, KeyRound, type LucideIcon } from 'lucide-react';
+import { Users, LogOut, Building2, KeyRound, UserRound, X, type LucideIcon } from 'lucide-react';
 
 interface NavItem {
   href: (communityId: string) => string;
@@ -37,7 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const saved = typeof window !== 'undefined' ? localStorage.getItem('selectedCommunityId') : null;
@@ -50,14 +50,21 @@ export function AppSidebar() {
     window.location.href = '/';
   }
 
-  return (
-    <aside className="fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col border-r border-m-line bg-m-surface">
-      <div className="flex h-16 items-center gap-3 border-b border-m-line px-5">
-        <img src="/logo.png" alt="" className="h-8 w-auto" />
-        <div className="min-w-0 leading-tight">
-          <p className="text-base font-bold tracking-tight text-m-ink">Parivaar</p>
-          <p className="text-[11px] text-m-ink-2">Admin</p>
+  const sidebarContent = (
+    <>
+      <div className="flex h-16 items-center justify-between border-b border-m-line px-5">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="" className="h-8 w-auto" />
+          <div className="min-w-0 leading-tight">
+            <p className="text-base font-bold tracking-tight text-m-ink">Parivaar</p>
+            <p className="text-[11px] text-m-ink-2">Admin</p>
+          </div>
         </div>
+        {onClose && (
+          <button type="button" onClick={onClose} className="md:hidden rounded-lg p-1.5 text-m-ink-2 hover:bg-m-surface-2" aria-label="Close menu">
+            <X className="size-5" />
+          </button>
+        )}
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4" aria-label="Main">
@@ -68,6 +75,7 @@ export function AppSidebar() {
               key={label}
               href={communityId ? href(communityId) : '#'}
               aria-current={active ? 'page' : undefined}
+              onClick={onClose}
               className={`group flex items-center gap-3 rounded-m-field px-3 py-2.5 transition-colors ${
                 active ? 'bg-m-brand/10 text-m-brand' : 'text-m-ink-2 hover:bg-m-surface-2 hover:text-m-ink'
               }`}
@@ -97,6 +105,15 @@ export function AppSidebar() {
             </p>
           </div>
         )}
+        <Link
+          href="/m/login"
+          className="flex w-full items-center gap-3 rounded-m-field px-3 py-2.5 text-left text-sm text-m-ink-2 transition-colors hover:bg-m-surface-2 hover:text-m-ink"
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-m-surface-2">
+            <UserRound className="size-4" />
+          </span>
+          Member Login
+        </Link>
         <button
           type="button"
           onClick={handleLogout}
@@ -108,6 +125,25 @@ export function AppSidebar() {
           Log out
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="fixed left-0 top-0 z-50 hidden h-screen w-[260px] flex-col border-r border-m-line bg-m-surface md:flex">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile drawer */}
+      {open && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="fixed inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
+          <aside className="fixed left-0 top-0 z-50 flex h-screen w-[280px] flex-col bg-m-surface shadow-xl animate-in slide-in-from-left duration-200">
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

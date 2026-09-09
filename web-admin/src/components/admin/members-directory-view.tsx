@@ -441,7 +441,7 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
                   )}
                 </PopoverTrigger>
 
-                <PopoverContent align="end" className="w-[22rem] rounded-m-card border-m-line p-4 shadow-m-float">
+                <PopoverContent align="end" className="w-[22rem] max-w-[calc(100vw-2rem)] rounded-m-card border-m-line p-4 shadow-m-float">
                   <div className="flex flex-col gap-5">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold text-m-ink">Filter members</p>

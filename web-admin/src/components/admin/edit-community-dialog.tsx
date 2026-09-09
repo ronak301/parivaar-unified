@@ -124,7 +124,7 @@ export function EditCommunityDialog({
   }
 
   return (
-    <div className="chakra-scope" ref={scopeRef}>
+    <div className="chakra-scope text-m-ink" ref={scopeRef}>
       <Dialog.Root
         lazyMount
         open={open}

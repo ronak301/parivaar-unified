@@ -2,7 +2,7 @@
 
 import { startTransition, useCallback, useEffect, useState } from 'react';
 import type { ApprovalRequest, ApprovalStatus, ProfileEditPayload } from '@parivaar/shared';
-import { BloodGroups, Gender } from '@parivaar/shared';
+import { BloodGroups, BusinessTypes, Gender } from '@parivaar/shared';
 import { formatDate } from '@/lib/utils';
 import {
   Table,
@@ -213,6 +213,76 @@ function summarizeProfileEdit(request: ApprovalRequest): string {
   return names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} +${names.length - 3} more`;
 }
 
+const FEED_TITLES: Record<string, string> = {
+  matrimonial: 'Matrimonial Profile',
+  business_enquiry: 'Business Enquiry',
+  business: 'New Business Listing',
+};
+
+function summarizeFeedRequest(request: ApprovalRequest): string {
+  const p = (request.payload ?? {}) as Record<string, unknown>;
+  if (request.entityType === 'matrimonial') return typeof p.candidateName === 'string' ? p.candidateName : 'Biodata attached';
+  if (request.entityType === 'business_enquiry') return typeof p.requirement === 'string' ? p.requirement : '-';
+  if (request.entityType === 'business') {
+    const cat = typeof p.category === 'string' ? BusinessTypes.find((b) => b.id === p.category)?.label ?? p.category : undefined;
+    return [p.name, cat].filter(Boolean).join(' · ') || '-';
+  }
+  return '-';
+}
+
+function FeedRequestDetails({ request }: { request: ApprovalRequest }) {
+  const p = (request.payload ?? {}) as Record<string, unknown>;
+  const str = (k: string) => (typeof p[k] === 'string' ? (p[k] as string) : undefined);
+
+  if (request.entityType === 'matrimonial') {
+    const biodata = str('biodataFile');
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <DetailField label="Candidate" value={str('candidateName')} />
+          <DetailField
+            label="Profile"
+            value={str('userId') ? <a href={`/admin/community/${request.communityId}/members/${str('userId')}`} target="_blank" rel="noreferrer" className="text-primary underline">Open member</a> : undefined}
+          />
+        </div>
+        {biodata ? (
+          <a href={biodata} target="_blank" rel="noopener noreferrer" className="block w-fit">
+            <img src={biodata} alt="Biodata" className="max-h-80 rounded-lg border border-border object-contain" />
+          </a>
+        ) : (
+          <p className="text-sm text-muted-foreground">No biodata attached.</p>
+        )}
+      </div>
+    );
+  }
+
+  if (request.entityType === 'business_enquiry') {
+    return (
+      <div className="flex flex-col gap-3">
+        <DetailField label="Requirement" value={<span className="whitespace-pre-line">{str('requirement')}</span>} />
+        <DetailField label="Place" value={str('place')} />
+      </div>
+    );
+  }
+
+  const logo = str('logo');
+  const cat = str('category');
+  return (
+    <div className="flex flex-col gap-3">
+      {logo && <img src={logo} alt="" className="size-16 rounded-lg border border-border object-cover" />}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <DetailField label="Name" value={str('name')} />
+        <DetailField label="Category" value={cat ? BusinessTypes.find((b) => b.id === cat)?.label ?? cat : undefined} />
+        <DetailField label="Phone" value={str('phone')} />
+        <DetailField label="Website" value={str('website')} />
+        <DetailField label="Google Maps" value={str('googleMapsLink')} />
+        <DetailField label="Address" value={str('address')} />
+      </div>
+      <DetailField label="Description" value={str('description')} />
+    </div>
+  );
+}
+
 function DetailField({ label, value }: { label: string; value?: React.ReactNode }) {
   if (value === undefined || value === null || value === '') return null;
   return (
@@ -244,6 +314,7 @@ function RequestDetailsDialog({
 
   const isNewFamily = request.entityType === 'new_family';
   const isProfileEdit = request.entityType === 'profile_edit';
+  const isFeedRequest = request.entityType in FEED_TITLES;
   const head = request.payload?.head as HeadPayload | undefined;
   const business = request.payload?.business as BusinessPayload | undefined;
   const members = (request.payload?.members as MemberPayload[] | undefined) ?? [];
@@ -266,7 +337,11 @@ function RequestDetailsDialog({
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isNewFamily ? 'New Family Registration' : isProfileEdit ? 'Profile Edit Request' : request.entityType.replace(/_/g, ' ')}
+            {isNewFamily
+              ? 'New Family Registration'
+              : isProfileEdit
+                ? 'Profile Edit Request'
+                : FEED_TITLES[request.entityType] ?? request.entityType.replace(/_/g, ' ')}
           </DialogTitle>
           <DialogDescription>
             Requested by {requesterName(request)}
@@ -353,7 +428,9 @@ function RequestDetailsDialog({
 
           {isProfileEdit && <ProfileEditDiff request={request} />}
 
-          {!isNewFamily && !isProfileEdit && (
+          {isFeedRequest && <FeedRequestDetails request={request} />}
+
+          {!isNewFamily && !isProfileEdit && !isFeedRequest && (
             <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 text-xs text-muted-foreground">
               {JSON.stringify(request.payload, null, 2)}
             </pre>
@@ -471,6 +548,7 @@ export function CommunityApprovalsTab({
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -516,6 +594,8 @@ export function CommunityApprovalsTab({
                     </div>
                   ) : request.entityType === 'profile_edit' ? (
                     <span className="text-sm text-muted-foreground">{summarizeProfileEdit(request)}</span>
+                  ) : request.entityType in FEED_TITLES ? (
+                    <span className="line-clamp-2 max-w-md text-sm text-muted-foreground">{summarizeFeedRequest(request)}</span>
                   ) : (
                     '-'
                   )}
@@ -528,6 +608,7 @@ export function CommunityApprovalsTab({
             ))}
           </TableBody>
         </Table>
+        </div>
 
     <RequestDetailsDialog
       request={selected}

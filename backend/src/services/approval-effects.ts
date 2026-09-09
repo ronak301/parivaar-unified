@@ -1,18 +1,37 @@
 import mongoose from 'mongoose';
-import { User, Family, Business, MatrimonialProfile, BusinessEnquiry, BusinessPromotion } from '../models';
-import type { IApprovalRequest, IUser } from '../models';
+import { User, Family, Business, MatrimonialProfile, BusinessEnquiry, BusinessPromotion, FeedItem } from '../models';
+import type { IApprovalRequest, IUser, FeedItemType } from '../models';
 
 export async function applyApprovalEffect(approval: IApprovalRequest): Promise<void> {
   const { entityType, entityId, payload, status } = approval;
 
   if (status === 'approved') {
-    await applyApproveEffect(entityType, entityId, payload);
+    await applyApproveEffect(approval, entityType, entityId, payload);
   } else if (status === 'rejected') {
     await applyRejectEffect(entityType, entityId);
   }
 }
 
+async function publishToFeed(
+  approval: IApprovalRequest,
+  type: FeedItemType,
+  refId: mongoose.Types.ObjectId | string,
+): Promise<void> {
+  try {
+    await FeedItem.create({
+      communityId: approval.communityId,
+      type,
+      refId,
+      postedBy: approval.requestedBy,
+    });
+  } catch (err: unknown) {
+    // Re-approving the same entity must not fail the review.
+    if ((err as { code?: number }).code !== 11000) throw err;
+  }
+}
+
 async function applyApproveEffect(
+  approval: IApprovalRequest,
   entityType: string,
   entityId?: string,
   payload?: Record<string, unknown>,
@@ -93,13 +112,29 @@ async function applyApproveEffect(
 
     case 'matrimonial': {
       if (!entityId) return;
-      await MatrimonialProfile.findByIdAndUpdate(entityId, { status: 'approved' });
+      const profile = await MatrimonialProfile.findByIdAndUpdate(entityId, { status: 'approved' }, { new: true });
+      if (profile) await publishToFeed(approval, 'matrimonial', profile._id);
       break;
     }
 
     case 'business_enquiry': {
       if (!entityId) return;
-      await BusinessEnquiry.findByIdAndUpdate(entityId, { status: 'approved' });
+      const enquiry = await BusinessEnquiry.findByIdAndUpdate(entityId, { status: 'approved' }, { new: true });
+      if (enquiry) await publishToFeed(approval, 'business_enquiry', enquiry._id);
+      break;
+    }
+
+    case 'business': {
+      if (!payload || !approval.requestedBy) return;
+      // One business per member: if one appeared since submission, skip creation.
+      const existing = await Business.findOne({ ownerId: approval.requestedBy });
+      if (existing) return;
+      const business = await Business.create({
+        ...payload,
+        ownerId: approval.requestedBy,
+        communityId: approval.communityId,
+      });
+      await publishToFeed(approval, 'business', business._id);
       break;
     }
 

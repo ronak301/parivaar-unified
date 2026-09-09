@@ -1,8 +1,9 @@
 import type { Response } from 'express';
 import { createMatrimonialSchema } from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
-import { MatrimonialProfile, ApprovalRequest } from '../models';
+import { MatrimonialProfile, ApprovalRequest, User } from '../models';
 import { notifyCommunityAdmins } from '../services/notification';
+import { requireFeedEnabled } from '../services/community-features';
 
 export async function createMatrimonialProfile(req: AuthRequest, res: Response): Promise<void> {
   const parsed = createMatrimonialSchema.safeParse(req.body);
@@ -12,21 +13,46 @@ export async function createMatrimonialProfile(req: AuthRequest, res: Response):
   }
 
   const { userId, communityId, biodataFile } = parsed.data;
+  if (!(await requireFeedEnabled(req, res, communityId))) return;
 
-  const existing = await MatrimonialProfile.findOne({ userId, communityId });
-  if (existing) {
-    res.status(400).json({ error: 'Matrimonial profile already exists for this user in this community' });
+  const candidate = await User.findById(userId).select('firstName lastName fullName familyId communityIds isAlive');
+  if (!candidate) {
+    res.status(404).json({ error: 'Member not found' });
     return;
   }
 
+  // Members may only list themselves or someone in their own family.
+  const isAdmin = req.user?.role === 'super_admin' || req.user?.role === 'community_admin';
+  if (!isAdmin) {
+    const isSelf = candidate._id.toString() === req.user?._id.toString();
+    const sameFamily =
+      !!candidate.familyId && !!req.user?.familyId && candidate.familyId.toString() === req.user.familyId.toString();
+    if (!isSelf && !sameFamily) {
+      res.status(403).json({ error: 'You can only add members of your own family' });
+      return;
+    }
+  }
+
+  const existing = await MatrimonialProfile.findOne({ userId, communityId });
+  if (existing && existing.status !== 'rejected') {
+    res.status(409).json({
+      error: existing.status === 'pending'
+        ? 'This member already has a matrimonial profile waiting for approval'
+        : 'This member already has a matrimonial profile in the feed',
+    });
+    return;
+  }
+  if (existing) await existing.deleteOne();
+
   const profile = await MatrimonialProfile.create({ userId, communityId, biodataFile });
 
+  const candidateName = candidate.fullName ?? [candidate.firstName, candidate.lastName].filter(Boolean).join(' ');
   const approval = await ApprovalRequest.create({
     entityType: 'matrimonial',
     entityId: profile._id.toString(),
     communityId,
     requestedBy: req.user?._id,
-    payload: { userId, biodataFile },
+    payload: { userId, biodataFile, candidateName },
   });
 
   const requesterName = req.user?.fullName ?? req.user?.firstName ?? 'A member';

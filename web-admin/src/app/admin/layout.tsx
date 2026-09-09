@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { AppSidebar } from '@/components/admin/app-sidebar';
 import { TopBar } from '@/components/admin/top-bar';
 import { AuthProvider, useAuth } from '@/context/auth-context';
 
 function AdminContent({ children }: { children: React.ReactNode }) {
   const { loading, user, error } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) {
     return (
@@ -45,10 +47,10 @@ function AdminContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="member-app flex min-h-screen bg-white text-m-ink">
-      <AppSidebar />
-      <div className="flex min-w-0 flex-1 flex-col pl-[260px]">
-        <TopBar />
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-22">
+      <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex min-w-0 flex-1 flex-col md:pl-[260px]">
+        <TopBar onMenuClick={() => setSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto px-3 pb-6 pt-18 md:px-6 md:pt-22">
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Bell, Settings, LogOut, Globe, ChevronDown } from 'lucide-react';
+import { Bell, Settings, LogOut, Globe, ChevronDown, Menu, UserRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -15,36 +15,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-export function TopBar() {
+export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // TODO: Implement notifications endpoint
-  // useEffect(() => {
-  //   async function fetchUnreadCount() {
-  //     try {
-  //       const res = await fetch(
-  //         `/api/admin/notifications?limit=1&isRead=false`,
-  //         {
-  //           headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-  //         }
-  //       );
-  //       if (res.ok) {
-  //         const data = await res.json();
-  //         setUnreadCount(data.unreadCount ?? 0);
-  //       }
-  //     } catch {
-  //       // silently fail
-  //     }
-  //   }
-
-  //   fetchUnreadCount();
-  //   const interval = setInterval(fetchUnreadCount, 30000);
-  //   return () => clearInterval(interval);
-  // }, []);
 
   useEffect(() => {
     if (!user?.communities?.length) return;
@@ -62,7 +38,6 @@ export function TopBar() {
     localStorage.setItem('selectedCommunityId', communityId);
     setIsDropdownOpen(false);
 
-    // Navigate to the same section but for the new community
     if (pathname.includes('/members')) {
       router.push(`/admin/community/${communityId}/members`);
     } else if (pathname.startsWith('/admin/communities/')) {
@@ -88,39 +63,36 @@ export function TopBar() {
     : 'AU';
 
   return (
-    <header className="fixed left-[260px] right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-m-line bg-m-surface/85 px-6 backdrop-blur-md">
-      {/* Left: Community selector */}
-      <div className="relative" onMouseLeave={() => setIsDropdownOpen(false)}>
-        <button
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-2 rounded-m-field border border-m-line-strong bg-m-surface px-3 py-1.5 transition-colors hover:bg-m-surface-2"
-        >
-          <Globe className="size-[18px] text-m-brand" />
-          <span className="max-w-[28rem] truncate text-sm font-semibold text-m-ink">{communityName}</span>
-          <ChevronDown className={`size-[18px] text-m-ink-2 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        {isDropdownOpen && (
-          <div className="m-card-float absolute left-0 top-full z-20 mt-1 max-h-60 min-w-56 overflow-y-auto p-1">
+    <header className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between border-b border-m-line bg-m-surface/85 px-3 backdrop-blur-md md:left-[260px] md:h-16 md:px-6">
+      {/* Left: Hamburger + Community selector */}
+      <div className="flex items-center gap-2">
+        {onMenuClick && (
+          <button type="button" onClick={onMenuClick} className="rounded-lg p-2 text-m-ink-2 hover:bg-m-surface-2 md:hidden" aria-label="Open menu">
+            <Menu className="size-5" />
+          </button>
+        )}
+        <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+          <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-m-field border border-m-line-strong bg-m-surface px-2.5 py-1.5 outline-none transition-colors hover:bg-m-surface-2 md:gap-2 md:px-3">
+            <Globe className="hidden size-[18px] text-m-brand sm:block" />
+            <span className="max-w-[10rem] truncate text-sm font-semibold text-m-ink sm:max-w-[20rem] md:max-w-[28rem]">{communityName}</span>
+            <ChevronDown className={`size-4 text-m-ink-2 transition-transform md:size-[18px] ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="max-h-60 min-w-56 overflow-y-auto">
             {communities.map(community => (
-              <button
+              <DropdownMenuItem
                 key={community._id}
                 onClick={() => handleCommunityChange(community._id)}
-                className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                  community._id === saved
-                    ? 'bg-m-brand/10 font-semibold text-m-brand'
-                    : 'text-m-ink hover:bg-m-surface-2'
-                }`}
+                className={community._id === saved ? 'bg-m-brand/10 font-semibold text-m-brand' : ''}
               >
                 {community.name}
-              </button>
+              </DropdownMenuItem>
             ))}
-          </div>
-        )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Right: Bell, divider, user */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         <Link href="/admin/notifications">
           <button className="relative rounded-full p-2 text-m-ink-2 transition-colors hover:bg-m-surface-2 hover:text-m-ink">
             <Bell className="size-5" />
@@ -132,10 +104,10 @@ export function TopBar() {
           </button>
         </Link>
 
-        <div className="h-8 w-px bg-m-line-strong" />
+        <div className="hidden h-8 w-px bg-m-line-strong sm:block" />
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-3 pl-2 outline-none">
+          <DropdownMenuTrigger className="flex items-center gap-3 pl-1 outline-none md:pl-2">
             <div className="text-right hidden sm:block">
               <div className="text-sm font-semibold text-m-ink">{user?.fullName}</div>
               <div className="text-xs capitalize text-m-ink-2">{user?.role.replace('_', ' ')}</div>
@@ -155,6 +127,12 @@ export function TopBar() {
               <Link href="/admin/settings" className="flex items-center gap-2 w-full">
                 <Settings className="size-4" />
                 <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Link href="/m/login" className="flex items-center gap-2 w-full">
+                <UserRound className="size-4" />
+                <span>Member Login</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

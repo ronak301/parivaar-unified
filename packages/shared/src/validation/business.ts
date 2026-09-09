@@ -20,6 +20,9 @@ export const updateBusinessSchema = createBusinessSchema.partial().omit({
   communityId: true,
 });
 
+/** Member-submitted business. Goes through admin approval; owner is always the caller. */
+export const submitBusinessSchema = createBusinessSchema.omit({ ownerId: true, communityId: true });
+
 export const createEnquirySchema = z.object({
   requirement: z.string().min(1, 'Requirement is required').max(1000),
   place: z.string().max(200).optional(),

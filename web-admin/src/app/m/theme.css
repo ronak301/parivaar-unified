@@ -169,4 +169,33 @@
     border-color: var(--m-brand);
     color: var(--m-on-brand);
   }
+
+  /* Full-width primary action (sheet submit buttons) */
+  .m-primary-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    width: 100%; height: 3rem;
+    border-radius: var(--m-radius-field);
+    background: var(--m-brand);
+    color: var(--m-on-brand);
+    font-size: 0.9rem; font-weight: 700;
+    transition: opacity 150ms, transform 100ms;
+  }
+  .m-primary-btn:active { transform: scale(0.99); }
+  .m-primary-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .m-textarea {
+    width: 100%; min-height: 6rem;
+    padding: 0.625rem 0.75rem;
+    background: var(--m-surface);
+    border: 1px solid var(--m-line-strong);
+    border-radius: var(--m-radius-field);
+    font-size: 0.875rem; line-height: 1.5;
+    color: var(--m-ink);
+    outline: none; resize: vertical;
+  }
+  .m-textarea::placeholder { color: var(--m-ink-3); }
+  .m-textarea:focus {
+    border-color: color-mix(in oklab, var(--m-brand) 45%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--m-brand) 10%, transparent);
+  }
 }

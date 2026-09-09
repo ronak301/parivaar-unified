@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import type { Community } from '@parivaar/shared';
-import { Info, Award, MapPin, ClipboardCheck, KeyRound } from 'lucide-react';
+import { Info, Award, MapPin, ClipboardCheck, KeyRound, Newspaper } from 'lucide-react';
 import { CommunityInfoTab } from '@/components/admin/community-info-tab';
 import { CommunityExecutivesTab } from '@/components/admin/community-executives-tab';
 import { CommunityLocalitiesTab } from '@/components/admin/community-localities-tab';
 import { CommunityApprovalsTab } from '@/components/admin/community-approvals-tab';
 import { CommunityAdminAccessTab } from '@/components/admin/community-admin-access-tab';
+import { CommunityFeedTab } from '@/components/admin/community-feed-tab';
 
-type TabId = 'info' | 'executives' | 'localities' | 'approvals' | 'access';
+type TabId = 'info' | 'executives' | 'localities' | 'approvals' | 'feed' | 'access';
 
 export function CommunityDetailTabs({
   community,
@@ -38,6 +39,7 @@ export function CommunityDetailTabs({
     { id: 'executives', label: 'Executives', icon: Award, count: community.designations?.length },
     { id: 'localities', label: 'Localities', icon: MapPin, count: community.localities ? Object.keys(community.localities).length : undefined },
     { id: 'approvals', label: 'Approvals', icon: ClipboardCheck, count: pendingCount ?? undefined },
+    { id: 'feed', label: 'Feed', icon: Newspaper },
     ...(canManageAccess
       ? [{ id: 'access' as const, label: 'Admin Access', icon: KeyRound }]
       : []),
@@ -75,7 +77,8 @@ export function CommunityDetailTabs({
       </div>
 
       <div role="tabpanel">
-        {tab === 'info' && <CommunityInfoTab community={community} />}
+        {tab === 'info' && <CommunityInfoTab community={community} onUpdated={onUpdated} />}
+        {tab === 'feed' && <CommunityFeedTab communityId={community._id} feedEnabled={community.features?.feed === true} />}
         {tab === 'executives' && <CommunityExecutivesTab community={community} onUpdated={onUpdated} />}
         {tab === 'localities' && <CommunityLocalitiesTab community={community} onUpdated={onUpdated} />}
         {tab === 'approvals' && (

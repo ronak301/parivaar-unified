@@ -4,6 +4,7 @@ import type { Community } from '@parivaar/shared';
 import { CommunityStatus } from '@parivaar/shared';
 import { Building2, User, Phone, MapPin, CircleDot, AlignLeft, CalendarDays } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { CommunityFeaturesCard } from '@/components/admin/community-features-card';
 
 function Row({
   icon: Icon,
@@ -29,12 +30,19 @@ function Row({
   );
 }
 
-export function CommunityInfoTab({ community }: { community: Community }) {
+export function CommunityInfoTab({
+  community,
+  onUpdated,
+}: {
+  community: Community;
+  onUpdated?: (community: Community) => void;
+}) {
   const location = [community.city, community.state].filter(Boolean).join(', ');
   const status = CommunityStatus.find((s) => s.id === community.status)?.label ?? community.status;
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      {onUpdated && <CommunityFeaturesCard community={community} onUpdated={onUpdated} />}
       <div className="m-card px-4">
         <div className="divide-y divide-m-line">
           <Row icon={Building2} tone="bg-m-tone-indigo-bg text-m-tone-indigo-fg" label="Community name" value={community.name} />

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -16,17 +17,33 @@ export default function LoginPage() {
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('auth_token');
-      if (token) {
-        await fetch('/api/auth/restore', {
+      if (!token) return;
+
+      try {
+        const res = await fetch('/api/auth/restore', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
         });
-        router.push('/admin');
+        // Only bounce to /admin if the token was actually accepted —
+        // otherwise a stale token silently strands the user on a redirect loop.
+        if (res.ok) {
+          router.push('/admin');
+        } else {
+          localStorage.removeItem('auth_token');
+        }
+      } catch {
+        // Network hiccup — stay on the login page instead of redirecting blind.
       }
     };
     checkAuth();
   }, [router]);
+
+  function handleClearStorage() {
+    localStorage.clear();
+    setError('');
+    window.location.reload();
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -61,7 +78,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-2xl">
         <div className="flex flex-col gap-2 mb-8 items-center text-center">
           <img src="/logo.png" alt="Parivaar" className="h-16 w-16" />
-          <h1 className="text-3xl font-bold text-foreground">PARIVAAR</h1>
+          <h1 className="text-3xl font-bold text-foreground">Admin Portal</h1>
           <p className="text-sm text-muted-foreground">Community Management System</p>
         </div>
 
@@ -96,6 +113,19 @@ export default function LoginPage() {
             {loading ? 'Logging in...' : 'Login'}
           </Button>
         </form>
+
+        <div className="mt-6 flex flex-col items-center gap-2 text-sm">
+          <Link href="/m/login" className="text-primary hover:underline">
+            Member Login
+          </Link>
+          <button
+            type="button"
+            onClick={handleClearStorage}
+            className="text-muted-foreground hover:underline"
+          >
+            Having trouble logging in? Clear local storage
+          </button>
+        </div>
       </div>
     </div>
   );

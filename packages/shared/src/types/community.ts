@@ -8,6 +8,10 @@ export interface Designation {
   year: string;
 }
 
+export interface CommunityFeatures {
+  feed?: boolean;
+}
+
 export interface Community {
   _id: string;
   name: string;
@@ -22,6 +26,8 @@ export interface Community {
   designations?: Designation[];
   /** City → locality names. e.g. { "Bangalore": ["Koramangala", "HSR Layout"] } */
   localities?: Record<string, string[]>;
+  /** Per-community feature flags, toggled by admins. */
+  features?: CommunityFeatures;
 
   createdAt?: string;
   updatedAt?: string;

@@ -4,6 +4,7 @@ export type ImageFieldKey =
   | 'businessLogo'
   | 'businessPhoto'
   | 'designationPhoto'
+  | 'biodata'
   | 'default';
 
 export interface ImageFieldConfig {
@@ -51,6 +52,13 @@ export const IMAGE_FIELD_CONFIGS: Record<ImageFieldKey, ImageFieldConfig> = {
     maxWidthOrHeight: 1024,
     cropShape: 'round',
     cropAspect: 1,
+  },
+  biodata: {
+    maxSizeMB: 3,
+    compressTargetMB: 1.8,
+    maxWidthOrHeight: 2048,
+    cropShape: 'rect',
+    cropAspect: undefined,
   },
   default: {
     maxSizeMB: 2,

@@ -39,7 +39,7 @@ export function DirectoryHeader({
   ];
 
   return (
-    <div className="sticky top-0 z-10 flex flex-col gap-3 bg-m-surface/85 pb-1 backdrop-blur-md">
+    <div className="sticky top-0 z-30 flex flex-col gap-3 bg-m-surface pb-1">
       <PageBanner
         title={communityName}
         tall={false}

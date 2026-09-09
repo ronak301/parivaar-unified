@@ -5,6 +5,7 @@ const ENTITY_TYPES = [
   'matrimonial',
   'business_enquiry',
   'business_promotion',
+  'business',
   'new_member',
   'death_marking',
   'family_head_change',

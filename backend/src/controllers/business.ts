@@ -1,9 +1,18 @@
 import type { Response } from 'express';
-import { createBusinessSchema, updateBusinessSchema, createEnquirySchema, createPromotionSchema } from '@parivaar/shared';
+import { Types } from 'mongoose';
+import {
+  createBusinessSchema,
+  updateBusinessSchema,
+  createEnquirySchema,
+  createPromotionSchema,
+  submitBusinessSchema,
+  ExcludeBusinessTypes,
+} from '@parivaar/shared';
 import type { AuthRequest } from '../middleware';
 import { User, Business, BusinessEnquiry, BusinessPromotion, ApprovalRequest } from '../models';
 import { notifyCommunityAdmins } from '../services/notification';
 import { searchBusinesses } from '../services/business-search';
+import { requireFeedEnabled } from '../services/community-features';
 
 export async function createBusiness(req: AuthRequest, res: Response): Promise<void> {
   const parsed = createBusinessSchema.safeParse(req.body);
@@ -161,14 +170,41 @@ export async function getBusinessByOwner(req: AuthRequest, res: Response): Promi
   res.json({ success: true, business: business || null });
 }
 
+// Migrated records include placeholder rows (no name, no category, or a
+// non-business type like HomeMaker) that would render as empty cards.
+function listedBusinessFilter(communityId: string): Record<string, unknown> {
+  return {
+    communityId,
+    category: { $nin: [...ExcludeBusinessTypes, null, ''] },
+    $or: [
+      { name: { $nin: [null, ''] } },
+      { description: { $nin: [null, ''] } },
+      { address: { $nin: [null, ''] } },
+      { phone: { $nin: [null, ''] } },
+    ],
+  };
+}
+
+export async function getBusinessCategoryCounts(req: AuthRequest, res: Response): Promise<void> {
+  const { communityId } = req.params;
+  const rows = await Business.aggregate<{ _id: string; count: number }>([
+    { $match: { ...listedBusinessFilter(communityId), communityId: new Types.ObjectId(communityId) } },
+    { $group: { _id: '$category', count: { $sum: 1 } } },
+    { $sort: { count: -1, _id: 1 } },
+  ]);
+  const total = rows.reduce((sum, r) => sum + r.count, 0);
+  res.json({ success: true, total, categories: rows.map((r) => ({ id: r._id, count: r.count })) });
+}
+
 export async function getBusinessesByCommunity(req: AuthRequest, res: Response): Promise<void> {
   const { communityId } = req.params;
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 20;
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
   const skip = (page - 1) * limit;
 
-  const filter: Record<string, unknown> = { communityId };
-  if (req.query.category) filter.category = req.query.category;
+  const filter = listedBusinessFilter(communityId);
+  const category = typeof req.query.category === 'string' ? req.query.category.trim().slice(0, 100) : '';
+  if (category && !ExcludeBusinessTypes.includes(category)) filter.category = category;
 
   const rawQuery = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 200) : '';
 
@@ -201,18 +237,23 @@ export async function getBusinessesByCommunity(req: AuthRequest, res: Response):
     return;
   }
 
-  const [businesses, total] = await Promise.all([
-    Business.find(filter)
-      .populate('ownerId', OWNER_PUBLIC_FIELDS)
-      .sort({ name: 1 })
-      .skip(skip)
-      .limit(limit),
+  // Named businesses first (A–Z), then the ones that only have a description/address.
+  const [rows, total] = await Promise.all([
+    Business.aggregate<Record<string, unknown>>([
+      { $match: { ...filter, communityId: new Types.ObjectId(communityId) } },
+      { $addFields: { _unnamed: { $cond: [{ $gt: [{ $strLenCP: { $ifNull: ['$name', ''] } }, 0] }, 0, 1] } } },
+      { $sort: { _unnamed: 1, name: 1, _id: 1 } },
+      { $skip: skip },
+      { $limit: limit },
+      { $project: { _unnamed: 0 } },
+    ]),
     Business.countDocuments(filter),
   ]);
+  const businesses = await Business.populate(rows, { path: 'ownerId', select: OWNER_PUBLIC_FIELDS });
 
   res.json({
     success: true,
-    businesses: businesses.map(redactOwnerPhone),
+    businesses: businesses.map((b) => redactOwnerPhone(b as unknown as Record<string, unknown>)),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   });
 }
@@ -223,6 +264,7 @@ export async function createEnquiry(req: AuthRequest, res: Response): Promise<vo
     res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
     return;
   }
+  if (!(await requireFeedEnabled(req, res, parsed.data.communityId))) return;
 
   const enquiry = await BusinessEnquiry.create({
     ...parsed.data,
@@ -248,6 +290,62 @@ export async function createEnquiry(req: AuthRequest, res: Response): Promise<vo
   );
 
   res.status(201).json({ success: true, enquiry });
+}
+
+/** Member-submitted business: nothing is created until an admin approves. */
+export async function submitBusiness(req: AuthRequest, res: Response): Promise<void> {
+  const parsed = submitBusinessSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    return;
+  }
+
+  const user = req.user;
+  if (!user) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return;
+  }
+  const communityId = user.communityIds?.[0];
+  if (!communityId) {
+    res.status(400).json({ error: 'Your account is not linked to a community' });
+    return;
+  }
+  if (!(await requireFeedEnabled(req, res, communityId.toString()))) return;
+
+  const existing = await Business.findOne({ ownerId: user._id }).select('_id');
+  if (existing) {
+    res.status(409).json({ error: 'You already have a business listed. Edit it from your profile instead.' });
+    return;
+  }
+
+  const pending = await ApprovalRequest.findOne({
+    entityType: 'business',
+    requestedBy: user._id,
+    status: 'pending',
+  }).select('_id');
+  if (pending) {
+    res.status(409).json({ error: 'Your business is already waiting for admin approval.' });
+    return;
+  }
+
+  const request = await ApprovalRequest.create({
+    entityType: 'business',
+    communityId,
+    requestedBy: user._id,
+    payload: parsed.data,
+  });
+
+  const requesterName = user.fullName ?? user.firstName ?? 'A member';
+  await notifyCommunityAdmins(
+    communityId.toString(),
+    'approval_request',
+    'New business listing',
+    `${requesterName} submitted "${parsed.data.name}" for review`,
+    { approvalRequestId: request._id.toString(), entityType: 'business' },
+    request._id.toString(),
+  );
+
+  res.status(201).json({ success: true, request });
 }
 
 export async function createPromotion(req: AuthRequest, res: Response): Promise<void> {

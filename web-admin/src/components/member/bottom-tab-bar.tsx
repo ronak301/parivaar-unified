@@ -2,21 +2,28 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Briefcase, User } from 'lucide-react';
+import { Home, Briefcase, Newspaper, User } from 'lucide-react';
+import { useMemberAuth } from '@/context/member-auth-context';
+import { useCommunityFeatures } from '@/lib/member/use-community-features';
 
 const TABS = [
   { href: '/m', label: 'Home', icon: Home },
+  { href: '/m/feed', label: 'Feed', icon: Newspaper, feature: 'feed' as const },
   { href: '/m/business', label: 'Business', icon: Briefcase },
   { href: '/m/profile', label: 'Profile', icon: User },
 ];
 
 export function BottomTabBar() {
   const pathname = usePathname();
+  const { user } = useMemberAuth();
+  const { feedEnabled } = useCommunityFeatures(user?.communityIds?.[0]);
+
+  const tabs = TABS.filter((t) => t.feature !== 'feed' || feedEnabled);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md bg-m-surface shadow-m-bar">
       <div className="flex items-stretch justify-around border-t border-m-line">
-        {TABS.map(({ href, label, icon: Icon }) => {
+        {tabs.map(({ href, label, icon: Icon }) => {
           const active =
             href === '/m'
               ? pathname === '/m' || pathname.startsWith('/m/member') || pathname.startsWith('/m/community')
