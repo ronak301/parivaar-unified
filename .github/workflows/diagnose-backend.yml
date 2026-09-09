@@ -26,6 +26,16 @@ jobs:
           echo ""
           echo "=== api.parivaarapp.in/ (root) from GH runner ==="
           curl -sS -i --max-time 10 https://api.parivaarapp.in/ || true
+          echo ""
+          echo "=== POST admin-login from GH runner ==="
+          curl -sS -i --max-time 15 -X POST https://api.parivaarapp.in/api/auth/admin-login \
+            -H "Content-Type: application/json" \
+            -d '{"phone":"9999999999","password":"12345"}' || true
+          echo ""
+          echo "=== POST admin-login via Netlify (parivaardirectory.netlify.app) ==="
+          curl -sS -i --max-time 20 -X POST https://parivaardirectory.netlify.app/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"phone":"9999999999","password":"12345"}' || true
 
       - name: SSH to VM and inspect (read-only)
         uses: appleboy/ssh-action@master
