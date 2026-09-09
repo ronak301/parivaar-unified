@@ -1,8 +1,8 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Users } from 'lucide-react';
+import { Users, Loader2 } from 'lucide-react';
 import type { Community, UserListItem } from '@parivaar/shared';
 import { useMemberAuth } from '@/context/member-auth-context';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -12,12 +12,6 @@ import { DirectoryHeader, type HomeTab } from '@/components/member/directory-hea
 import { ExecutiveCommittee } from '@/components/member/executive-committee';
 import { MemberCard } from '@/components/member/member-card';
 import { MemberListSkeleton, Skeleton } from '@/components/member/skeleton';
-
-interface SearchResponse {
-  success: boolean;
-  users: UserListItem[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
-}
 
 /**
  * useSearchParams requires a Suspense boundary for static prerendering;
@@ -61,25 +55,84 @@ function MemberHome() {
     () => fetch(`/api/member/community/${communityId}`).then((r) => r.json()),
   );
 
-  const searchCacheKey = communityId
-    ? `members:${communityId}:${debouncedSearch}:${filtersKey}:${familyHeadOnly}`
-    : null;
+  const PAGE_SIZE = 30;
+  const [members, setMembers] = useState<UserListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [memberLoading, setMemberLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const pageRef = useRef(1);
+  const loadingRef = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const { data: searchData, loading } = useCachedFetch<SearchResponse>(
-    searchCacheKey,
-    () => {
-      const params = new URLSearchParams({ communityId: communityId!, page: '1', limit: '30' });
-      if (debouncedSearch) params.set('query', debouncedSearch);
-      appendFilterParams(params, filters);
-      if (familyHeadOnly) params.set('filters[isFamilyHead]', 'true');
-      return fetch(`/api/member/users/search?${params}`).then((r) => r.json());
-    },
-  );
+  function buildMemberUrl(page: number) {
+    const params = new URLSearchParams({ communityId: communityId!, page: String(page), limit: String(PAGE_SIZE) });
+    if (debouncedSearch) params.set('query', debouncedSearch);
+    appendFilterParams(params, filters);
+    if (familyHeadOnly) params.set('filters[isFamilyHead]', 'true');
+    return `/api/member/users/search?${params}`;
+  }
 
+  // Fetch page 1 whenever search/filter params change
+  useEffect(() => {
+    if (!communityId) return;
+    let cancelled = false;
+    setMemberLoading(true);
+    setMembers([]);
+    pageRef.current = 1;
+
+    fetch(buildMemberUrl(1))
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        setMembers(data.users ?? []);
+        setTotal(data.pagination?.total ?? 0);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setMemberLoading(false); });
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [communityId, debouncedSearch, filtersKey, familyHeadOnly]);
+
+  const loadMore = useCallback(async () => {
+    if (!communityId || loadingRef.current) return;
+    const nextPage = pageRef.current + 1;
+    loadingRef.current = true;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(buildMemberUrl(nextPage));
+      const data = await res.json();
+      pageRef.current = nextPage;
+      setMembers((prev) => [...prev, ...(data.users ?? [])]);
+      setTotal(data.pagination?.total ?? 0);
+    } catch {
+      // silently ignore
+    } finally {
+      loadingRef.current = false;
+      setLoadingMore(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [communityId, debouncedSearch, filtersKey, familyHeadOnly]);
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !loadingRef.current && members.length < total) {
+          loadMore();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [members.length, total, loadMore]);
+
+  const loading = memberLoading;
   const communityName = communityData?.community?.name ?? 'Community';
   const designations = communityData?.community?.designations ?? [];
-  const members: UserListItem[] = searchData?.users ?? [];
-  const total = searchData?.pagination?.total ?? 0;
 
   return (
     <div>
@@ -120,7 +173,14 @@ function MemberHome() {
               <p className="text-sm text-m-ink-2">No members found</p>
             </div>
           ) : (
-            members.map((member) => <MemberCard key={member._id} member={member} />)
+            <>
+              {members.map((member) => <MemberCard key={member._id} member={member} />)}
+              {members.length < total && (
+                <div ref={sentinelRef} className="flex items-center justify-center py-4">
+                  {loadingMore && <Loader2 className="size-5 animate-spin text-m-brand" />}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
