@@ -33,3 +33,7 @@ jobs:
             docker ps -a --filter "name=caddy"
             echo "=== caddy logs (last 60 lines, if present) ==="
             docker logs $(docker ps -aq --filter "name=caddy") --tail 60 2>&1 || true
+            echo "=== cloudflared tunnel status (if present) ==="
+            docker ps -a --filter "name=cloudflared"
+            echo "=== cloudflared logs (last 80 lines, if present) ==="
+            docker logs $(docker ps -aq --filter "name=cloudflared") --tail 80 2>&1 || true
