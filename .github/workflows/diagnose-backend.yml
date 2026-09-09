@@ -127,3 +127,8 @@ jobs:
             sudo cat /home/ubuntu/apps/cloudflared/data/config/config.yml 2>&1 || cat /home/ubuntu/apps/cloudflared/data/config/config.yml 2>&1 || true
             echo "=== list that dir ==="
             sudo ls -la /home/ubuntu/apps/cloudflared/data/config/ 2>&1 || ls -la /home/ubuntu/apps/cloudflared/data/config/ 2>&1 || true
+            echo "=== networks: cloudflared-tunnel vs parivaar-api-v2 vs caddy vs backend ==="
+            docker inspect cloudflared-tunnel --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
+            docker inspect parivaar-api-v2 --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
+            docker inspect caddy --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
+            docker inspect backend --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
