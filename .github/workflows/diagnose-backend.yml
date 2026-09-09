@@ -84,3 +84,5 @@ jobs:
             docker exec caddy cat /etc/caddy/Caddyfile 2>&1 || true
             echo "=== curl localhost via caddy container name network (internal) ==="
             docker exec caddy wget -qO- --header="Host: api.parivaarapp.in" http://localhost:80/health 2>&1 || true
+            echo "=== caddy container mounts (to find host path of Caddyfile) ==="
+            docker inspect caddy --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'
