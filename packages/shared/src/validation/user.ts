@@ -74,6 +74,7 @@ export const searchUsersSchema = z.object({
       district: z.string().optional(),
       isFamilyHead: queryBoolean,
       isMarried: queryBoolean,
+      hasSpecialEducation: queryBoolean,
     })
     .optional(),
   page: z.coerce.number().min(1).default(1),

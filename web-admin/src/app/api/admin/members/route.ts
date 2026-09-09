@@ -10,6 +10,7 @@ const FILTER_KEYS = [
   'isMarried',
   'businessCategory',
   'isFamilyHead',
+  'hasSpecialEducation',
 ] as const;
 
 export async function GET(request: NextRequest) {

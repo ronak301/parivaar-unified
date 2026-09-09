@@ -56,6 +56,15 @@ export async function addFamilyMembers(
   return res.data;
 }
 
+export async function changeFamilyHead(
+  client: AxiosInstance,
+  familyId: string,
+  data: { newHeadId: string },
+) {
+  const res = await client.post(`/families/${familyId}/change-head`, data);
+  return res.data.family;
+}
+
 export async function getFamilyTree(client: AxiosInstance, familyId: string) {
   const res = await client.get(`/families/${familyId}/tree`);
   return res.data;

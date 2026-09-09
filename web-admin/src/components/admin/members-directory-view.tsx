@@ -96,6 +96,7 @@ interface MemberFilters {
   businessCategory: string;
   ageMin: string;
   ageMax: string;
+  hasSpecialEducation: boolean;
 }
 
 const EMPTY_FILTERS: MemberFilters = {
@@ -106,6 +107,7 @@ const EMPTY_FILTERS: MemberFilters = {
   businessCategory: '',
   ageMin: '',
   ageMax: '',
+  hasSpecialEducation: false,
 };
 
 const PAGE_SIZE = 20;
@@ -142,7 +144,7 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
 
   const [localities, setLocalities] = useState<string[]>([]);
 
-  const activeFilterCount = Object.values(filters).filter((v) => Array.isArray(v) ? v.length > 0 : Boolean(v)).length;
+  const activeFilterCount = Object.values(filters).filter((v) => Array.isArray(v) ? v.length > 0 : typeof v === 'boolean' ? v : Boolean(v)).length;
   const hasActiveFilters = activeFilterCount > 0 || familyHeadOnly;
 
   useEffect(() => {
@@ -184,6 +186,7 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
     if (filters.businessCategory) params.set('businessCategory', filters.businessCategory);
     if (filters.ageMin) params.set('ageMin', filters.ageMin);
     if (filters.ageMax) params.set('ageMax', filters.ageMax);
+    if (filters.hasSpecialEducation) params.set('hasSpecialEducation', 'true');
     if (familyHeadOnly) params.set('isFamilyHead', 'true');
     return params;
   }
@@ -243,6 +246,7 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
     if (filters.isMarried) chips.push({ key: 'isMarried', label: filters.isMarried === 'true' ? 'Married' : 'Unmarried', clear: () => set({ isMarried: '' }) });
     if (filters.businessCategory) chips.push({ key: 'businessCategory', label: BusinessTypes.find((b) => b.id === filters.businessCategory)?.label ?? filters.businessCategory, clear: () => set({ businessCategory: '' }) });
     if (filters.ageMin || filters.ageMax) chips.push({ key: 'age', label: `Age ${filters.ageMin || '0'}–${filters.ageMax || 'any'}`, clear: () => set({ ageMin: '', ageMax: '' }) });
+    if (filters.hasSpecialEducation) chips.push({ key: 'specialEducation', label: 'Special Education', clear: () => set({ hasSpecialEducation: false }) });
     return chips;
   }
 
@@ -466,6 +470,25 @@ export function MembersDirectoryView({ communityId: propCommunityId }: { communi
                         {familyHeadOnly ? 'On' : 'Off'}
                       </button>
                     </div>
+
+                    <label className="flex cursor-pointer items-center justify-between">
+                      <Label>Special Education</Label>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={filters.hasSpecialEducation}
+                        onClick={() => setFilters((f) => ({ ...f, hasSpecialEducation: !f.hasSpecialEducation }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-m-brand/40 ${
+                          filters.hasSpecialEducation ? 'bg-m-brand' : 'bg-m-ink-3/40'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block size-4 rounded-full bg-white shadow-sm transition-transform ${
+                            filters.hasSpecialEducation ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </label>
 
                     <div className="flex flex-col gap-2">
                       <Label>Blood group</Label>

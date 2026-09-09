@@ -58,6 +58,15 @@ export async function deleteUser(client: AxiosInstance, id: string, url?: string
   return res.data;
 }
 
+export async function markDeath(
+  client: AxiosInstance,
+  id: string,
+  data: { demiseDate: string; newHeadId?: string },
+) {
+  const res = await client.put(`/users/${id}/mark-death`, data);
+  return res.data.user;
+}
+
 export async function getUserEvents(
   client: AxiosInstance,
   communityId: string,

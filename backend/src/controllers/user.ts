@@ -285,6 +285,7 @@ export async function searchUsers(req: AuthRequest, res: Response): Promise<void
   if (filters?.nativePlace) filter.nativePlace = filters.nativePlace;
   if (filters?.nativeDistrict) filter.nativeDistrict = filters.nativeDistrict;
   if (filters?.isFamilyHead !== undefined) filter.isFamilyHead = filters.isFamilyHead;
+  if (filters?.hasSpecialEducation) filter.specialEducation = { $exists: true, $ne: '' };
   const marriedClauses: Record<string, unknown>[] = [];
   if (filters?.isMarried !== undefined) marriedClauses.push(buildMarriedClause(filters.isMarried));
 
@@ -378,6 +379,7 @@ async function buildCommunityMembersFilter(
   const isAlive = queryBoolean(query.isAlive);
   const isMarried = queryBoolean(query.isMarried);
   const isFamilyHead = queryBoolean(query.isFamilyHead);
+  const hasSpecialEducation = queryBoolean(query.hasSpecialEducation);
 
   if (gender) filter.gender = gender;
   if (bloodGroup) filter.bloodGroup = bloodGroup;
@@ -388,6 +390,7 @@ async function buildCommunityMembersFilter(
   if (isAlive !== undefined) filter.isAlive = isAlive;
   if (isMarried !== undefined) filter.$and = [buildMarriedClause(isMarried)];
   if (isFamilyHead !== undefined) filter.isFamilyHead = isFamilyHead;
+  if (hasSpecialEducation) filter.specialEducation = { $exists: true, $ne: '' };
 
   const ageFilter = buildAgeFilter(queryAge(query.ageMin), queryAge(query.ageMax));
   if (ageFilter) filter.dob = ageFilter;

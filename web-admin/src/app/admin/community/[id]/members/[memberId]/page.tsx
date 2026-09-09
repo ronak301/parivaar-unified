@@ -17,6 +17,21 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   ArrowLeft,
   Pencil,
   ShieldOff,
@@ -27,6 +42,8 @@ import {
   MessageCircle,
   Users2,
   Crown,
+  MoreHorizontal,
+  HeartOff,
 } from 'lucide-react';
 import { EditMemberSheet } from '@/components/admin/edit-member-sheet';
 import { AddFamilyMemberDialog } from '@/components/admin/add-family-member-dialog';
@@ -70,6 +87,13 @@ export default function MemberDetailPage() {
   const [localities, setLocalities] = useState<string[]>(
     () => readCache<{ localities?: string[] }>(`community_detail_${communityId}`)?.localities ?? [],
   );
+
+  const [markDeathOpen, setMarkDeathOpen] = useState(false);
+  const [changeHeadOpen, setChangeHeadOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [demiseDate, setDemiseDate] = useState('');
+  const [newHeadId, setNewHeadId] = useState('');
 
   useEffect(() => {
     fetch(`/api/admin/communities/${communityId}`, {
@@ -217,6 +241,68 @@ export default function MemberDetailPage() {
     } catch {
       setDeleteError('Network error');
       setDeleteLoading(false);
+    }
+  }
+
+  async function handleMarkDeath() {
+    if (!demiseDate) return;
+    if (user?.isFamilyHead && !newHeadId) return;
+    setActionLoading(true);
+    setActionError('');
+    try {
+      const body: { demiseDate: string; newHeadId?: string } = { demiseDate };
+      if (user?.isFamilyHead && newHeadId) body.newHeadId = newHeadId;
+      const res = await fetch(`/api/admin/users/${memberId}/mark-death`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionError(data.error || 'Failed to mark as deceased');
+        return;
+      }
+      clearCache(`member_${memberId}`);
+      if (user?.familyId?._id) clearCache(`family_tree_${user.familyId._id}`);
+      clearCache(`members_list_${communityId}`);
+      setMarkDeathOpen(false);
+      setDemiseDate('');
+      setNewHeadId('');
+      await fetchUser();
+      if (user?.familyId?._id) fetchFamilyMembers(user.familyId._id);
+    } catch {
+      setActionError('Network error');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleChangeHead(selectedHeadId: string) {
+    if (!user?.familyId?._id || !selectedHeadId) return;
+    setActionLoading(true);
+    setActionError('');
+    try {
+      const res = await fetch(`/api/admin/families/${user.familyId._id}/change-head`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newHeadId: selectedHeadId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionError(data.error || 'Failed to change family head');
+        return;
+      }
+      clearCache(`member_${memberId}`);
+      clearCache(`family_tree_${user.familyId._id}`);
+      clearCache(`members_list_${communityId}`);
+      setChangeHeadOpen(false);
+      setNewHeadId('');
+      await fetchUser();
+      if (user.familyId?._id) fetchFamilyMembers(user.familyId._id);
+    } catch {
+      setActionError('Network error');
+    } finally {
+      setActionLoading(false);
     }
   }
 
@@ -385,6 +471,58 @@ export default function MemberDetailPage() {
               </AlertDialog>
             )}
 
+            {user.isAlive !== false && user.familyId?._id && (
+              <DropdownMenu>
+                <DropdownMenuTrigger className={bannerBtn}>
+                  <MoreHorizontal className="size-4" />
+                  More
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[200px]">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setActionError('');
+                      setDemiseDate('');
+                      setNewHeadId('');
+                      setMarkDeathOpen(true);
+                    }}
+                  >
+                    <HeartOff className="size-4" />
+                    Mark as deceased
+                  </DropdownMenuItem>
+                  {!user.isFamilyHead && user.familyId?._id && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setActionError('');
+                          setNewHeadId(user._id);
+                          handleChangeHead(user._id);
+                        }}
+                      >
+                        <Crown className="size-4" />
+                        Make family head
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {user.isFamilyHead && familyMembers.filter((m) => m._id !== user._id && m.isAlive !== false).length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setActionError('');
+                          setNewHeadId('');
+                          setChangeHeadOpen(true);
+                        }}
+                      >
+                        <Crown className="size-4" />
+                        Change family head
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
             <button
               type="button"
               onClick={() => setEditOpen(true)}
@@ -542,6 +680,142 @@ export default function MemberDetailPage() {
           if (user.familyId?._id) fetchFamilyMembers(user.familyId._id);
         }}
       />
+
+      {/* Mark as deceased dialog */}
+      <Dialog open={markDeathOpen} onOpenChange={(open) => !actionLoading && setMarkDeathOpen(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark as deceased</DialogTitle>
+            <DialogDescription>
+              Record that {fullName} has passed away.
+              {user.isFamilyHead && ' Since they are the family head, you must select a new head.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="demise-date" className="mb-1.5 block text-sm font-medium text-m-ink">
+                Date of passing
+              </label>
+              <input
+                id="demise-date"
+                type="date"
+                value={demiseDate}
+                onChange={(e) => setDemiseDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="h-10 w-full rounded-m-field border border-m-edge bg-m-surface px-3 text-sm text-m-ink outline-none focus:border-m-brand focus:ring-1 focus:ring-m-brand"
+              />
+            </div>
+
+            {user.isFamilyHead && (
+              <div>
+                <label htmlFor="new-head-select" className="mb-1.5 block text-sm font-medium text-m-ink">
+                  New family head
+                </label>
+                <select
+                  id="new-head-select"
+                  value={newHeadId}
+                  onChange={(e) => setNewHeadId(e.target.value)}
+                  className="h-10 w-full rounded-m-field border border-m-edge bg-m-surface px-3 text-sm text-m-ink outline-none focus:border-m-brand focus:ring-1 focus:ring-m-brand"
+                >
+                  <option value="">Select new head…</option>
+                  {familyMembers
+                    .filter((m) => m._id !== user._id && m.isAlive !== false)
+                    .map((m) => (
+                      <option key={m._id} value={m._id}>
+                        {m.fullName || `${m.firstName} ${m.lastName ?? ''}`.trim()}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
+
+            {actionError && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                <p className="text-sm font-medium text-destructive">{actionError}</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMarkDeathOpen(false)} disabled={actionLoading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMarkDeath}
+              disabled={actionLoading || !demiseDate || (user.isFamilyHead && !newHeadId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {actionLoading ? 'Saving…' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change family head dialog */}
+      <Dialog open={changeHeadOpen} onOpenChange={(open) => !actionLoading && setChangeHeadOpen(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change family head</DialogTitle>
+            <DialogDescription>
+              Select a family member to become the new head of this family.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            {familyMembers
+              .filter((m) => m._id !== user._id && m.isAlive !== false)
+              .map((m) => {
+                const name = m.fullName || `${m.firstName} ${m.lastName ?? ''}`.trim();
+                return (
+                  <button
+                    key={m._id}
+                    type="button"
+                    onClick={() => setNewHeadId(m._id)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                      newHeadId === m._id
+                        ? 'bg-m-brand/10 ring-1 ring-m-brand'
+                        : 'bg-m-surface-2 hover:bg-m-surface-2/80'
+                    }`}
+                  >
+                    <div
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                      style={{
+                        backgroundColor: getAvatarColor(name).bg,
+                        color: getAvatarColor(name).text,
+                      }}
+                    >
+                      {`${m.firstName?.[0] ?? ''}${m.lastName?.[0] ?? ''}`.toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-m-ink">{name}</p>
+                      {m.phone && <p className="text-xs text-m-ink-2">{m.phone}</p>}
+                    </div>
+                    {newHeadId === m._id && <Crown className="size-4 text-m-brand" />}
+                  </button>
+                );
+              })}
+          </div>
+
+          {actionError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+              <p className="text-sm font-medium text-destructive">{actionError}</p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangeHeadOpen(false)} disabled={actionLoading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => handleChangeHead(newHeadId)}
+              disabled={actionLoading || !newHeadId}
+            >
+              {actionLoading ? 'Saving…' : 'Make head'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
