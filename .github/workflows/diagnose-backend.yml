@@ -169,3 +169,13 @@ jobs:
             docker exec caddy wget -qO- -S --header="Host: api.parivaarapp.in" --header="Content-Type: application/json" --post-data='{"phone":"9999999999","password":"12345"}' http://localhost:80/api/auth/admin-login 2>&1 || true
             echo "=== current live Caddyfile on disk ==="
             cat /home/ubuntu/apps/caddy/data/Caddyfile 2>&1 || sudo cat /home/ubuntu/apps/caddy/data/Caddyfile 2>&1 || true
+            echo "=== caddy port mapping on host ==="
+            docker inspect caddy --format '{{json .NetworkSettings.Ports}}'
+            echo "=== hit caddy's real HTTPS (443) directly on VM, correct SNI+Host via --resolve (bypass DNS/Cloudflare) ==="
+            curl -sS -i -k --resolve api.parivaarapp.in:443:127.0.0.1 --max-time 10 https://api.parivaarapp.in/health || true
+            echo "=== same but POST admin-login ==="
+            curl -sS -i -k --resolve api.parivaarapp.in:443:127.0.0.1 --max-time 10 -X POST https://api.parivaarapp.in/api/auth/admin-login \
+              -H "Content-Type: application/json" \
+              -d '{"phone":"9999999999","password":"12345"}' || true
+            echo "=== is there another caddy/nginx/process listening on 443 outside docker? ==="
+            sudo ss -tlnp 2>&1 | grep -E ':443|:80 ' || netstat -tlnp 2>&1 | grep -E ':443|:80 ' || true
