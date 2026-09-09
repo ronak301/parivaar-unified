@@ -32,6 +32,15 @@ function AdminContent({ children }: { children: React.ReactNode }) {
           >
             Try again
           </button>
+          <button
+            onClick={() => {
+              localStorage.clear();
+              window.location.href = '/';
+            }}
+            className="mt-3 block w-full text-sm text-m-ink-2 hover:underline"
+          >
+            Having trouble? Clear local storage
+          </button>
         </div>
       </div>
     );
