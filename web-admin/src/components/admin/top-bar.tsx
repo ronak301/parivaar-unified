@@ -14,9 +14,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CreateCommunityDialog } from '@/components/admin/create-community-dialog';
 
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
-  const { user } = useAuth();
+  const { user, refetch } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -89,6 +90,16 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {user?.role === 'super_admin' && (
+          <CreateCommunityDialog
+            onCreated={(community) => {
+              localStorage.setItem('selectedCommunityId', community._id);
+              refetch();
+              router.push(`/admin/communities/${community._id}`);
+            }}
+          />
+        )}
       </div>
 
       {/* Right: Bell, divider, user */}

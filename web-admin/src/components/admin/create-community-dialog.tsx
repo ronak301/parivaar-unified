@@ -68,9 +68,9 @@ export function CreateCommunityDialog({
         if (!next) reset();
       }}
     >
-      <DialogTrigger render={<Button />}>
+      <DialogTrigger render={<Button size="sm" variant="outline" />} aria-label="New community">
         <Plus />
-        New Community
+        <span className="hidden sm:inline">New Community</span>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
