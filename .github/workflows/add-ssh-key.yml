@@ -1,0 +1,39 @@
+name: Add SSH Key to VM
+
+# Grants a machine direct SSH access to the VM by appending its public key to
+# ~/.ssh/authorized_keys (idempotent), using the deploy key in repo secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      public_key:
+        description: 'Public key line (e.g. contents of ~/.ssh/id_ed25519.pub)'
+        required: true
+        type: string
+
+jobs:
+  add-key:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Append key
+        uses: appleboy/ssh-action@master
+        env:
+          PUBLIC_KEY: ${{ inputs.public_key }}
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          envs: PUBLIC_KEY
+          script: |
+            set -e
+            case "$PUBLIC_KEY" in
+              ssh-ed25519\ *|ssh-rsa\ *|ecdsa-sha2-*) ;;
+              *) echo "Not a public key line"; exit 1 ;;
+            esac
+            mkdir -p ~/.ssh && chmod 700 ~/.ssh
+            touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+            if grep -qxF "$PUBLIC_KEY" ~/.ssh/authorized_keys; then
+              echo "Key already present"
+            else
+              echo "$PUBLIC_KEY" >> ~/.ssh/authorized_keys
+              echo "Key added"
+            fi
