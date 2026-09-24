@@ -17,6 +17,7 @@ import { ClickableAvatar } from '@/components/ui/clickable-image';
 import { ImageUploadField } from '@/components/ui/image-upload-field';
 import { Building2, Pencil } from 'lucide-react';
 import { uploadCommunityLogo } from '@/lib/firebase/storage';
+import { useAuth } from '@/context/auth-context';
 
 export function EditCommunityDialog({
   community,
@@ -25,6 +26,8 @@ export function EditCommunityDialog({
   community: Community;
   onUpdated: (community: Community) => void;
 }) {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: community.name ?? '',
@@ -184,25 +187,27 @@ export function EditCommunityDialog({
                     />
                   </Field.Root>
 
-                  <Field.Root>
-                    <Field.Label>Status</Field.Label>
-                    {/* Native select: popup-based selects get blocked by the modal's focus trap. */}
-                    <NativeSelect.Root size="lg">
-                      <NativeSelect.Field
-                        id="edit-status"
-                        value={form.status}
-                        onChange={(e) => set('status', e.target.value)}
-                      >
-                        <option value="">Select status</option>
-                        {CommunityStatus.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.label}
-                          </option>
-                        ))}
-                      </NativeSelect.Field>
-                      <NativeSelect.Indicator />
-                    </NativeSelect.Root>
-                  </Field.Root>
+                  {isSuperAdmin && (
+                    <Field.Root>
+                      <Field.Label>Status</Field.Label>
+                      {/* Native select: popup-based selects get blocked by the modal's focus trap. */}
+                      <NativeSelect.Root size="lg">
+                        <NativeSelect.Field
+                          id="edit-status"
+                          value={form.status}
+                          onChange={(e) => set('status', e.target.value)}
+                        >
+                          <option value="">Select status</option>
+                          {CommunityStatus.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </NativeSelect.Field>
+                        <NativeSelect.Indicator />
+                      </NativeSelect.Root>
+                    </Field.Root>
+                  )}
 
                   <Field.Root>
                     <Field.Label>Contact Person</Field.Label>

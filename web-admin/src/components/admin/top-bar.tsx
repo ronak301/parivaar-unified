@@ -15,9 +15,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CreateCommunityDialog } from '@/components/admin/create-community-dialog';
+import { currentCommunityId } from '@/lib/current-community';
 
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user, refetch } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
   const router = useRouter();
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -49,7 +51,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   };
 
   const communities = user?.communities ?? [];
-  const saved = typeof window !== 'undefined' ? localStorage.getItem('selectedCommunityId') : null;
+  const saved = currentCommunityId(pathname, communities);
   const selectedCommunity = communities.find(c => c._id === saved) || communities?.[0];
   const communityName = selectedCommunity?.name || (communities.length > 0 ? communities[0].name : 'Select');
 
@@ -59,9 +61,11 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
     window.location.href = '/';
   }
 
-  const userInitials = user
-    ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
-    : 'AU';
+  const userInitials =
+    [user?.firstName, user?.lastName]
+      .map((n) => n?.trim()?.[0] ?? '')
+      .join('')
+      .toUpperCase() || 'A';
 
   return (
     <header className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between border-b border-m-line bg-m-surface/85 px-3 backdrop-blur-md md:left-[260px] md:h-16 md:px-6">
@@ -72,26 +76,33 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
             <Menu className="size-5" />
           </button>
         )}
-        <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-          <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-m-field border border-m-line-strong bg-m-surface px-2.5 py-1.5 outline-none transition-colors hover:bg-m-surface-2 md:gap-2 md:px-3">
-            <Globe className="hidden size-[18px] text-m-brand sm:block" />
-            <span className="max-w-[10rem] truncate text-sm font-semibold text-m-ink sm:max-w-[20rem] md:max-w-[28rem]">{communityName}</span>
-            <ChevronDown className={`size-4 text-m-ink-2 transition-transform md:size-[18px] ${isDropdownOpen ? 'rotate-180' : ''}`} />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="max-h-60 min-w-56 overflow-y-auto">
-            {communities.map(community => (
-              <DropdownMenuItem
-                key={community._id}
-                onClick={() => handleCommunityChange(community._id)}
-                className={community._id === saved ? 'bg-m-brand/10 font-semibold text-m-brand' : ''}
-              >
-                {community.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {isSuperAdmin ? (
+          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-m-field border border-m-line-strong bg-m-surface px-2.5 py-1.5 outline-none transition-colors hover:bg-m-surface-2 md:gap-2 md:px-3">
+              <Globe className="hidden size-[18px] text-m-brand sm:block" />
+              <span className="max-w-[10rem] truncate text-sm font-semibold text-m-ink sm:max-w-[20rem] md:max-w-[28rem]">{communityName}</span>
+              <ChevronDown className={`size-4 text-m-ink-2 transition-transform md:size-[18px] ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="max-h-60 min-w-56 overflow-y-auto">
+              {communities.map(community => (
+                <DropdownMenuItem
+                  key={community._id}
+                  onClick={() => handleCommunityChange(community._id)}
+                  className={community._id === saved ? 'bg-m-brand/10 font-semibold text-m-brand' : ''}
+                >
+                  {community.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <div className="flex min-w-0 items-center gap-1.5 px-1 md:gap-2">
+            <Globe className="hidden size-[18px] shrink-0 text-m-brand sm:block" />
+            <span className="max-w-[12rem] truncate text-sm font-semibold text-m-ink sm:max-w-[20rem] md:max-w-[28rem]">{communityName}</span>
+          </div>
+        )}
 
-        {user?.role === 'super_admin' && (
+        {isSuperAdmin && (
           <CreateCommunityDialog
             onCreated={(community) => {
               localStorage.setItem('selectedCommunityId', community._id);
@@ -134,12 +145,14 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
               <p className="text-xs text-muted-foreground capitalize">{user?.role.replace('_', ' ')}</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Link href="/admin/settings" className="flex items-center gap-2 w-full">
-                <Settings className="size-4" />
-                <span>Settings</span>
-              </Link>
-            </DropdownMenuItem>
+            {isSuperAdmin && (
+              <DropdownMenuItem>
+                <Link href="/admin/settings" className="flex items-center gap-2 w-full">
+                  <Settings className="size-4" />
+                  <span>Settings</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem>
               <Link href="/m/login" className="flex items-center gap-2 w-full">
                 <UserRound className="size-4" />

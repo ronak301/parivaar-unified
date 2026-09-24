@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
+import { currentCommunityId } from '@/lib/current-community';
 import { Users, LogOut, Building2, KeyRound, UserRound, X, type LucideIcon } from 'lucide-react';
 
 interface NavItem {
@@ -40,8 +41,7 @@ const NAV_ITEMS: NavItem[] = [
 export function AppSidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
-  const saved = typeof window !== 'undefined' ? localStorage.getItem('selectedCommunityId') : null;
-  const communityId = (user?.communities?.some(c => c._id === saved) ? saved : user?.communities?.[0]?._id) || null;
+  const communityId = currentCommunityId(pathname, user?.communities ?? []);
   const community = user?.communities?.find((c) => c._id === communityId);
 
   async function handleLogout() {

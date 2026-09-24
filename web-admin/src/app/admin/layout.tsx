@@ -1,15 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { AppSidebar } from '@/components/admin/app-sidebar';
 import { TopBar } from '@/components/admin/top-bar';
 import { AuthProvider, useAuth } from '@/context/auth-context';
+import { routeCommunityId as getRouteCommunityId } from '@/lib/current-community';
 
 function AdminContent({ children }: { children: React.ReactNode }) {
   const { loading, user, error } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
 
-  if (loading) {
+  // Community admins stay inside their own community: links to another
+  // community (or super-admin pages) bounce back to their members list.
+  const ownIds = useMemo(() => user?.communities?.map((c) => c._id) ?? [], [user?.communities]);
+  const routeCommunityId = getRouteCommunityId(pathname);
+  const outOfScope =
+    !!user &&
+    user.role !== 'super_admin' &&
+    ownIds.length > 0 &&
+    ((!!routeCommunityId && !ownIds.includes(routeCommunityId)) || pathname.startsWith('/admin/settings'));
+
+  // Keep the remembered community in sync with the one being viewed, so pages
+  // without an id in the URL (e.g. Generate OTP) use the same community.
+  useEffect(() => {
+    if (routeCommunityId && ownIds.includes(routeCommunityId)) {
+      localStorage.setItem('selectedCommunityId', routeCommunityId);
+    }
+  }, [routeCommunityId, ownIds]);
+
+  useEffect(() => {
+    if (!outOfScope) return;
+    localStorage.setItem('selectedCommunityId', ownIds[0]);
+    router.replace(`/admin/community/${ownIds[0]}/members`);
+  }, [outOfScope, ownIds, router]);
+
+  if (loading || outOfScope) {
     return (
       <div className="member-app flex min-h-screen items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-4">
