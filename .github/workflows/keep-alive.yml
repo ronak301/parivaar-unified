@@ -4,6 +4,9 @@ name: Keep Alive
 # The old backend (current mobile app) runs on Supabase, so hit an endpoint that
 # queries it every day. Also checks the new backend. A failing run means
 # something is down — GitHub emails the repo owner.
+#
+# Runs the checks on the VM over SSH: GitHub runners time out reaching
+# api.parivaarapp.in through Cloudflare.
 on:
   schedule:
     - cron: '30 3 * * *' # 09:00 IST daily
@@ -13,15 +16,19 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Old backend (Supabase-backed)
-        run: |
-          code=$(curl -sS -o /tmp/old.json -w '%{http_code}' --max-time 30 https://api.parivaarapp.in/community/all)
-          echo "HTTP $code"; head -c 200 /tmp/old.json; echo
-          [ "$code" = "200" ]
-
-      - name: New backend (MongoDB-backed)
-        if: always()
-        run: |
-          code=$(curl -sS -o /tmp/new.json -w '%{http_code}' --max-time 30 https://api.parivaarapp.in/api/communities)
-          echo "HTTP $code"; head -c 200 /tmp/new.json; echo
-          [ "$code" = "200" ]
+      - name: Ping old and new backends from the VM
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            fail=0
+            check() {
+              code=$(curl -sS -o /tmp/keepalive.out -w '%{http_code}' --max-time 30 "$2" || echo 000)
+              echo "$1: HTTP $code"; head -c 200 /tmp/keepalive.out; echo
+              [ "$code" = "200" ] || fail=1
+            }
+            check "Old backend (Supabase)" http://localhost:8081/community/all
+            check "New backend (MongoDB)" http://localhost:3002/api/communities
+            exit $fail
