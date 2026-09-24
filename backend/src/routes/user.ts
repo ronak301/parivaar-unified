@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate, authorize, communityScope, asyncHandler } from '../middleware';
+import { authenticate, authorize, communityScope, recordScope, bodyCommunityScope, asyncHandler } from '../middleware';
+import { User } from '../models';
 import { rateLimit } from '../middleware/rateLimit';
 import * as ctrl from '../controllers/user';
 
@@ -27,12 +28,12 @@ router.get(
   asyncHandler(ctrl.exportUsersByCommunity),
 );
 router.get('/events/:communityId', communityScope(), asyncHandler(ctrl.getUserEvents));
-router.get('/:id', asyncHandler(ctrl.getUser));
-router.post('/', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.createUser));
-router.put('/:id/block', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.blockUser));
-router.put('/:id/unblock', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.unblockUser));
-router.put('/:id/mark-death', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.markDeath));
-router.put('/:id', asyncHandler(ctrl.updateUser));
-router.delete('/:id', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.deleteUser));
+router.get('/:id', recordScope(User), asyncHandler(ctrl.getUser));
+router.post('/', authorize('super_admin', 'community_admin'), bodyCommunityScope(), asyncHandler(ctrl.createUser));
+router.put('/:id/block', authorize('super_admin', 'community_admin'), recordScope(User), asyncHandler(ctrl.blockUser));
+router.put('/:id/unblock', authorize('super_admin', 'community_admin'), recordScope(User), asyncHandler(ctrl.unblockUser));
+router.put('/:id/mark-death', authorize('super_admin', 'community_admin'), recordScope(User), asyncHandler(ctrl.markDeath));
+router.put('/:id', recordScope(User), bodyCommunityScope(), asyncHandler(ctrl.updateUser));
+router.delete('/:id', authorize('super_admin', 'community_admin'), recordScope(User), asyncHandler(ctrl.deleteUser));
 
 export default router;

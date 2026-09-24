@@ -141,8 +141,13 @@ export async function updateUser(req: AuthRequest, res: Response): Promise<void>
     return;
   }
 
+  // Members editing themselves can't move community/family or make themselves head.
+  const update = isAdmin
+    ? parsed.data
+    : (({ communityIds: _c, familyId: _f, isFamilyHead: _h, ...rest }) => rest)(parsed.data);
+
   try {
-    const user = await User.findByIdAndUpdate(userId, parsed.data, { new: true, runValidators: true });
+    const user = await User.findByIdAndUpdate(userId, update, { new: true, runValidators: true });
     if (!user) {
       res.status(404).json({ error: 'User not found' });
       return;
@@ -274,6 +279,14 @@ export async function searchUsers(req: AuthRequest, res: Response): Promise<void
   const filter: Record<string, unknown> = { isBlocked: { $ne: true }, role: 'member' };
 
   if (communityId) filter.communityIds = communityId;
+  if (req.user?.role === 'community_admin') {
+    const mine = req.user.communityIds.map(String);
+    if (communityId && !mine.includes(communityId)) {
+      res.status(403).json({ error: 'Not authorized for this community' });
+      return;
+    }
+    if (!communityId) filter.communityIds = { $in: req.user.communityIds };
+  }
   if (filters?.gender) filter.gender = filters.gender;
   if (filters?.bloodGroup) filter.bloodGroup = filters.bloodGroup;
   if (filters?.locality) {

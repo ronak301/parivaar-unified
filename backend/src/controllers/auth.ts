@@ -437,6 +437,21 @@ export async function generateAdminOtp(req: AuthRequest, res: Response): Promise
     return;
   }
   const { phone } = parsed.data;
+
+  // Community admins may only issue OTPs for members of their own communities —
+  // otherwise they could log in as another community's member or an admin.
+  if (req.user?.role === 'community_admin') {
+    const member = await User.exists({
+      phone,
+      role: 'member',
+      communityIds: { $in: req.user.communityIds },
+    });
+    if (!member) {
+      res.status(403).json({ error: 'This phone number is not a member of your community' });
+      return;
+    }
+  }
+
   const otp = String(crypto.randomInt(100000, 999999));
 
   await setOTP(phone, { value: otp, sentAt: Date.now(), verificationId: ADMIN_OTP_VERIFICATION_ID }, ADMIN_OTP_TTL_SECONDS);

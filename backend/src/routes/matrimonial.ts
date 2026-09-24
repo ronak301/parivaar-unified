@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate, authorize, communityScope, asyncHandler } from '../middleware';
+import { authenticate, authorize, communityScope, recordScope, asyncHandler } from '../middleware';
+import { MatrimonialProfile } from '../models';
 import * as ctrl from '../controllers/matrimonial';
 
 const router = Router();
@@ -7,8 +8,8 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/community/:communityId', communityScope(), asyncHandler(ctrl.getMatrimonialProfiles));
-router.get('/:id', asyncHandler(ctrl.getMatrimonialProfile));
+router.get('/:id', recordScope(MatrimonialProfile), asyncHandler(ctrl.getMatrimonialProfile));
 router.post('/', communityScope(), asyncHandler(ctrl.createMatrimonialProfile));
-router.delete('/:id', authorize('super_admin', 'community_admin'), asyncHandler(ctrl.deleteMatrimonialProfile));
+router.delete('/:id', authorize('super_admin', 'community_admin'), recordScope(MatrimonialProfile), asyncHandler(ctrl.deleteMatrimonialProfile));
 
 export default router;

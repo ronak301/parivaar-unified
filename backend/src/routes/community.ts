@@ -13,8 +13,9 @@ router.get('/:id/members', communityScope('id'), asyncHandler(ctrl.getCommunityM
 router.post('/', authorize('super_admin'), asyncHandler(ctrl.createCommunity));
 router.put('/:id', authorize('super_admin', 'community_admin'), communityScope('id'), asyncHandler(ctrl.updateCommunity));
 router.delete('/:id', authorize('super_admin'), asyncHandler(ctrl.deleteCommunity));
-router.post('/:id/join', asyncHandler(ctrl.joinCommunity));
-router.post('/:id/leave', asyncHandler(ctrl.leaveCommunity));
+// Unused by the web app; open join would let any user read any community's directory.
+router.post('/:id/join', authorize('super_admin'), asyncHandler(ctrl.joinCommunity));
+router.post('/:id/leave', authorize('super_admin'), asyncHandler(ctrl.leaveCommunity));
 
 // Per-community admin login management (super-admin only).
 router.get('/:id/admin', authorize('super_admin'), asyncHandler(ctrl.getCommunityAdminInfo));

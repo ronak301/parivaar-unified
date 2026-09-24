@@ -72,7 +72,13 @@ export async function updateCommunity(req: AuthRequest, res: Response): Promise<
     return;
   }
 
-  const community = await Community.findByIdAndUpdate(req.params.id, parsed.data, {
+  // Status and feature flags are platform controls — only super admins set them.
+  const update =
+    req.user?.role === 'super_admin'
+      ? parsed.data
+      : (({ status: _s, features: _f, ...rest }) => rest)(parsed.data);
+
+  const community = await Community.findByIdAndUpdate(req.params.id, update, {
     new: true,
     runValidators: true,
   });
