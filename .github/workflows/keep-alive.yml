@@ -1,0 +1,27 @@
+name: Keep Alive
+
+# Supabase free tier pauses a project after ~7 days without database activity.
+# The old backend (current mobile app) runs on Supabase, so hit an endpoint that
+# queries it every day. Also checks the new backend. A failing run means
+# something is down — GitHub emails the repo owner.
+on:
+  schedule:
+    - cron: '30 3 * * *' # 09:00 IST daily
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Old backend (Supabase-backed)
+        run: |
+          code=$(curl -sS -o /tmp/old.json -w '%{http_code}' --max-time 30 https://api.parivaarapp.in/community/all)
+          echo "HTTP $code"; head -c 200 /tmp/old.json; echo
+          [ "$code" = "200" ]
+
+      - name: New backend (MongoDB-backed)
+        if: always()
+        run: |
+          code=$(curl -sS -o /tmp/new.json -w '%{http_code}' --max-time 30 https://api.parivaarapp.in/api/communities)
+          echo "HTTP $code"; head -c 200 /tmp/new.json; echo
+          [ "$code" = "200" ]
