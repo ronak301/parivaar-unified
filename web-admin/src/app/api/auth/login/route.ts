@@ -36,8 +36,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, token: data.token });
   } catch (error) {
+    // Surface the underlying network error (ECONNREFUSED, ENOTFOUND, timeout…)
+    // and target host — undici's bare "fetch failed" hides both.
+    const cause = error instanceof Error ? (error.cause as { code?: string; message?: string } | undefined) : undefined;
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Login failed' },
+      {
+        error: error instanceof Error ? error.message : 'Login failed',
+        cause: cause?.code || cause?.message,
+        backend: new URL(getBackendUrl()).host,
+      },
       { status: 500 }
     );
   }
