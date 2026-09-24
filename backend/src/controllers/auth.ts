@@ -105,18 +105,14 @@ function logOtpError(context: string, err: unknown): void {
   console.error(`[otp] ${context}:`, data ?? (err instanceof Error ? err.message : err));
 }
 
-
-type OtpSendResult = { ok: true; verificationId: string } | { ok: false; status: number; error: string };
-
-/** Sends an OTP to `phone` (or arms the dev bypass) and stores the verificationId under `storeKey`. */
-async function dispatchOtp(phone: string, storeKey: string): Promise<OtpSendResult> {
-  if (isDevOtpBypassActive) {
-    await setOTP(storeKey, { sentAt: Date.now(), verificationId: DEV_BYPASS_VERIFICATION_ID }, OTP_TTL_SECONDS);
-    return { ok: true, verificationId: DEV_BYPASS_VERIFICATION_ID };
-  }
-
+/**
+ * Asks MessageCentral to SMS an OTP. A repeat request inside their resend window
+ * comes back as 506 REQUEST_ALREADY_EXISTS with the still-live verificationId,
+ * which we reuse so the user can enter the code they already received.
+ */
+async function requestMessageCentralOtp(phone: string): Promise<{ verificationId: string } | { error: string }> {
   const mcToken = await getMessageCentralAuthToken();
-  if (!mcToken) return { ok: false, status: 502, error: 'Failed to get auth token from MessageCentral' };
+  if (!mcToken) return { error: 'Failed to get auth token from MessageCentral' };
 
   const otpRes = await axios.post(`${MESSAGE_CENTRAL_BASE}/verification/v3/send`, null, {
     params: {
@@ -127,9 +123,43 @@ async function dispatchOtp(phone: string, storeKey: string): Promise<OtpSendResu
       otpLength: env.MESSAGE_CENTRAL_OTP_LENGTH,
     },
     headers: { authToken: mcToken },
+    validateStatus: () => true,
   });
-  const verificationId = otpRes.data?.data?.verifyId;
-  if (!verificationId) return { ok: false, status: 502, error: 'Failed to send OTP' };
+  const verificationId = otpRes.data?.data?.verificationId;
+  const code = String(otpRes.data?.responseCode ?? '');
+  if (verificationId && (code === '200' || code === '506')) return { verificationId: String(verificationId) };
+
+  console.error('[otp] MessageCentral send failed:', otpRes.status, otpRes.data);
+  return { error: 'Failed to send OTP. Please try again in a minute.' };
+}
+
+/** Returns whether `otp` is correct for `verificationId`; throws only when MessageCentral is unreachable. */
+async function checkMessageCentralOtp(otp: string, verificationId: string): Promise<boolean | 'unavailable'> {
+  const mcToken = await getMessageCentralAuthToken();
+  if (!mcToken) return 'unavailable';
+
+  const verifyRes = await axios.get(`${MESSAGE_CENTRAL_BASE}/verification/v3/validateOtp`, {
+    params: { customerId: env.MESSAGE_CENTRAL_CUSTOMER_ID, code: otp, verificationId },
+    headers: { authToken: mcToken },
+    validateStatus: () => true,
+  });
+  const responseCode = String(verifyRes.data?.data?.responseCode ?? verifyRes.data?.responseCode ?? '');
+  if (responseCode !== '200') console.error('[otp] MessageCentral validate rejected:', verifyRes.status, verifyRes.data);
+  return responseCode === '200';
+}
+
+type OtpSendResult = { ok: true; verificationId: string } | { ok: false; status: number; error: string };
+
+/** Sends an OTP to `phone` (or arms the dev bypass) and stores the verificationId under `storeKey`. */
+async function dispatchOtp(phone: string, storeKey: string): Promise<OtpSendResult> {
+  if (isDevOtpBypassActive) {
+    await setOTP(storeKey, { sentAt: Date.now(), verificationId: DEV_BYPASS_VERIFICATION_ID }, OTP_TTL_SECONDS);
+    return { ok: true, verificationId: DEV_BYPASS_VERIFICATION_ID };
+  }
+
+  const sent = await requestMessageCentralOtp(phone);
+  if ('error' in sent) return { ok: false, status: 503, error: sent.error };
+  const { verificationId } = sent;
 
   await setOTP(storeKey, { sentAt: Date.now(), verificationId }, OTP_TTL_SECONDS);
   return { ok: true, verificationId };
@@ -152,15 +182,9 @@ async function validateOtp(
     return { ok: true };
   }
 
-  const mcToken = await getMessageCentralAuthToken();
-  if (!mcToken) return { ok: false, status: 502, error: 'Verification service unavailable' };
-
-  const verifyRes = await axios.get(`${MESSAGE_CENTRAL_BASE}/verification/v3/validateOtp`, {
-    params: { customerId: env.MESSAGE_CENTRAL_CUSTOMER_ID, code: otp, verificationId },
-    headers: { authToken: mcToken },
-  });
-  const responseCode = verifyRes.data?.data?.responseCode;
-  if (responseCode !== 200 && responseCode !== '200') return { ok: false, status: 400, error: 'Invalid OTP' };
+  const valid = await checkMessageCentralOtp(otp, verificationId);
+  if (valid === 'unavailable') return { ok: false, status: 503, error: 'Verification service unavailable' };
+  if (!valid) return { ok: false, status: 400, error: 'Invalid OTP' };
 
   await deleteOTP(storeKey);
   return { ok: true };
@@ -217,7 +241,7 @@ export async function sendActionOtp(req: AuthRequest, res: Response): Promise<vo
     res.json({ success: true, verificationId: result.verificationId, phoneHint: user.phone.slice(-4) });
   } catch (err) {
     logOtpError('send action OTP', err);
-    res.status(502).json({ error: 'OTP service unavailable' });
+    res.status(503).json({ error: 'OTP service unavailable' });
   }
 }
 
@@ -243,7 +267,7 @@ export async function verifyActionOtp(req: AuthRequest, res: Response): Promise<
     res.json({ success: true, actionToken: signActionToken(user._id.toString(), purpose) });
   } catch (err) {
     logOtpError('verify action OTP', err);
-    res.status(502).json({ error: 'OTP verification failed' });
+    res.status(503).json({ error: 'OTP verification failed' });
   }
 }
 
@@ -277,39 +301,19 @@ export async function sendOtp(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const mcToken = await getMessageCentralAuthToken();
-    if (!mcToken) {
-      res.status(502).json({ error: 'Failed to get auth token from MessageCentral' });
+    const sent = await requestMessageCentralOtp(phone);
+    if ('error' in sent) {
+      res.status(503).json({ error: sent.error });
       return;
     }
-
-    const otpRes = await axios.post(
-      `${MESSAGE_CENTRAL_BASE}/verification/v3/send`,
-      null,
-      {
-        params: {
-          countryCode: env.MESSAGE_CENTRAL_COUNTRY_CODE,
-          customerId: env.MESSAGE_CENTRAL_CUSTOMER_ID,
-          flowType: 'SMS',
-          mobileNumber: phone,
-          otpLength: env.MESSAGE_CENTRAL_OTP_LENGTH,
-        },
-        headers: { authToken: mcToken },
-      },
-    );
-
-    const verificationId = otpRes.data?.data?.verifyId;
-    if (!verificationId) {
-      res.status(502).json({ error: 'Failed to send OTP' });
-      return;
-    }
+    const { verificationId } = sent;
 
     await setOTP(phone, { sentAt: Date.now(), verificationId }, OTP_TTL_SECONDS);
 
     res.json({ success: true, verificationId });
   } catch (err) {
     logOtpError('send OTP', err);
-    res.status(502).json({ error: 'OTP service unavailable' });
+    res.status(503).json({ error: 'OTP service unavailable' });
   }
 }
 
@@ -363,26 +367,12 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const mcToken = await getMessageCentralAuthToken();
-    if (!mcToken) {
-      res.status(502).json({ error: 'Verification service unavailable' });
+    const valid = await checkMessageCentralOtp(otp, verificationId);
+    if (valid === 'unavailable') {
+      res.status(503).json({ error: 'Verification service unavailable' });
       return;
     }
-
-    const verifyRes = await axios.get(
-      `${MESSAGE_CENTRAL_BASE}/verification/v3/validateOtp`,
-      {
-        params: {
-          customerId: env.MESSAGE_CENTRAL_CUSTOMER_ID,
-          code: otp,
-          verificationId,
-        },
-        headers: { authToken: mcToken },
-      },
-    );
-
-    const responseCode = verifyRes.data?.data?.responseCode;
-    if (responseCode !== 200 && responseCode !== '200') {
+    if (!valid) {
       res.status(400).json({ error: 'Invalid OTP' });
       return;
     }
@@ -391,7 +381,7 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
     await issueSessionAndRespond(phone, res);
   } catch (err) {
     logOtpError('verify OTP', err);
-    res.status(502).json({ error: 'OTP verification failed' });
+    res.status(503).json({ error: 'OTP verification failed' });
   }
 }
 

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, user: data.user, isNewUser: data.isNewUser });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to verify OTP' },
+      { error: error instanceof SyntaxError ? 'Service temporarily unavailable. Please try again.' : error instanceof Error ? error.message : 'Failed to verify OTP' },
       { status: 500 },
     );
   }

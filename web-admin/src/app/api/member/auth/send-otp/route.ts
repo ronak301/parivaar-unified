@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, verificationId: data.verificationId });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to send OTP' },
+      { error: error instanceof SyntaxError ? 'Service temporarily unavailable. Please try again.' : error instanceof Error ? error.message : 'Failed to send OTP' },
       { status: 500 },
     );
   }
